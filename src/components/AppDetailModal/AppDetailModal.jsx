@@ -32,7 +32,12 @@ export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete
     <Modal isOpen onClose={onClose} title={app.name} closeOnOverlay>
       <div className={styles.body}>
         <div className={styles.top}>
-          <AppIcon src={app.iconUrl} name={app.name} className={styles.bigIcon} />
+          <AppIcon
+            src={app.iconUrl}
+            name={app.name}
+            fallback={app.kind === "page" ? app.byline : undefined}
+            className={styles.bigIcon}
+          />
           <div className={styles.info}>
             {app.byline && <span>{app.byline}</span>}
             <span className={styles.bundle}>
@@ -70,7 +75,7 @@ export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete
           </>
         )}
 
-        {app.screenshotUrl && (
+        {app.screenshotUrl ? (
           <>
             <div className={styles.labelRow}>
               <label className={styles.label}>{t("app.screenshot")}</label>
@@ -82,7 +87,12 @@ export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete
               <img src={app.screenshotUrl} alt={t("app.screenshot")} className={styles.shot} loading="lazy" />
             </div>
           </>
-        )}
+        ) : app.store === "pages" ? (
+          <>
+            <label className={styles.label}>{t("app.screenshot")}</label>
+            <p className={styles.shotPending}>{t("app.screenshotPending")}</p>
+          </>
+        ) : null}
 
         <label className={styles.label}>{t("app.note")}</label>
         {isOwner ? (

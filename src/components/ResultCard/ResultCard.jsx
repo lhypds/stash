@@ -11,6 +11,7 @@ export default function ResultCard({ result, stashed, onStash }) {
       <AppIcon
         src={result.icon}
         name={result.name}
+        fallback={result.kind === "page" ? result.byline : undefined}
         className={THUMB_KINDS.has(result.kind) ? styles.thumb : undefined}
       />
       <span className={styles.name}>{result.name}</span>

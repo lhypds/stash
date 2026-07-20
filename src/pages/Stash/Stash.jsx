@@ -44,6 +44,32 @@ export default function Stash() {
     };
   }, [username]);
 
+  // Page screenshots are captured in the background after stashing; while the
+  // detail of a page without one is open, poll until the capture lands
+  useEffect(() => {
+    if (!detail || detail.store !== "pages" || detail.screenshotUrl) return;
+    let cancelled = false;
+    let tries = 0;
+    const timer = setInterval(() => {
+      if (++tries > 20) return clearInterval(timer);
+      api
+        .getStash(username)
+        .then((data) => {
+          if (cancelled) return;
+          const fresh = data.items.find((a) => itemKey(a) === itemKey(detail));
+          if (fresh?.screenshotUrl) {
+            setItems(data.items);
+            setDetail(fresh);
+          }
+        })
+        .catch(() => {});
+    }, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [detail, username]);
+
   const stashedKeys = useMemo(() => new Set(items.map(itemKey)), [items]);
   const visibleItems = useMemo(
     () =>
