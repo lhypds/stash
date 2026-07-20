@@ -121,22 +121,49 @@ async function migrateLegacy() {
     try {
       tweetEntries = await fs.readdir(oldTweets, { withFileTypes: true });
     } catch {
-      continue;
+      tweetEntries = null;
     }
-    const newTweets = storeDir(u.name, "tweets");
-    try {
-      await fs.rename(oldTweets, newTweets);
-    } catch {
-      for (const e of tweetEntries) {
-        await fs.rename(path.join(oldTweets, e.name), path.join(newTweets, e.name)).catch(() => {});
+    if (tweetEntries) {
+      const newTweets = storeDir(u.name, "tweets");
+      try {
+        await fs.rename(oldTweets, newTweets);
+      } catch {
+        for (const e of tweetEntries) {
+          await fs.rename(path.join(oldTweets, e.name), path.join(newTweets, e.name)).catch(() => {});
+        }
+        await fs.rm(oldTweets, { recursive: true, force: true });
       }
-      await fs.rm(oldTweets, { recursive: true, force: true });
+      for (const e of tweetEntries) {
+        if (!e.isDirectory()) continue;
+        const f = path.join(newTweets, e.name, "item.json");
+        const rec = await readJson(f, null);
+        if (rec) await writeJson(f, { ...rec, store: "tweets" });
+      }
     }
-    for (const e of tweetEntries) {
-      if (!e.isDirectory()) continue;
-      const f = path.join(newTweets, e.name, "item.json");
-      const rec = await readJson(f, null);
-      if (rec) await writeJson(f, { ...rec, store: "tweets" });
+
+    // Non-app images were previously saved as icon.*; they are thumbnails
+    for (const store of Object.keys(STORES)) {
+      let entries = [];
+      try {
+        entries = await fs.readdir(storeDir(u.name, store), { withFileTypes: true });
+      } catch {
+        continue;
+      }
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const dir = itemDir(u.name, store, entry.name);
+        const f = path.join(dir, "item.json");
+        const rec = await readJson(f, null);
+        if (!rec?.iconFile?.startsWith("icon.")) continue;
+        if (rec.kind === "app" || rec.kind === "channel") continue;
+        const renamed = rec.iconFile.replace(/^icon\./, "thumbnail.");
+        try {
+          await fs.rename(path.join(dir, rec.iconFile), path.join(dir, renamed));
+          await writeJson(f, { ...rec, iconFile: renamed });
+        } catch (err) {
+          console.error("thumbnail rename failed:", err.message);
+        }
+      }
     }
   }
 }
@@ -395,6 +422,8 @@ app.post("/api/users/:username/items", async (req, res) => {
   await fs.mkdir(dir, { recursive: true });
   await ensureSettings(username);
 
+  const kindValue = String(kind || "app");
+  const imageBase = kindValue === "app" || kindValue === "channel" ? "icon" : "thumbnail";
   let iconFile = null;
   if (typeof icon === "string" && /^https?:\/\//.test(icon)) {
     try {
@@ -412,7 +441,7 @@ app.post("/api/users/:username/items", async (req, res) => {
                 : type.includes("icon")
                   ? "ico"
                   : "jpg";
-        iconFile = `icon.${ext}`;
+        iconFile = `${imageBase}.${ext}`;
         await fs.writeFile(path.join(dir, iconFile), Buffer.from(await r.arrayBuffer()));
       }
     } catch (err) {
@@ -423,7 +452,7 @@ app.post("/api/users/:username/items", async (req, res) => {
   const record = {
     store,
     itemId,
-    kind: String(kind || "app"),
+    kind: kindValue,
     name: String(name || itemId),
     byline: String(byline || ""),
     url: typeof url === "string" ? url : "",

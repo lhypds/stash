@@ -12,7 +12,10 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
   const { user, logout } = useUser();
   const navigate = useNavigate();
   const [term, setTerm] = useState("");
-  const [store, setStore] = useState(api.STORE_KEYS[0]);
+  const [store, setStore] = useState(() => {
+    const saved = localStorage.getItem("stash:store");
+    return api.STORE_KEYS.includes(saved) ? saved : api.STORE_KEYS[0];
+  });
   const [enabledStores, setEnabledStores] = useState(api.STORE_KEYS);
   const [menuOpen, setMenuOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -41,6 +44,8 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
 
   useEffect(() => {
     onStoreChange?.(store);
+    setTerm("");
+    localStorage.setItem("stash:store", store);
   }, [store, onStoreChange]);
 
   useEffect(() => {
