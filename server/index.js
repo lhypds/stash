@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import gplay from "google-play-scraper";
 import { ZipArchive } from "archiver";
+import { captureFullPage } from "./screenshot.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -64,12 +65,26 @@ async function ensureSettings(username) {
 }
 
 function withIconUrl(username, record) {
+  const base = `/data/users/${username}/stores/${record.store}/${record.itemId}`;
   return {
     ...record,
-    iconUrl: record.iconFile
-      ? `/data/users/${username}/stores/${record.store}/${record.itemId}/${record.iconFile}`
-      : null,
+    iconUrl: record.iconFile ? `${base}/${record.iconFile}` : null,
+    screenshotUrl: record.screenshotFile ? `${base}/${record.screenshotFile}` : null,
   };
+}
+
+// Fire-and-forget: stashing responds immediately, the screenshot lands later
+function captureInBackground(username, store, itemId, url) {
+  const dir = itemDir(username, store, itemId);
+  const file = "screenshot.jpg";
+  captureFullPage(url, path.join(dir, file))
+    .then(async () => {
+      const jsonFile = path.join(dir, "item.json");
+      const record = await readJson(jsonFile, null);
+      // record is null if the item was deleted mid-capture
+      if (record) await writeJson(jsonFile, { ...record, screenshotFile: file });
+    })
+    .catch((err) => console.error("screenshot failed:", err.message));
 }
 
 // One-time move of the pre-store layout (platforms/<platform>/<bundleId>/app.json)
@@ -461,6 +476,7 @@ app.post("/api/users/:username/items", async (req, res) => {
     stashedAt: new Date().toISOString(),
   };
   await writeJson(jsonFile, record);
+  if (store === "pages" && record.url) captureInBackground(username, store, itemId, record.url);
   res.status(201).json({ item: withIconUrl(username, record) });
 });
 

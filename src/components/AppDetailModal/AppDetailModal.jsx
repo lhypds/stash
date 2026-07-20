@@ -4,9 +4,26 @@ import { Modal, TextArea } from "@ui";
 import AppIcon from "@components/AppIcon";
 import styles from "./detail.module.css";
 
+function youtubeEmbedUrl(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\.|^m\./, "");
+    let id = null;
+    if (host === "youtu.be") {
+      id = u.pathname.split("/")[1];
+    } else if (host === "youtube.com" || host === "music.youtube.com") {
+      id = u.pathname === "/watch" ? u.searchParams.get("v") : u.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/)?.[1];
+    }
+    return id && /^[\w-]{6,20}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete }) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(app.note || "");
+  const videoEmbed = app.store === "youtube" && app.kind === "video" ? youtubeEmbedUrl(app.url) : null;
 
   const dirty = note !== (app.note || "");
   const stashedDate = app.stashedAt ? new Date(app.stashedAt).toLocaleString(i18n.language) : "";
@@ -32,6 +49,40 @@ export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete
             )}
           </div>
         </div>
+
+        {videoEmbed && (
+          <>
+            <div className={styles.labelRow}>
+              <label className={styles.label}>{t("app.video")}</label>
+              <a href={app.url} target="_blank" rel="noreferrer" className={styles.shotLink}>
+                {t("app.videoOpen")} ↗
+              </a>
+            </div>
+            <div className={styles.videoWrap}>
+              <iframe
+                src={videoEmbed}
+                title={app.name}
+                className={styles.video}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </>
+        )}
+
+        {app.screenshotUrl && (
+          <>
+            <div className={styles.labelRow}>
+              <label className={styles.label}>{t("app.screenshot")}</label>
+              <a href={app.screenshotUrl} target="_blank" rel="noreferrer" className={styles.shotLink}>
+                {t("app.screenshotOpen")} ↗
+              </a>
+            </div>
+            <div className={styles.shotWrap}>
+              <img src={app.screenshotUrl} alt={t("app.screenshot")} className={styles.shot} loading="lazy" />
+            </div>
+          </>
+        )}
 
         <label className={styles.label}>{t("app.note")}</label>
         {isOwner ? (

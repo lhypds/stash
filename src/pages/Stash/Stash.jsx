@@ -119,7 +119,9 @@ export default function Stash() {
         {search ? (
           <>
             <div className={styles.head}>
-              <h2 className={styles.heading}>{t("app.resultsFor", { term: search.term })}</h2>
+              <h2 className={`${styles.heading} ${styles.resultsHeading}`}>
+                {t("app.resultsFor", { term: search.term })}
+              </h2>
               <button className={styles.closeResults} onClick={() => setSearch(null)}>
                 ✕ {t("app.backToStash")}
               </button>

@@ -28,6 +28,11 @@
   white-space: nowrap;
 }
 
+.resultsHeading {
+  font-size: 14px;
+  font-weight: 400;
+}
+
 .count {
   font-size: 13px;
   color: var(--muted);
