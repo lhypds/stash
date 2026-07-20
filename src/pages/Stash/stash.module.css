@@ -1,5 +1,6 @@
 .page {
   min-height: 100vh;
+  min-height: 100dvh; /* iOS Safari: 100vh extends behind the collapsed URL bar */
   display: flex;
   flex-direction: column;
 }

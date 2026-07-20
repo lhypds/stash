@@ -1,5 +1,6 @@
 .page {
   min-height: 100vh;
+  min-height: 100dvh; /* iOS Safari: 100vh extends behind the collapsed URL bar */
   display: flex;
   flex-direction: column;
 }
@@ -18,6 +19,7 @@
   justify-content: center;
   gap: 14px;
   padding: 0 16px 15vh;
+  padding: 0 16px 15dvh;
   text-align: center;
 }
 
