@@ -1,0 +1,40 @@
+.wrapper {
+  position: relative;
+}
+
+.textarea {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  font-family: inherit;
+  border: 1px solid #ccc;
+  outline: none;
+  resize: none;
+  box-sizing: border-box;
+}
+
+.textarea:focus {
+  border-color: #555;
+}
+
+.handle {
+  position: absolute;
+  bottom: 2px;
+  right: 1px;
+  width: 14px;
+  height: 10px;
+  cursor: ns-resize;
+}
+
+.handle::before {
+  content: "";
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 10px;
+  height: 1px;
+  background: #bbb;
+  box-shadow:
+    0 -4px 0 #bbb,
+    0 -8px 0 #bbb;
+}

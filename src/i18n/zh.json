@@ -1,0 +1,115 @@
+{
+  "app": {
+    "tagline": "收藏你喜欢的一切，还能写笔记。",
+    "searchPlaceholder": {
+      "ios": "搜索 App Store",
+      "android": "搜索 Google Play"
+    },
+    "login": "登录",
+    "logout": "退出登录",
+    "usernamePlaceholder": "你的用户名",
+    "usernameInvalid": "请使用 1–32 位小写字母、数字、- 或 _",
+    "loginHint": "无需密码，输入用户名即可。",
+    "go": "进入",
+    "export": "导出",
+    "invalidJson": "JSON 格式无效",
+    "stash": "收藏",
+    "stashed": "已收藏",
+    "resultsFor": "“{{term}}”的搜索结果",
+    "backToStash": "返回收藏",
+    "noResults": "没有结果。",
+    "searching": "搜索中…",
+    "searchFailed": "搜索失败，请重试。",
+    "emptyStash": "还没有收藏。",
+    "note": "笔记",
+    "notePlaceholder": "写点笔记…",
+    "viewInStore": "在商店中查看",
+    "stashedAt": "收藏于",
+    "confirmDelete": "从收藏中移除此应用？",
+    "toastStashed": "已收藏 {{name}}",
+    "toastAlready": "已经收藏过了",
+    "toastSaved": "已保存",
+    "toastDeleted": "已移除",
+    "toastError": "出错了",
+    "userNotFound": "用户名无效。"
+  },
+  "common": {
+    "colon": "。",
+    "loading": "载入中..."
+  },
+  "button": {
+    "generate": "生成",
+    "create": "创建",
+    "edit": "编辑",
+    "share": "分享",
+    "delete": "删除",
+    "cancel": "取消",
+    "save": "保存",
+    "submit": "提交",
+    "notAllowSubmitted": "已作答",
+    "skip": "跳过",
+    "rewrite": "重写",
+    "complete": "完成",
+    "viewResults": "查看结果 →",
+    "viewMyResponse": "← 查看我的回答",
+    "addQuestion": "添加问题"
+  },
+  "toast": {
+    "linkCopied": "链接已复制到剪贴板",
+    "failedCopy": "复制链接失败",
+    "creating": "创建中",
+    "shareMessage": "q - 调查问卷生成器"
+  },
+  "survey": {
+    "thankYou": "谢谢！",
+    "responseRecorded": "您的回答已记录。",
+    "deleteTitle": "删除调查",
+    "deleteConfirm": "删除此调查？此操作无法撤销。",
+    "submitTitle": "提交",
+    "emailHint": "输入您的电子邮件以接收回答副本（可选）。",
+    "emailPlaceholder": "your@email.com",
+    "answerAll": "请在提交前回答所有问题。",
+    "submitFailed": "提交失败，请重试。",
+    "shareText": "欢迎参与调查！\n\n{{title}}\n{{subtitle}}\n{{shareUrl}}",
+    "shareTextResponse": "看看我的答案！\n\n{{title}}\n{{subtitle}}\n{{shareUrl}}"
+  },
+  "results": {
+    "loading": "加载中…",
+    "fetchError": "加载结果失败。",
+    "noRecord": "未找到回答记录。",
+    "noResponses": "暂无回答。",
+    "collected": "已收集 {{count}} 个回答",
+    "analysisTitle": "分析报告",
+    "otherResponses": "其他回答",
+    "shareText": "欢迎围观调查结果！\n\n{{title}}\n{{subtitle}}\n{{shareUrl}}"
+  },
+  "home": {
+    "title": "欢迎",
+    "noSurveys": "暂无调查。",
+    "untitled": "无标题",
+    "response_other": "{{count}} 个回答"
+  },
+  "createEdit": {
+    "createTitle": "创建调查",
+    "editTitle": "编辑",
+    "titleLabel": "标题",
+    "subtitleLabel": "副标题",
+    "descriptionLabel": "描述",
+    "invalidJson": "JSON 格式无效",
+    "titleRequired": "标题是必填项",
+    "questionRequired": "至少需要一个问题",
+    "invalidJsonSave": "JSON 格式无效 — 无法保存",
+    "invalidJsonAddQ": "JSON 格式无效 — 添加问题前请修复"
+  },
+  "generate": {
+    "title": "生成调查",
+    "placeholderModify": "您想如何修改调查？",
+    "placeholderNew": "您想调查什么？",
+    "promptPlaceholder": "调查问题将自动生成在这里，亦可手动编辑..."
+  },
+  "questionCard": {
+    "otherOption": "其他",
+    "yes": "是",
+    "no": "否"
+  }
+}

@@ -1,0 +1,66 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger {
+  width: 26px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid black;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.wrapper:hover .trigger {
+  background: black;
+  color: white;
+}
+
+.dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 999;
+  flex-direction: column;
+}
+
+.wrapper:hover .dropdown,
+.wrapper[data-open="true"] .dropdown {
+  display: flex;
+}
+
+.option {
+  width: 26px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid black;
+  border-top: none;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  line-height: 1;
+  white-space: nowrap;
+  justify-content: center;
+  text-align: center;
+}
+
+.option:hover,
+.active {
+  background: black;
+  color: white;
+}

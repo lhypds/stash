@@ -1,0 +1,47 @@
+.modal {
+  max-width: 360px;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.message {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cancel {
+  width: 100px;
+  padding: 6px 16px;
+  text-align: center;
+  background: none;
+  border: 1px solid var(--ink);
+  font-size: 12px;
+}
+
+.cancel:hover {
+  background: var(--soft);
+}
+
+.confirm {
+  width: 100px;
+  padding: 6px 16px;
+  text-align: center;
+  background: var(--ink);
+  color: var(--bg);
+  border: 1px solid var(--ink);
+  font-size: 12px;
+}
+
+.confirm:hover {
+  background: #333;
+}

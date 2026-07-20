@@ -1,0 +1,116 @@
+{
+  "app": {
+    "tagline": "Stash everything you love, with notes.",
+    "searchPlaceholder": {
+      "ios": "Search in App Store",
+      "android": "Search in Google Play"
+    },
+    "login": "Login",
+    "logout": "Logout",
+    "usernamePlaceholder": "Your username",
+    "usernameInvalid": "Use 1–32 lowercase letters, numbers, - or _",
+    "loginHint": "No password — just a username.",
+    "go": "Go",
+    "export": "Export",
+    "invalidJson": "Invalid JSON",
+    "stash": "Stash",
+    "stashed": "Stashed",
+    "resultsFor": "Results for “{{term}}”",
+    "backToStash": "Back to stash",
+    "noResults": "No results.",
+    "searching": "Searching…",
+    "searchFailed": "Search failed. Try again.",
+    "emptyStash": "Nothing stashed yet.",
+    "note": "Note",
+    "notePlaceholder": "Add a note…",
+    "viewInStore": "View in store",
+    "stashedAt": "Stashed",
+    "confirmDelete": "Remove this app from the stash?",
+    "toastStashed": "Stashed {{name}}",
+    "toastAlready": "Already stashed",
+    "toastSaved": "Saved",
+    "toastDeleted": "Removed",
+    "toastError": "Something went wrong",
+    "userNotFound": "Invalid username."
+  },
+  "common": {
+    "colon": ".",
+    "loading": "Loading..."
+  },
+  "button": {
+    "generate": "Generate",
+    "create": "Create",
+    "edit": "Edit",
+    "share": "Share",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "submit": "Submit",
+    "notAllowSubmitted": "Submitted",
+    "skip": "Skip",
+    "rewrite": "Rewrite",
+    "complete": "Complete",
+    "viewResults": "View Results →",
+    "viewMyResponse": "← My Responses",
+    "addQuestion": "Add question"
+  },
+  "toast": {
+    "linkCopied": "Link copied to clipboard",
+    "failedCopy": "Failed to copy link",
+    "creating": "Creating",
+    "shareMessage": "q"
+  },
+  "survey": {
+    "thankYou": "Thank you!",
+    "responseRecorded": "Your response has been recorded.",
+    "deleteTitle": "Delete survey",
+    "deleteConfirm": "Delete all responses for this survey? This cannot be undone.",
+    "submitTitle": "Submit",
+    "emailHint": "Enter your email to receive a copy of your response (optional).",
+    "emailPlaceholder": "your@email.com",
+    "answerAll": "Please answer all questions before submitting.",
+    "submitFailed": "Failed to submit. Please try again.",
+    "shareText": "Join the survey!\n\n{{title}}\n{{subtitle}}\n{{shareUrl}}",
+    "shareTextResponse": "Check out my survey response!\n\n{{title}}\n{{subtitle}}\n{{shareUrl}}"
+  },
+  "results": {
+    "loading": "Loading…",
+    "fetchError": "Failed to load results.",
+    "noRecord": "No response record found.",
+    "noResponses": "No responses yet.",
+    "collected": "{{count}} responses collected",
+    "analysisTitle": "Analysis",
+    "otherResponses": "Other responses",
+    "shareText": "Check out the survey results!\n\n{{title}}\n{{subtitle}}\n{{shareUrl}}"
+  },
+  "home": {
+    "title": "Welcome",
+    "noSurveys": "Noq.",
+    "untitled": "Untitled",
+    "response_one": "{{count}} response",
+    "response_other": "{{count}} responses"
+  },
+  "createEdit": {
+    "createTitle": "Create",
+    "editTitle": "Edit",
+    "titleLabel": "Title",
+    "subtitleLabel": "Subtitle",
+    "descriptionLabel": "Description",
+    "invalidJson": "Invalid JSON",
+    "titleRequired": "Title is required",
+    "questionRequired": "At least one question is required",
+    "invalidJsonSave": "Invalid JSON — cannot save",
+    "invalidJsonAddQ": "Invalid JSON — fix it before adding a question"
+  },
+  "generate": {
+    "title": "Generate",
+    "placeholderModify": "How you want to modify the survey?",
+    "placeholderNew": "What would you like to survey?",
+    "promptPlaceholder": "Your survey questions will be generated here, and can also be edited..."
+  },
+  "questionCard": {
+    "otherOption": "Other",
+    "yes": "Yes",
+    "no": "No"
+  }
+}

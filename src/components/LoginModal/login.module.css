@@ -1,0 +1,46 @@
+.modal {
+  max-width: 360px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input {
+  padding: 10px 12px;
+  border: 1px solid var(--ink);
+  font-size: 15px;
+  outline: none;
+  background: var(--bg);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: text;
+}
+
+.input:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.submit {
+  padding: 10px;
+  background: var(--ink);
+  color: var(--bg);
+  border: 1px solid var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}

@@ -1,0 +1,87 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.top {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+.bigIcon {
+  width: 72px;
+  height: 72px;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.info a {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.bundle {
+  word-break: break-all;
+}
+
+.label {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.readNote {
+  font-size: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.saveBtn {
+  width: 100px;
+  padding: 6px 16px;
+  text-align: center;
+  background: var(--ink);
+  color: var(--bg);
+  border: 1px solid var(--ink);
+  font-size: 12px;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: #333;
+}
+
+.saveBtn:disabled {
+  opacity: 0.35;
+}
+
+.deleteBtn {
+  width: 100px;
+  padding: 6px 16px;
+  text-align: center;
+  background: none;
+  border: 1px solid var(--ink);
+  font-size: 12px;
+}
+
+.deleteBtn:hover {
+  background: var(--soft);
+}

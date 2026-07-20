@@ -1,0 +1,115 @@
+{
+  "app": {
+    "tagline": "好きなものをぜんぶストック。メモも書ける。",
+    "searchPlaceholder": {
+      "ios": "App Store で検索",
+      "android": "Google Play で検索"
+    },
+    "login": "ログイン",
+    "logout": "ログアウト",
+    "usernamePlaceholder": "ユーザー名",
+    "usernameInvalid": "1〜32文字の小文字英数字、- または _ を使ってください",
+    "loginHint": "パスワード不要。ユーザー名だけでOK。",
+    "go": "はじめる",
+    "export": "エクスポート",
+    "invalidJson": "JSONが無効です",
+    "stash": "ストック",
+    "stashed": "ストック済み",
+    "resultsFor": "「{{term}}」の検索結果",
+    "backToStash": "ストックに戻る",
+    "noResults": "結果がありません。",
+    "searching": "検索中…",
+    "searchFailed": "検索に失敗しました。もう一度お試しください。",
+    "emptyStash": "まだ何もありません。",
+    "note": "メモ",
+    "notePlaceholder": "メモを書く…",
+    "viewInStore": "ストアで見る",
+    "stashedAt": "ストック日",
+    "confirmDelete": "このアプリをストックから削除しますか？",
+    "toastStashed": "{{name}} をストックしました",
+    "toastAlready": "すでにストック済みです",
+    "toastSaved": "保存しました",
+    "toastDeleted": "削除しました",
+    "toastError": "エラーが発生しました",
+    "userNotFound": "ユーザー名が無効です。"
+  },
+  "common": {
+    "colon": "。",
+    "loading": "読み込み中..."
+  },
+  "button": {
+    "generate": "生成",
+    "create": "作成",
+    "edit": "編集",
+    "share": "共有",
+    "delete": "削除",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "submit": "送信",
+    "notAllowSubmitted": "回答済み",
+    "skip": "スキップ",
+    "rewrite": "書き直す",
+    "complete": "完成",
+    "viewResults": "結果を見る →",
+    "viewMyResponse": "← 自分の回答を見る",
+    "addQuestion": "質問を追加"
+  },
+  "toast": {
+    "linkCopied": "リンクをコピーしました",
+    "failedCopy": "リンクのコピーに失敗しました",
+    "creating": "作成中",
+    "shareMessage": "q - アンケート生成ツール"
+  },
+  "survey": {
+    "thankYou": "ありがとうございます！",
+    "responseRecorded": "回答が記録されました。",
+    "deleteTitle": "アンケートを削除",
+    "deleteConfirm": "このアンケートの全回答を削除しますか？この操作は取り消せません。",
+    "submitTitle": "送信",
+    "emailHint": "回答のコピーを受け取るにはメールアドレスを入力してください（任意）。",
+    "emailPlaceholder": "your@email.com",
+    "answerAll": "送信前にすべての質問に回答してください。",
+    "submitFailed": "送信に失敗しました。もう一度お試しください。",
+    "shareText": "アンケートへご参加ください！\n\n{{title}}\n{{subtitle}}\n{{shareUrl}}",
+    "shareTextResponse": "私のアンケート回答をご覧ください！\n\n{{title}}\n{{subtitle}}\n{{shareUrl}}"
+  },
+  "results": {
+    "loading": "読み込み中…",
+    "fetchError": "結果の読み込みに失敗しました。",
+    "noRecord": "回答記録が見つかりません。",
+    "noResponses": "まだ回答がありません。",
+    "collected": "{{count}} 件の回答が収集されました",
+    "analysisTitle": "分析レポート",
+    "otherResponses": "その他の回答",
+    "shareText": "アンケート結果をご覧ください！\n\n{{title}}\n{{subtitle}}\n{{shareUrl}}"
+  },
+  "home": {
+    "title": "ようこそ",
+    "noSurveys": "アンケートなし。",
+    "untitled": "無題",
+    "response_other": "{{count}} 件の回答"
+  },
+  "createEdit": {
+    "createTitle": "アンケート作成",
+    "editTitle": "編集",
+    "titleLabel": "タイトル",
+    "subtitleLabel": "サブタイトル",
+    "descriptionLabel": "説明",
+    "invalidJson": "JSONが無効です",
+    "titleRequired": "タイトルは必須です",
+    "questionRequired": "少なくとも1つの質問が必要です",
+    "invalidJsonSave": "JSONが無効です — 保存できません",
+    "invalidJsonAddQ": "JSONが無効です — 質問を追加する前に修正してください"
+  },
+  "generate": {
+    "title": "アンケート生成",
+    "placeholderModify": "アンケートをどのように修正しますか？",
+    "placeholderNew": "何についてアンケートを作成しますか？",
+    "promptPlaceholder": "アンケートの質問がここに自動生成されます。編集することもできます..."
+  },
+  "questionCard": {
+    "otherOption": "その他",
+    "yes": "はい",
+    "no": "いいえ"
+  }
+}

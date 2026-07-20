@@ -1,0 +1,37 @@
+@import url(https://cdn.jsdelivr.net/npm/firacode@6.2.0/distr/fira_code.css);
+
+:root {
+  --ink: #111;
+  --muted: #767676;
+  --line: #e2e2e2;
+  --soft: #f5f5f5;
+  --bg: #fff;
+}
+
+body {
+  font-family: "Fira Code VF", Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button {
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  color: inherit;
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
