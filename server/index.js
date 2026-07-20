@@ -77,11 +77,14 @@ const VIDEO_PLATFORMS = [
     // bilibili.tv is the international site; spaces live on a subdomain
     // (space.bilibili.com) or under /<locale>/space/<id> on .tv.
     // og:image is the real cover, but bilibili's CDN appends a resize/crop
-    // transform (e.g. "...jpg@100w_100h_1c.png"); strip it for full size
+    // transform (e.g. "...jpg@100w_100h_1c.png"); strip it for full size.
+    // Its CDN also 403s hotlinked fetches that carry a foreign Referer, but
+    // allows them with none, so the browser preview must drop the Referer
     label: "bilibili",
     hosts: ["bilibili.com", "b23.tv", "bilibili.tv"],
     channel: (u) => u.hostname.startsWith("space.") || u.pathname.includes("/space/"),
     cleanIcon: (icon) => icon.replace(/^(.*\.(?:jpe?g|png|webp))@.*$/i, "$1"),
+    iconReferrerPolicy: "no-referrer",
   },
   {
     label: "TikTok",
@@ -107,11 +110,9 @@ const VIDEO_PLATFORMS = [
     channel: (u) => u.hostname.startsWith("ch.") || /^\/user\//.test(u.pathname),
   },
   {
-    // No thumbnail: kept out of stash grids/search results by default
     label: "Pornhub",
     hosts: ["pornhub.com"],
     channel: (u) => /^\/(model|pornstar|channels|users)\//.test(u.pathname),
-    noThumbnail: true,
   },
 ];
 
@@ -295,7 +296,7 @@ async function migrateLegacy() {
 
     // Non-app images were previously saved as icon.*; they are thumbnails.
     // Also drop any thumbnail already downloaded for a platform that has
-    // since been marked noThumbnail (currently bilibili and Pornhub)
+    // since been marked noThumbnail
     for (const store of Object.keys(STORES)) {
       let entries = [];
       try {
@@ -424,6 +425,7 @@ async function analyzeVideo(url, store) {
     kind,
     byline: platform?.label || page.byline,
     icon,
+    iconReferrerPolicy: platform?.iconReferrerPolicy,
   };
 }
 

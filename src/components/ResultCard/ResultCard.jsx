@@ -13,6 +13,7 @@ export default function ResultCard({ result, stashed, onStash }) {
         name={result.name}
         fallback={result.kind === "page" ? result.byline : undefined}
         className={THUMB_KINDS.has(result.kind) ? styles.thumb : undefined}
+        referrerPolicy={result.iconReferrerPolicy}
       />
       <span className={styles.name}>{result.name}</span>
       <span className={styles.meta}>
