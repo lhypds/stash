@@ -2,4 +2,4 @@
 stash
 =====
 
-Stashing things like pages, posts, YouTube, and mobile apps — into a personal, shareable collection.
+Stashing things like pages, posts, videos, channels, and mobile apps — into a personal, shareable collection.

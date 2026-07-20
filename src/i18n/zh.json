@@ -10,8 +10,8 @@
       "android-apps": "Android 应用",
       "tweets": "推文",
       "pages": "网页",
-      "youtube-videos": "YouTube 视频",
-      "youtube-channels": "YouTube 频道"
+      "videos": "视频",
+      "channels": "频道"
     },
     "kinds": {
       "tweet": "推文",
@@ -23,8 +23,8 @@
     "urlPlaceholder": {
       "default": "粘贴链接",
       "tweets": "粘贴 x.com、Threads、小红书、Instagram… 链接",
-      "youtube-videos": "粘贴 YouTube 链接",
-      "youtube-channels": "粘贴 YouTube 频道链接"
+      "videos": "粘贴 YouTube、bilibili、TikTok… 视频链接",
+      "channels": "粘贴 YouTube、bilibili、TikTok… 频道链接"
     },
     "analyze": "分析",
     "analyzing": "分析中…",
@@ -53,7 +53,7 @@
     "screenshotOpen": "查看完整截图",
     "screenshotPending": "正在截图…",
     "video": "视频",
-    "videoOpen": "在 YouTube 上观看",
+    "videoOpen": "去原网站观看",
     "viewInStore": "打开链接",
     "stashedAt": "收藏于",
     "confirmDelete": "从收藏中移除此应用？",

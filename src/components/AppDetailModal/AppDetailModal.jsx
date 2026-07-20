@@ -4,17 +4,20 @@ import { Modal, TextArea } from "@ui";
 import AppIcon from "@components/AppIcon";
 import styles from "./detail.module.css";
 
-function youtubeEmbedUrl(url) {
+function videoEmbedUrl(url) {
   try {
     const u = new URL(url);
     const host = u.hostname.replace(/^www\.|^m\./, "");
-    let id = null;
-    if (host === "youtu.be") {
-      id = u.pathname.split("/")[1];
-    } else if (host === "youtube.com" || host === "music.youtube.com") {
-      id = u.pathname === "/watch" ? u.searchParams.get("v") : u.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/)?.[1];
+    if (host === "youtu.be" || host === "youtube.com" || host.endsWith(".youtube.com")) {
+      const id =
+        host === "youtu.be"
+          ? u.pathname.split("/")[1]
+          : u.pathname === "/watch"
+            ? u.searchParams.get("v")
+            : u.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/)?.[1];
+      return id && /^[\w-]{6,20}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : null;
     }
-    return id && /^[\w-]{6,20}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+    return null;
   } catch {
     return null;
   }
@@ -23,7 +26,7 @@ function youtubeEmbedUrl(url) {
 export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete }) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(app.note || "");
-  const videoEmbed = app.store === "youtube-videos" && app.kind === "video" ? youtubeEmbedUrl(app.url) : null;
+  const videoEmbed = app.store === "videos" && app.kind === "video" ? videoEmbedUrl(app.url) : null;
 
   const dirty = note !== (app.note || "");
   const stashedDate = app.stashedAt ? new Date(app.stashedAt).toLocaleString(i18n.language) : "";

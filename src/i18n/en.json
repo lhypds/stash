@@ -10,8 +10,8 @@
       "android-apps": "Android Apps",
       "tweets": "Tweets",
       "pages": "Pages",
-      "youtube-videos": "YouTube Videos",
-      "youtube-channels": "YouTube Channels"
+      "videos": "Videos",
+      "channels": "Channels"
     },
     "kinds": {
       "tweet": "Tweet",
@@ -23,8 +23,8 @@
     "urlPlaceholder": {
       "default": "Paste a URL",
       "tweets": "Paste an x.com, Threads, RedNote, Instagram… URL",
-      "youtube-videos": "Paste a YouTube URL",
-      "youtube-channels": "Paste a YouTube Channel URL"
+      "videos": "Paste a YouTube, bilibili, TikTok… video URL",
+      "channels": "Paste a YouTube, bilibili, TikTok… channel URL"
     },
     "analyze": "Analyze",
     "analyzing": "Analyzing…",
@@ -53,7 +53,7 @@
     "screenshotOpen": "Open full screenshot",
     "screenshotPending": "Capturing the page…",
     "video": "Video",
-    "videoOpen": "Watch on YouTube",
+    "videoOpen": "Watch on site",
     "viewInStore": "Open link",
     "stashedAt": "Stashed",
     "confirmDelete": "Remove this app from the stash?",

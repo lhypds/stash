@@ -26,8 +26,8 @@ const PORT = process.env.PORT || 3001;
 const STORES = {
   pages: { type: "url" },
   tweets: { type: "url" },
-  "youtube-videos": { type: "url" },
-  "youtube-channels": { type: "url" },
+  videos: { type: "url" },
+  channels: { type: "url" },
   "ios-apps": { type: "search" },
   "android-apps": { type: "search" },
 };
@@ -59,6 +59,64 @@ const POST_PLATFORMS = [
 
 const platformFor = (host) =>
   POST_PLATFORMS.find((p) => p.hosts.some((h) => host === h || host.endsWith(`.${h}`)));
+
+// Platforms the "videos"/"channels" stores understand. Hosts match exactly
+// or by subdomain. `channel` recognizes channel/profile URLs by shape;
+// `oembed` builds the platform's oEmbed endpoint, which answers only for
+// videos — so a failed lookup on an oEmbed platform means the URL is a
+// channel (or other non-video) page. Unknown hosts still get the generic
+// OG fallback, typed by whichever store the URL was pasted into.
+const VIDEO_PLATFORMS = [
+  {
+    label: "YouTube",
+    hosts: ["youtube.com", "youtu.be"],
+    oembed: (url) => `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
+    channel: (u) => /^\/(@|channel\/|c\/|user\/)/.test(u.pathname),
+  },
+  {
+    // bilibili.tv is the international site; spaces live on a subdomain
+    // (space.bilibili.com) or under /<locale>/space/<id> on .tv.
+    // No thumbnail: og:image is frequently a generic share card, not the
+    // video's actual cover
+    label: "bilibili",
+    hosts: ["bilibili.com", "b23.tv", "bilibili.tv"],
+    channel: (u) => u.hostname.startsWith("space.") || u.pathname.includes("/space/"),
+    noThumbnail: true,
+  },
+  {
+    label: "TikTok",
+    hosts: ["tiktok.com"],
+    ua: BOT_UA,
+    oembed: (url) => `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
+    channel: (u) => /^\/@[^/]+\/?$/.test(u.pathname),
+  },
+  {
+    label: "Vimeo",
+    hosts: ["vimeo.com"],
+    oembed: (url) => `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(url)}`,
+    channel: (u) => /^\/(channels\/[^/]+|[a-zA-Z][\w.-]*)\/?$/.test(u.pathname),
+  },
+  {
+    label: "Twitch",
+    hosts: ["twitch.tv"],
+    channel: (u) => /^\/[a-zA-Z0-9_]+\/?$/.test(u.pathname),
+  },
+  {
+    label: "niconico",
+    hosts: ["nicovideo.jp", "nico.ms"],
+    channel: (u) => u.hostname.startsWith("ch.") || /^\/user\//.test(u.pathname),
+  },
+  {
+    // No thumbnail: kept out of stash grids/search results by default
+    label: "Pornhub",
+    hosts: ["pornhub.com"],
+    channel: (u) => /^\/(model|pornstar|channels|users)\//.test(u.pathname),
+    noThumbnail: true,
+  },
+];
+
+const videoPlatformFor = (host) =>
+  VIDEO_PLATFORMS.find((p) => p.hosts.some((h) => host === h || host.endsWith(`.${h}`)));
 
 const userDir = (username) => path.join(DATA_DIR, "users", username);
 const settingsFile = (username) => path.join(userDir(username), "settings.json");
@@ -118,6 +176,34 @@ function captureInBackground(username, store, itemId, url) {
     .catch((err) => console.error("screenshot failed:", err.message));
 }
 
+// Move a whole store to a new name, rewriting each item's `store` field
+async function renameStore(username, from, to) {
+  const oldDir = storeDir(username, from);
+  let entries = null;
+  try {
+    entries = await fs.readdir(oldDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  const newDir = storeDir(username, to);
+  try {
+    await fs.rename(oldDir, newDir);
+  } catch {
+    // destination already exists → move the entries individually
+    await fs.mkdir(newDir, { recursive: true });
+    for (const e of entries) {
+      await fs.rename(path.join(oldDir, e.name), path.join(newDir, e.name)).catch(() => {});
+    }
+    await fs.rm(oldDir, { recursive: true, force: true });
+  }
+  for (const e of entries) {
+    if (!e.isDirectory()) continue;
+    const f = path.join(newDir, e.name, "item.json");
+    const rec = await readJson(f, null);
+    if (rec) await writeJson(f, { ...rec, store: to });
+  }
+}
+
 // One-time move of the pre-store layout (platforms/<platform>/<bundleId>/app.json)
 // into stores/<store>/<itemId>/item.json.
 async function migrateLegacy() {
@@ -162,32 +248,9 @@ async function migrateLegacy() {
     await fs.rm(legacyRoot, { recursive: true, force: true });
 
     // The "twitter" store was renamed to "tweets"
-    const oldTweets = storeDir(u.name, "twitter");
-    let tweetEntries = null;
-    try {
-      tweetEntries = await fs.readdir(oldTweets, { withFileTypes: true });
-    } catch {
-      tweetEntries = null;
-    }
-    if (tweetEntries) {
-      const newTweets = storeDir(u.name, "tweets");
-      try {
-        await fs.rename(oldTweets, newTweets);
-      } catch {
-        for (const e of tweetEntries) {
-          await fs.rename(path.join(oldTweets, e.name), path.join(newTweets, e.name)).catch(() => {});
-        }
-        await fs.rm(oldTweets, { recursive: true, force: true });
-      }
-      for (const e of tweetEntries) {
-        if (!e.isDirectory()) continue;
-        const f = path.join(newTweets, e.name, "item.json");
-        const rec = await readJson(f, null);
-        if (rec) await writeJson(f, { ...rec, store: "tweets" });
-      }
-    }
+    await renameStore(u.name, "twitter", "tweets");
 
-    // The "youtube" store was split into "youtube-videos" and "youtube-channels"
+    // The "youtube" store was split into "videos" and "channels"
     const oldYoutube = storeDir(u.name, "youtube");
     let ytEntries = [];
     try {
@@ -199,7 +262,7 @@ async function migrateLegacy() {
       if (!e.isDirectory()) continue;
       const src = path.join(oldYoutube, e.name);
       const rec = await readJson(path.join(src, "item.json"), null);
-      const store = rec?.kind === "channel" ? "youtube-channels" : "youtube-videos";
+      const store = rec?.kind === "channel" ? "channels" : "videos";
       const dst = itemDir(u.name, store, e.name);
       await fs.mkdir(path.dirname(dst), { recursive: true });
       await fs.rename(src, dst).catch(() => {});
@@ -207,17 +270,32 @@ async function migrateLegacy() {
     }
     if (ytEntries.length) await fs.rm(oldYoutube, { recursive: true, force: true });
 
-    // Carry the old store's visibility setting over to both new stores
+    // The YouTube-only stores went multi-platform: "youtube-videos" became
+    // "videos" and "youtube-channels" became "channels"
+    await renameStore(u.name, "youtube-videos", "videos");
+    await renameStore(u.name, "youtube-channels", "channels");
+
+    // Carry store visibility settings across the renames above
     const settings = await readJson(settingsFile(u.name), null);
-    if (settings?.stores?.youtube !== undefined) {
-      const { youtube, ...rest } = settings.stores;
-      await writeJson(settingsFile(u.name), {
-        ...settings,
-        stores: { ...rest, "youtube-videos": youtube, "youtube-channels": youtube },
-      });
+    if (settings?.stores) {
+      const stores = { ...settings.stores };
+      for (const [from, ...to] of [
+        ["youtube", "videos", "channels"],
+        ["youtube-videos", "videos"],
+        ["youtube-channels", "channels"],
+      ]) {
+        if (stores[from] === undefined) continue;
+        for (const key of to) stores[key] = stores[from];
+        delete stores[from];
+      }
+      if (JSON.stringify(stores) !== JSON.stringify(settings.stores)) {
+        await writeJson(settingsFile(u.name), { ...settings, stores });
+      }
     }
 
-    // Non-app images were previously saved as icon.*; they are thumbnails
+    // Non-app images were previously saved as icon.*; they are thumbnails.
+    // Also drop any thumbnail already downloaded for a platform that has
+    // since been marked noThumbnail (currently bilibili and Pornhub)
     for (const store of Object.keys(STORES)) {
       let entries = [];
       try {
@@ -230,8 +308,19 @@ async function migrateLegacy() {
         const dir = itemDir(u.name, store, entry.name);
         const f = path.join(dir, "item.json");
         const rec = await readJson(f, null);
-        if (!rec?.iconFile?.startsWith("icon.")) continue;
-        if (rec.kind === "app") continue;
+        if (!rec) continue;
+
+        let platform = null;
+        try {
+          platform = videoPlatformFor(new URL(rec.url).hostname.replace(/^www\.|^m\./, ""));
+        } catch {}
+        if (rec.iconFile && platform?.noThumbnail) {
+          await fs.rm(path.join(dir, rec.iconFile), { force: true }).catch(() => {});
+          await writeJson(f, { ...rec, iconFile: null });
+          continue;
+        }
+
+        if (!rec.iconFile?.startsWith("icon.") || rec.kind === "app") continue;
         const renamed = rec.iconFile.replace(/^icon\./, "thumbnail.");
         try {
           await fs.rename(path.join(dir, rec.iconFile), path.join(dir, renamed));
@@ -285,8 +374,8 @@ async function fetchHtml(url, ua = UA, limit = 500000) {
   return { html: (await r.text()).slice(0, limit), finalUrl: r.url || url };
 }
 
-async function analyzePage(url, limit) {
-  const { html, finalUrl } = await fetchHtml(url, UA, limit);
+async function analyzePage(url, limit, ua = UA) {
+  const { html, finalUrl } = await fetchHtml(url, ua, limit);
   const loc = new URL(finalUrl);
   const title =
     metaContent(html, "og:title") || stripTags(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
@@ -300,18 +389,37 @@ async function analyzePage(url, limit) {
   };
 }
 
-async function analyzeYoutube(url) {
-  const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`, {
-    headers: { "User-Agent": UA },
-  });
-  if (r.ok) {
-    const j = await r.json();
-    return { kind: "video", name: j.title || url, byline: j.author_name || "YouTube", icon: j.thumbnail_url || null, url };
+async function analyzeVideo(url, store) {
+  const u = new URL(url);
+  const host = u.hostname.replace(/^www\.|^m\./, "");
+  const platform = videoPlatformFor(host);
+  const isChannelUrl = platform ? !!platform.channel?.(u) : store === "channels";
+
+  if (platform?.oembed && !isChannelUrl) {
+    const r = await fetch(platform.oembed(url), { headers: { "User-Agent": UA } });
+    if (r.ok) {
+      const j = await r.json();
+      return {
+        kind: "video",
+        name: j.title || url,
+        byline: j.author_name || platform.label,
+        icon: platform.noThumbnail ? null : j.thumbnail_url || null,
+        url,
+      };
+    }
   }
-  // No oEmbed → channel (or other non-video) page: fall back to Open Graph tags.
-  // YouTube inlines ~700KB of scripts before <head> metadata, so read a larger slice
-  const page = await analyzePage(url, 2000000);
-  return { ...page, kind: "channel", byline: "YouTube" };
+
+  // Open Graph fallback. Platforms with oEmbed only land here for channel
+  // (or other non-video) pages; some inline hundreds of KB of scripts
+  // before <head> metadata, so read a larger slice
+  const page = await analyzePage(url, 2000000, platform?.ua);
+  const kind = isChannelUrl || platform?.oembed ? "channel" : "video";
+  return {
+    ...page,
+    kind,
+    byline: platform?.label || page.byline,
+    icon: platform?.noThumbnail ? null : page.icon,
+  };
 }
 
 async function analyzeTweet(url) {
@@ -449,15 +557,15 @@ app.get("/api/analyze", async (req, res) => {
   }
 
   try {
-    const isYoutube = store === "youtube-videos" || store === "youtube-channels";
-    const analyzed = isYoutube
-      ? await analyzeYoutube(url.href)
+    const isVideoStore = store === "videos" || store === "channels";
+    const analyzed = isVideoStore
+      ? await analyzeVideo(url.href, store)
       : store === "tweets"
         ? await analyzeTweet(url.href)
         : await analyzePage(url.href);
-    // A YouTube URL lands in the store matching what it actually is,
+    // A video-platform URL lands in the store matching what it actually is,
     // regardless of which of the two stores it was analyzed from
-    const finalStore = isYoutube ? (analyzed.kind === "channel" ? "youtube-channels" : "youtube-videos") : store;
+    const finalStore = isVideoStore ? (analyzed.kind === "channel" ? "channels" : "videos") : store;
     const itemId = crypto.createHash("sha1").update(url.href).digest("hex").slice(0, 16);
     res.json({ result: { store: finalStore, itemId, ...analyzed } });
   } catch (err) {
@@ -522,7 +630,11 @@ app.post("/api/users/:username/items", async (req, res) => {
   let iconFile = null;
   if (typeof icon === "string" && /^https?:\/\//.test(icon)) {
     try {
-      const r = await fetch(icon, { headers: { "User-Agent": UA } });
+      // Some CDNs (e.g. one of Pornhub's two image edges) 403 hotlinked
+      // fetches unless the Referer matches the site the image belongs to
+      const headers = { "User-Agent": UA };
+      if (typeof url === "string" && /^https?:\/\//.test(url)) headers.Referer = new URL(url).origin + "/";
+      const r = await fetch(icon, { headers });
       if (r.ok) {
         const type = r.headers.get("content-type") || "";
         const ext = type.includes("png")

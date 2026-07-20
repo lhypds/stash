@@ -10,8 +10,8 @@
       "android-apps": "Androidアプリ",
       "tweets": "ツイート",
       "pages": "ページ",
-      "youtube-videos": "YouTube動画",
-      "youtube-channels": "YouTubeチャンネル"
+      "videos": "動画",
+      "channels": "チャンネル"
     },
     "kinds": {
       "tweet": "ツイート",
@@ -23,8 +23,8 @@
     "urlPlaceholder": {
       "default": "URLを貼り付け",
       "tweets": "x.com、Threads、RedNote、Instagram…のURLを貼り付け",
-      "youtube-videos": "YouTubeのURLを貼り付け",
-      "youtube-channels": "YouTubeチャンネルのURLを貼り付け"
+      "videos": "YouTube、bilibili、TikTok…の動画URLを貼り付け",
+      "channels": "YouTube、bilibili、TikTok…のチャンネルURLを貼り付け"
     },
     "analyze": "分析",
     "analyzing": "分析中…",
@@ -53,7 +53,7 @@
     "screenshotOpen": "全体のスクリーンショットを開く",
     "screenshotPending": "スクリーンショットを撮影中…",
     "video": "動画",
-    "videoOpen": "YouTubeで視聴",
+    "videoOpen": "サイトで視聴",
     "viewInStore": "リンクを開く",
     "stashedAt": "ストック日",
     "confirmDelete": "このアプリをストックから削除しますか？",
