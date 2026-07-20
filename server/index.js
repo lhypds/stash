@@ -27,8 +27,29 @@ const USERNAME_RE = /^[a-z0-9_-]{1,32}$/;
 const ITEM_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$/;
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15";
-// x.com / threads.net render Open Graph tags (incl. post images) only for crawler UAs
+// Most post platforms render Open Graph tags (incl. post images) only for
+// crawler UAs — but each has its own idea of which crawler is welcome
 const BOT_UA = "Mozilla/5.0 (compatible; Twitterbot/1.0)";
+const META_UA = "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
+
+// Platforms the "tweets" store understands. Hosts match exactly or by
+// subdomain; `ua` is the identity that makes the platform serve OG tags
+// (Meta properties only answer facebookexternalhit, rednote blocks known
+// crawlers but serves a plain browser). Unknown hosts still get the
+// generic OG fallback in analyzeTweet.
+const POST_PLATFORMS = [
+  { label: "X", hosts: ["x.com", "twitter.com"], ua: BOT_UA, oembed: true },
+  { label: "Threads", hosts: ["threads.net", "threads.com"], ua: BOT_UA },
+  { label: "Instagram", hosts: ["instagram.com", "instagr.am"], ua: META_UA },
+  // rednote's og:title is the note itself rather than an author line
+  { label: "RedNote", hosts: ["xiaohongshu.com", "xhslink.com"], ua: UA, postInTitle: true },
+  { label: "Facebook", hosts: ["facebook.com", "fb.com", "fb.watch"], ua: META_UA },
+  { label: "Bluesky", hosts: ["bsky.app"], ua: BOT_UA },
+  { label: "Mastodon", hosts: ["mastodon.social"], ua: BOT_UA },
+];
+
+const platformFor = (host) =>
+  POST_PLATFORMS.find((p) => p.hosts.some((h) => host === h || host.endsWith(`.${h}`)));
 
 const userDir = (username) => path.join(DATA_DIR, "users", username);
 const settingsFile = (username) => path.join(userDir(username), "settings.json");
@@ -239,9 +260,14 @@ const stripTags = (s) =>
     .trim();
 
 function metaContent(html, prop) {
-  const tag = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]*>`, "i"))?.[0];
-  const content = tag?.match(/content=["']([^"']*)["']/i)?.[1];
-  return content ? decodeEntities(content).trim() : null;
+  // Some sites (e.g. rednote) emit generic site-wide tags before the real
+  // per-post ones, so the last non-empty occurrence wins
+  const tags = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]*>`, "gi")) || [];
+  for (const tag of tags.reverse()) {
+    const content = tag.match(/content=["']([^"']*)["']/i)?.[1];
+    if (content?.trim()) return decodeEntities(content).trim();
+  }
+  return null;
 }
 
 async function fetchHtml(url, ua = UA, limit = 500000) {
@@ -281,11 +307,11 @@ async function analyzeYoutube(url) {
 
 async function analyzeTweet(url) {
   const host = new URL(url).hostname.replace(/^www\./, "");
-  const isTwitter = host === "twitter.com" || host === "x.com";
+  const platform = platformFor(host);
 
   let text = null;
   let byline = null;
-  if (isTwitter) {
+  if (platform?.oembed) {
     try {
       const normalized = url.replace(/^https?:\/\/(www\.)?x\.com/i, "https://twitter.com");
       const r = await fetch(
@@ -302,15 +328,25 @@ async function analyzeTweet(url) {
     }
   }
 
-  // First image of the post (og:image, served to bot UAs); also the text
-  // fallback for non-Twitter hosts like threads.net
+  // First image of the post (og:image, served to the platform's crawler UA);
+  // also the text source for platforms without oEmbed. rednote inlines
+  // ~850KB of scripts before its meta tags, so read a larger slice
   let icon = null;
   try {
-    const { html, finalUrl } = await fetchHtml(url, BOT_UA);
+    const { html, finalUrl } = await fetchHtml(url, platform?.ua || BOT_UA, 2000000);
     const image = metaContent(html, "og:image");
     icon = image ? new URL(image, finalUrl).href : null;
-    if (!text) text = metaContent(html, "og:description") || metaContent(html, "og:title");
-    if (!byline) byline = metaContent(html, "og:title") || host;
+    const title = metaContent(html, "og:title");
+    const desc = metaContent(html, "og:description");
+    if (!text) text = platform?.postInTitle ? title || desc : desc || title;
+    if (!byline) {
+      // og:title doubles as the author line, but Meta appends the caption
+      // ('Author on Instagram: "caption…"') — keep only the author part.
+      // Where og:title is the post itself, fall back to the site name.
+      byline = platform?.postInTitle
+        ? metaContent(html, "og:site_name") || platform?.label || host
+        : title?.split(/:\s*["“]/)[0].trim() || platform?.label || host;
+    }
   } catch (err) {
     console.error("post page fetch failed:", err.message);
   }
@@ -319,7 +355,7 @@ async function analyzeTweet(url) {
   return {
     kind: "tweet",
     name: text.length > 140 ? `${text.slice(0, 140)}…` : text,
-    byline: byline || host,
+    byline: byline || platform?.label || host,
     icon,
     url,
   };

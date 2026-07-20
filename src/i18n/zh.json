@@ -20,7 +20,12 @@
       "channel": "频道"
     },
     "storeSelect": "类型",
-    "urlPlaceholder": "粘贴链接",
+    "urlPlaceholder": {
+      "default": "粘贴链接",
+      "tweets": "粘贴 x.com、Threads、小红书、Instagram… 链接",
+      "youtube-videos": "粘贴 YouTube 链接",
+      "youtube-channels": "粘贴 YouTube 频道链接"
+    },
     "analyze": "分析",
     "analyzing": "分析中…",
     "analyzeFailed": "无法分析该链接。",

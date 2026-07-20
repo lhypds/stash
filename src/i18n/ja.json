@@ -20,7 +20,12 @@
       "channel": "チャンネル"
     },
     "storeSelect": "タイプ",
-    "urlPlaceholder": "URLを貼り付け",
+    "urlPlaceholder": {
+      "default": "URLを貼り付け",
+      "tweets": "x.com、Threads、RedNote、Instagram…のURLを貼り付け",
+      "youtube-videos": "YouTubeのURLを貼り付け",
+      "youtube-channels": "YouTubeチャンネルのURLを貼り付け"
+    },
     "analyze": "分析",
     "analyzing": "分析中…",
     "analyzeFailed": "URLを分析できませんでした。",

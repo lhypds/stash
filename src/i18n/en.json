@@ -20,7 +20,12 @@
       "channel": "Channel"
     },
     "storeSelect": "Store",
-    "urlPlaceholder": "Paste a URL",
+    "urlPlaceholder": {
+      "default": "Paste a URL",
+      "tweets": "Paste an x.com, Threads, RedNote, Instagram… URL",
+      "youtube-videos": "Paste a YouTube URL",
+      "youtube-channels": "Paste a YouTube Channel URL"
+    },
     "analyze": "Analyze",
     "analyzing": "Analyzing…",
     "analyzeFailed": "Couldn't analyze that URL.",

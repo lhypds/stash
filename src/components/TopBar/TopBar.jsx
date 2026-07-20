@@ -59,7 +59,9 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
   }, []);
 
   const isUrlStore = api.URL_STORES.has(store);
-  const placeholder = isUrlStore ? t("app.urlPlaceholder") : t(`app.searchPlaceholder.${store}`);
+  const placeholder = isUrlStore
+    ? t([`app.urlPlaceholder.${store}`, "app.urlPlaceholder.default"])
+    : t(`app.searchPlaceholder.${store}`);
 
   function submit(e) {
     e.preventDefault();
