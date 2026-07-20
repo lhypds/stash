@@ -65,11 +65,9 @@
 .storeMenu {
   display: none;
   position: absolute;
-  left: -1px;
+  right: -1px;
   top: 100%;
-  padding-top: 1px;
   flex-direction: column;
-  min-width: calc(100% + 1px);
   z-index: 20;
 }
 
@@ -87,6 +85,12 @@
   border-top: none;
   font-size: 12px;
   white-space: nowrap;
+}
+
+/* Own top border: the menu can be wider than the selector, whose
+   bottom border (same pixel row) only covers part of the width */
+.storeMenu button:first-child {
+  border-top: 1px solid var(--ink);
 }
 
 .storeMenu button:hover,
@@ -221,12 +225,7 @@
   .search {
     grid-column: 1 / -1;
     grid-row: 2;
-  }
-
-  /* Not enough side room for the hanging selector — put it back in flow */
-  .storeWrap {
-    position: static;
-    border: none;
-    border-right: 1px solid var(--ink);
+    /* room for the hanging selector and its right-anchored dropdown */
+    margin-left: 160px;
   }
 }

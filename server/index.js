@@ -244,14 +244,14 @@ function metaContent(html, prop) {
   return content ? decodeEntities(content).trim() : null;
 }
 
-async function fetchHtml(url, ua = UA) {
+async function fetchHtml(url, ua = UA, limit = 500000) {
   const r = await fetch(url, { headers: { "User-Agent": ua, Accept: "text/html,*/*" }, redirect: "follow" });
   if (!r.ok) throw new Error(`fetch ${r.status}`);
-  return { html: (await r.text()).slice(0, 500000), finalUrl: r.url || url };
+  return { html: (await r.text()).slice(0, limit), finalUrl: r.url || url };
 }
 
-async function analyzePage(url) {
-  const { html, finalUrl } = await fetchHtml(url);
+async function analyzePage(url, limit) {
+  const { html, finalUrl } = await fetchHtml(url, UA, limit);
   const loc = new URL(finalUrl);
   const title =
     metaContent(html, "og:title") || stripTags(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
@@ -273,8 +273,9 @@ async function analyzeYoutube(url) {
     const j = await r.json();
     return { kind: "video", name: j.title || url, byline: j.author_name || "YouTube", icon: j.thumbnail_url || null, url };
   }
-  // No oEmbed → channel (or other non-video) page: fall back to Open Graph tags
-  const page = await analyzePage(url);
+  // No oEmbed → channel (or other non-video) page: fall back to Open Graph tags.
+  // YouTube inlines ~700KB of scripts before <head> metadata, so read a larger slice
+  const page = await analyzePage(url, 2000000);
   return { ...page, kind: "channel", byline: "YouTube" };
 }
 
