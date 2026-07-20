@@ -90,7 +90,7 @@ export default function Stash() {
     try {
       const { item: updated } = await api.updateItem(username, item.store, item.itemId, patch);
       setItems((prev) => prev.map((a) => (itemKey(a) === itemKey(updated) ? updated : a)));
-      setDetail(updated);
+      setDetail(null);
       showToast(t("app.toastSaved"));
     } catch {
       showToast(t("app.toastError"));

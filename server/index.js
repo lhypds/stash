@@ -201,7 +201,7 @@ async function migrateLegacy() {
         const f = path.join(dir, "item.json");
         const rec = await readJson(f, null);
         if (!rec?.iconFile?.startsWith("icon.")) continue;
-        if (rec.kind === "app" || rec.kind === "channel") continue;
+        if (rec.kind === "app") continue;
         const renamed = rec.iconFile.replace(/^icon\./, "thumbnail.");
         try {
           await fs.rename(path.join(dir, rec.iconFile), path.join(dir, renamed));
@@ -473,7 +473,7 @@ app.post("/api/users/:username/items", async (req, res) => {
   await ensureSettings(username);
 
   const kindValue = String(kind || "app");
-  const imageBase = kindValue === "app" || kindValue === "channel" ? "icon" : "thumbnail";
+  const imageBase = kindValue === "app" ? "icon" : "thumbnail";
   let iconFile = null;
   if (typeof icon === "string" && /^https?:\/\//.test(icon)) {
     try {
