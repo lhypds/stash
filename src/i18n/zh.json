@@ -10,7 +10,8 @@
       "android-apps": "Android 应用",
       "tweets": "推文",
       "pages": "网页",
-      "youtube": "YouTube"
+      "youtube-videos": "YouTube 视频",
+      "youtube-channels": "YouTube 频道"
     },
     "kinds": {
       "tweet": "推文",

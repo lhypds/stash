@@ -10,7 +10,8 @@
       "android-apps": "Androidアプリ",
       "tweets": "ツイート",
       "pages": "ページ",
-      "youtube": "YouTube"
+      "youtube-videos": "YouTube動画",
+      "youtube-channels": "YouTubeチャンネル"
     },
     "kinds": {
       "tweet": "ツイート",

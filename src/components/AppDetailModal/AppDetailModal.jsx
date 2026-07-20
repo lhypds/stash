@@ -23,7 +23,7 @@ function youtubeEmbedUrl(url) {
 export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete }) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(app.note || "");
-  const videoEmbed = app.store === "youtube" && app.kind === "video" ? youtubeEmbedUrl(app.url) : null;
+  const videoEmbed = app.store === "youtube-videos" && app.kind === "video" ? youtubeEmbedUrl(app.url) : null;
 
   const dirty = note !== (app.note || "");
   const stashedDate = app.stashedAt ? new Date(app.stashedAt).toLocaleString(i18n.language) : "";

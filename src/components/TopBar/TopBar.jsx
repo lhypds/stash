@@ -107,7 +107,7 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
             </div>
           </div>
           <input
-            className={isUrlStore ? `${styles.input} ${styles.urlInput}` : styles.input}
+            className={styles.input}
             type="search"
             value={term}
             onChange={(e) => setTerm(e.target.value)}

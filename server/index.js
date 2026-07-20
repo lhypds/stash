@@ -19,7 +19,8 @@ const STORES = {
   "android-apps": { type: "search" },
   tweets: { type: "url" },
   pages: { type: "url" },
-  youtube: { type: "url" },
+  "youtube-videos": { type: "url" },
+  "youtube-channels": { type: "url" },
 };
 
 const USERNAME_RE = /^[a-z0-9_-]{1,32}$/;
@@ -154,6 +155,36 @@ async function migrateLegacy() {
         const rec = await readJson(f, null);
         if (rec) await writeJson(f, { ...rec, store: "tweets" });
       }
+    }
+
+    // The "youtube" store was split into "youtube-videos" and "youtube-channels"
+    const oldYoutube = storeDir(u.name, "youtube");
+    let ytEntries = [];
+    try {
+      ytEntries = await fs.readdir(oldYoutube, { withFileTypes: true });
+    } catch {
+      ytEntries = [];
+    }
+    for (const e of ytEntries) {
+      if (!e.isDirectory()) continue;
+      const src = path.join(oldYoutube, e.name);
+      const rec = await readJson(path.join(src, "item.json"), null);
+      const store = rec?.kind === "channel" ? "youtube-channels" : "youtube-videos";
+      const dst = itemDir(u.name, store, e.name);
+      await fs.mkdir(path.dirname(dst), { recursive: true });
+      await fs.rename(src, dst).catch(() => {});
+      if (rec) await writeJson(path.join(dst, "item.json"), { ...rec, store });
+    }
+    if (ytEntries.length) await fs.rm(oldYoutube, { recursive: true, force: true });
+
+    // Carry the old store's visibility setting over to both new stores
+    const settings = await readJson(settingsFile(u.name), null);
+    if (settings?.stores?.youtube !== undefined) {
+      const { youtube, ...rest } = settings.stores;
+      await writeJson(settingsFile(u.name), {
+        ...settings,
+        stores: { ...rest, "youtube-videos": youtube, "youtube-channels": youtube },
+      });
     }
 
     // Non-app images were previously saved as icon.*; they are thumbnails
@@ -372,14 +403,17 @@ app.get("/api/analyze", async (req, res) => {
   }
 
   try {
-    const analyzed =
-      store === "youtube"
-        ? await analyzeYoutube(url.href)
-        : store === "tweets"
-          ? await analyzeTweet(url.href)
-          : await analyzePage(url.href);
+    const isYoutube = store === "youtube-videos" || store === "youtube-channels";
+    const analyzed = isYoutube
+      ? await analyzeYoutube(url.href)
+      : store === "tweets"
+        ? await analyzeTweet(url.href)
+        : await analyzePage(url.href);
+    // A YouTube URL lands in the store matching what it actually is,
+    // regardless of which of the two stores it was analyzed from
+    const finalStore = isYoutube ? (analyzed.kind === "channel" ? "youtube-channels" : "youtube-videos") : store;
     const itemId = crypto.createHash("sha1").update(url.href).digest("hex").slice(0, 16);
-    res.json({ result: { store, itemId, ...analyzed } });
+    res.json({ result: { store: finalStore, itemId, ...analyzed } });
   } catch (err) {
     console.error("analyze failed:", err.message);
     res.status(502).json({ error: "analyze failed" });

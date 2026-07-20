@@ -21,16 +21,23 @@
 }
 
 .search {
+  position: relative;
   display: flex;
   align-items: stretch;
   border: 1px solid var(--ink);
   background: var(--bg);
 }
 
+/* Hangs off the left edge of the search box and grows leftward,
+   so the store name's width never moves the input */
 .storeWrap {
-  position: relative;
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  right: 100%;
   display: flex;
-  border-right: 1px solid var(--ink);
+  border: 1px solid var(--ink);
+  background: var(--bg);
 }
 
 .storeTrigger {
@@ -38,7 +45,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  width: 124px;
   height: 36px;
   padding: 0 10px;
   border: none;
@@ -101,7 +107,7 @@
   font-size: 14px;
 }
 
-.urlInput::placeholder {
+.input::placeholder {
   font-size: 12px;
 }
 
@@ -207,7 +213,7 @@
   color: var(--bg);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 1080px) {
   .bar {
     grid-template-columns: 1fr auto;
   }
@@ -215,5 +221,12 @@
   .search {
     grid-column: 1 / -1;
     grid-row: 2;
+  }
+
+  /* Not enough side room for the hanging selector — put it back in flow */
+  .storeWrap {
+    position: static;
+    border: none;
+    border-right: 1px solid var(--ink);
   }
 }
