@@ -11,6 +11,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const DATA_DIR = path.join(ROOT, "data");
 const DIST_DIR = path.join(ROOT, "dist");
+
+// Load .env (KEY=value lines); variables already set in the environment win
+try {
+  for (const line of (await fs.readFile(path.join(ROOT, ".env"), "utf8")).split("\n")) {
+    const m = line.match(/^\s*([A-Za-z_]\w*)\s*=\s*(.*?)\s*$/);
+    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^(['"])(.*)\1$/, "$2");
+  }
+} catch {}
+
 const PORT = process.env.PORT || 3001;
 
 // type "search": term-based store search; type "url": analyze a pasted URL
