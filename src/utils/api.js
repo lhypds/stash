@@ -15,7 +15,7 @@ const json = (method, body) => ({
   body: JSON.stringify(body),
 });
 
-export const STORE_KEYS = ["ios-apps", "android-apps", "tweets", "pages", "youtube-videos", "youtube-channels"];
+export const STORE_KEYS = ["pages", "tweets", "youtube-videos", "youtube-channels", "ios-apps", "android-apps"];
 export const URL_STORES = new Set(["tweets", "pages", "youtube-videos", "youtube-channels"]);
 
 export const searchStore = (store, term, country = "us") =>

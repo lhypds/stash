@@ -45,6 +45,7 @@
     "searching": "検索中…",
     "searchFailed": "検索に失敗しました。もう一度お試しください。",
     "emptyStash": "まだ何もありません。",
+    "filterStash": "ストックを絞り込む",
     "note": "メモ",
     "notePlaceholder": "メモを書く…",
     "screenshot": "スクリーンショット",

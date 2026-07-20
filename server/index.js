@@ -15,12 +15,12 @@ const PORT = process.env.PORT || 3001;
 
 // type "search": term-based store search; type "url": analyze a pasted URL
 const STORES = {
-  "ios-apps": { type: "search" },
-  "android-apps": { type: "search" },
-  tweets: { type: "url" },
   pages: { type: "url" },
+  tweets: { type: "url" },
   "youtube-videos": { type: "url" },
   "youtube-channels": { type: "url" },
+  "ios-apps": { type: "search" },
+  "android-apps": { type: "search" },
 };
 
 const USERNAME_RE = /^[a-z0-9_-]{1,32}$/;
@@ -581,8 +581,13 @@ app.get("/api/users/:username/export.zip", async (req, res) => {
     return res.status(404).json({ error: "not found" });
   }
 
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const stamp =
+    `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}` +
+    `-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
   res.setHeader("Content-Type", "application/zip");
-  res.setHeader("Content-Disposition", `attachment; filename="stash-${username}.zip"`);
+  res.setHeader("Content-Disposition", `attachment; filename="stash-${username}-${stamp}.zip"`);
 
   const archive = new ZipArchive({ zlib: { level: 9 } });
   archive.on("error", (err) => {

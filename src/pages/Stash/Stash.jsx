@@ -24,6 +24,7 @@ export default function Stash() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [storeFilter, setStoreFilter] = useState(null);
+  const [filterText, setFilterText] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -31,6 +32,7 @@ export default function Stash() {
     setLoadError(false);
     setSearch(null);
     setDetail(null);
+    setFilterText("");
     api
       .getStash(username)
       .then((data) => {
@@ -71,13 +73,13 @@ export default function Stash() {
   }, [detail, username]);
 
   const stashedKeys = useMemo(() => new Set(items.map(itemKey)), [items]);
-  const visibleItems = useMemo(
-    () =>
-      (storeFilter ? items.filter((a) => a.store === storeFilter) : items)
-        .slice()
-        .sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || "")),
-    [items, storeFilter],
-  );
+  const visibleItems = useMemo(() => {
+    const q = filterText.trim().toLowerCase();
+    return items
+      .filter((a) => !storeFilter || a.store === storeFilter)
+      .filter((a) => !q || [a.name, a.byline, a.note].some((f) => f?.toLowerCase().includes(q)))
+      .sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || ""));
+  }, [items, storeFilter, filterText]);
 
   async function handleSearch(term, store) {
     const isUrl = api.URL_STORES.has(store);
@@ -176,13 +178,26 @@ export default function Stash() {
             <div className={styles.head}>
               <h2 className={styles.heading}>@{username}</h2>
               <span className={styles.count}>{visibleItems.length}</span>
+              <label className={styles.filter}>
+                <input
+                  className={styles.filterInput}
+                  type="search"
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                  aria-label={t("app.filterStash")}
+                />
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+              </label>
             </div>
             {loading ? (
               <p className={styles.hint}>{t("common.loading")}</p>
             ) : loadError ? (
               <p className={styles.hint}>{t("app.userNotFound")}</p>
             ) : visibleItems.length === 0 ? (
-              <p className={styles.hint}>{t("app.emptyStash")}</p>
+              <p className={styles.hint}>{t(filterText.trim() ? "app.noResults" : "app.emptyStash")}</p>
             ) : (
               <div className={styles.grid}>
                 {visibleItems.map((a) => (

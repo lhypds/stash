@@ -38,6 +38,30 @@
   color: var(--muted);
 }
 
+.filter {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--muted);
+  color: var(--muted);
+}
+
+.filter:focus-within {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.filterInput {
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 13px;
+  padding: 2px 0;
+  width: 140px;
+  color: var(--ink);
+}
+
 .closeResults {
   margin-left: auto;
   border: none;
