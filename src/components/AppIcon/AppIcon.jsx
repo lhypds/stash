@@ -9,5 +9,16 @@ export default function AppIcon({ src, name, fallback, className }) {
     const letter = ((fallback || name || "?").trim() || "?").charAt(0).toUpperCase();
     return <div className={`${cls} ${styles.fallback}`}>{letter}</div>;
   }
-  return <img className={cls} src={src} alt={name || ""} loading="lazy" onError={() => setFailed(true)} />;
+  // Some CDNs (e.g. bilibili's hdslb.com) 403 hotlinked image requests that
+  // carry a foreign Referer, but allow them when no Referer is sent at all
+  return (
+    <img
+      className={cls}
+      src={src}
+      alt={name || ""}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
+  );
 }

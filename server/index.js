@@ -76,12 +76,12 @@ const VIDEO_PLATFORMS = [
   {
     // bilibili.tv is the international site; spaces live on a subdomain
     // (space.bilibili.com) or under /<locale>/space/<id> on .tv.
-    // No thumbnail: og:image is frequently a generic share card, not the
-    // video's actual cover
+    // og:image is the real cover, but bilibili's CDN appends a resize/crop
+    // transform (e.g. "...jpg@100w_100h_1c.png"); strip it for full size
     label: "bilibili",
     hosts: ["bilibili.com", "b23.tv", "bilibili.tv"],
     channel: (u) => u.hostname.startsWith("space.") || u.pathname.includes("/space/"),
-    noThumbnail: true,
+    cleanIcon: (icon) => icon.replace(/^(.*\.(?:jpe?g|png|webp))@.*$/i, "$1"),
   },
   {
     label: "TikTok",
@@ -414,11 +414,16 @@ async function analyzeVideo(url, store) {
   // before <head> metadata, so read a larger slice
   const page = await analyzePage(url, 2000000, platform?.ua);
   const kind = isChannelUrl || platform?.oembed ? "channel" : "video";
+  const icon = platform?.noThumbnail
+    ? null
+    : page.icon && platform?.cleanIcon
+      ? platform.cleanIcon(page.icon)
+      : page.icon;
   return {
     ...page,
     kind,
     byline: platform?.label || page.byline,
-    icon: platform?.noThumbnail ? null : page.icon,
+    icon,
   };
 }
 
