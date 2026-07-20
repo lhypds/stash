@@ -15,8 +15,14 @@ const json = (method, body) => ({
   body: JSON.stringify(body),
 });
 
-export const searchApps = (term, platform, country = "us") =>
-  request(`/api/search?platform=${platform}&country=${country}&term=${encodeURIComponent(term)}`);
+export const STORE_KEYS = ["ios-apps", "android-apps", "tweets", "pages", "youtube"];
+export const URL_STORES = new Set(["tweets", "pages", "youtube"]);
+
+export const searchStore = (store, term, country = "us") =>
+  request(`/api/search?store=${store}&country=${country}&term=${encodeURIComponent(term)}`);
+
+export const analyzeUrl = (store, url) =>
+  request(`/api/analyze?store=${store}&url=${encodeURIComponent(url)}`);
 
 export const ensureUser = (username) => request(`/api/users/${username}`, { method: "POST" });
 
@@ -27,10 +33,10 @@ export const saveSettings = (username, settings) =>
 
 export const getStash = (username) => request(`/api/users/${username}/stash`);
 
-export const stashApp = (username, app) => request(`/api/users/${username}/apps`, json("POST", app));
+export const stashItem = (username, item) => request(`/api/users/${username}/items`, json("POST", item));
 
-export const updateApp = (username, platform, bundleId, patch) =>
-  request(`/api/users/${username}/apps/${platform}/${encodeURIComponent(bundleId)}`, json("PATCH", patch));
+export const updateItem = (username, store, itemId, patch) =>
+  request(`/api/users/${username}/items/${store}/${encodeURIComponent(itemId)}`, json("PATCH", patch));
 
-export const removeApp = (username, platform, bundleId) =>
-  request(`/api/users/${username}/apps/${platform}/${encodeURIComponent(bundleId)}`, { method: "DELETE" });
+export const removeItem = (username, store, itemId) =>
+  request(`/api/users/${username}/items/${store}/${encodeURIComponent(itemId)}`, { method: "DELETE" });

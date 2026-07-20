@@ -4,11 +4,11 @@ import { useTranslation } from "react-i18next";
 import { showToast } from "@ui";
 import { TopBar, LoginModal, AppCard, ResultCard, AppDetailModal, ConfirmModal } from "@components";
 import * as api from "@utils/api";
-import { useUser } from "@utils/UserContext";
+import { useUser } from "@contexts/UserContext";
 import styles from "./stash.module.css";
 
 const countryForLang = (lang) => (lang === "ja" ? "jp" : lang === "zh" ? "cn" : "us");
-const appKey = (a) => `${a.platform}:${a.bundleId}`;
+const itemKey = (a) => `${a.store}:${a.itemId}`;
 
 export default function Stash() {
   const { username } = useParams();
@@ -16,13 +16,14 @@ export default function Stash() {
   const { user } = useUser();
   const isOwner = user === username;
 
-  const [apps, setApps] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState(null);
   const [detail, setDetail] = useState(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
+  const [storeFilter, setStoreFilter] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +35,7 @@ export default function Stash() {
       .getStash(username)
       .then((data) => {
         if (cancelled) return;
-        setApps(data.apps);
+        setItems(data.items);
       })
       .catch(() => !cancelled && setLoadError(true))
       .finally(() => !cancelled && setLoading(false));
@@ -43,16 +44,29 @@ export default function Stash() {
     };
   }, [username]);
 
-  const stashedKeys = useMemo(() => new Set(apps.map(appKey)), [apps]);
+  const stashedKeys = useMemo(() => new Set(items.map(itemKey)), [items]);
+  const visibleItems = useMemo(
+    () =>
+      (storeFilter ? items.filter((a) => a.store === storeFilter) : items)
+        .slice()
+        .sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || "")),
+    [items, storeFilter],
+  );
 
-  async function handleSearch(term, platform) {
-    setSearch({ term, platform, loading: true, results: [] });
+  async function handleSearch(term, store) {
+    const isUrl = api.URL_STORES.has(store);
+    setSearch({ term, store, loading: true, results: [] });
     try {
-      const { results } = await api.searchApps(term, platform, countryForLang(i18n.language));
-      setSearch({ term, platform, loading: false, results });
+      if (isUrl) {
+        const { result } = await api.analyzeUrl(store, term);
+        setSearch({ term, store, loading: false, results: [result] });
+      } else {
+        const { results } = await api.searchStore(store, term, countryForLang(i18n.language));
+        setSearch({ term, store, loading: false, results });
+      }
     } catch {
       setSearch(null);
-      showToast(t("app.searchFailed"));
+      showToast(t(isUrl ? "app.analyzeFailed" : "app.searchFailed"));
     }
   }
 
@@ -62,18 +76,20 @@ export default function Stash() {
       return;
     }
     try {
-      const { app } = await api.stashApp(user, result);
-      if (isOwner) setApps((prev) => [app, ...prev]);
-      showToast(t("app.toastStashed", { name: app.name }));
+      const { item } = await api.stashItem(user, result);
+      if (isOwner) setItems((prev) => [item, ...prev]);
+      setSearch(null);
+      const name = item.name.length > 40 ? `${item.name.slice(0, 40)}…` : item.name;
+      showToast(t("app.toastStashed", { name }));
     } catch (err) {
       showToast(err.status === 409 ? t("app.toastAlready") : t("app.toastError"));
     }
   }
 
-  async function handleSaveApp(app, patch) {
+  async function handleSaveItem(item, patch) {
     try {
-      const { app: updated } = await api.updateApp(username, app.platform, app.bundleId, patch);
-      setApps((prev) => prev.map((a) => (appKey(a) === appKey(updated) ? updated : a)));
+      const { item: updated } = await api.updateItem(username, item.store, item.itemId, patch);
+      setItems((prev) => prev.map((a) => (itemKey(a) === itemKey(updated) ? updated : a)));
       setDetail(updated);
       showToast(t("app.toastSaved"));
     } catch {
@@ -81,14 +97,14 @@ export default function Stash() {
     }
   }
 
-  function handleDeleteApp(app) {
-    setConfirm({ message: t("app.confirmDelete"), action: () => deleteApp(app) });
+  function handleDeleteItem(item) {
+    setConfirm({ message: t("app.confirmDelete"), action: () => deleteItem(item) });
   }
 
-  async function deleteApp(app) {
+  async function deleteItem(item) {
     try {
-      await api.removeApp(username, app.platform, app.bundleId);
-      setApps((prev) => prev.filter((a) => appKey(a) !== appKey(app)));
+      await api.removeItem(username, item.store, item.itemId);
+      setItems((prev) => prev.filter((a) => itemKey(a) !== itemKey(item)));
       setDetail(null);
       showToast(t("app.toastDeleted"));
     } catch {
@@ -98,7 +114,7 @@ export default function Stash() {
 
   return (
     <div className={styles.page}>
-      <TopBar onSearch={handleSearch} onRequestLogin={() => setLoginOpen(true)} />
+      <TopBar onSearch={handleSearch} onStoreChange={setStoreFilter} onRequestLogin={() => setLoginOpen(true)} />
       <main className={styles.main}>
         {search ? (
           <>
@@ -109,16 +125,18 @@ export default function Stash() {
               </button>
             </div>
             {search.loading ? (
-              <p className={styles.hint}>{t("app.searching")}</p>
+              <p className={styles.hint}>
+                {t(api.URL_STORES.has(search.store) ? "app.analyzing" : "app.searching")}
+              </p>
             ) : search.results.length === 0 ? (
               <p className={styles.hint}>{t("app.noResults")}</p>
             ) : (
               <div className={styles.grid}>
                 {search.results.map((r) => (
                   <ResultCard
-                    key={appKey(r)}
+                    key={itemKey(r)}
                     result={r}
-                    stashed={isOwner && stashedKeys.has(appKey(r))}
+                    stashed={isOwner && stashedKeys.has(itemKey(r))}
                     onStash={() => handleStash(r)}
                   />
                 ))}
@@ -129,18 +147,18 @@ export default function Stash() {
           <>
             <div className={styles.head}>
               <h2 className={styles.heading}>@{username}</h2>
-              <span className={styles.count}>{apps.length}</span>
+              <span className={styles.count}>{visibleItems.length}</span>
             </div>
             {loading ? (
               <p className={styles.hint}>{t("common.loading")}</p>
             ) : loadError ? (
               <p className={styles.hint}>{t("app.userNotFound")}</p>
-            ) : apps.length === 0 ? (
+            ) : visibleItems.length === 0 ? (
               <p className={styles.hint}>{t("app.emptyStash")}</p>
             ) : (
               <div className={styles.grid}>
-                {apps.map((a) => (
-                  <AppCard key={appKey(a)} app={a} onClick={() => setDetail(a)} />
+                {visibleItems.map((a) => (
+                  <AppCard key={itemKey(a)} app={a} onClick={() => setDetail(a)} />
                 ))}
               </div>
             )}
@@ -154,8 +172,8 @@ export default function Stash() {
           app={detail}
           isOwner={isOwner}
           onClose={() => setDetail(null)}
-          onSave={handleSaveApp}
-          onDelete={handleDeleteApp}
+          onSave={handleSaveItem}
+          onDelete={handleDeleteItem}
         />
       )}
       <ConfirmModal

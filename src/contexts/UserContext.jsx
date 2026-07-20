@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from "react";
-import { ensureUser } from "./api";
+import { ensureUser } from "@utils/api";
 
 const KEY = "stash:user";
 const USERNAME_RE = /^[a-z0-9_-]{1,32}$/;

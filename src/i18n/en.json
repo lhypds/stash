@@ -2,9 +2,27 @@
   "app": {
     "tagline": "Stash everything you love, with notes.",
     "searchPlaceholder": {
-      "ios": "Search in App Store",
-      "android": "Search in Google Play"
+      "ios-apps": "Search in App Store",
+      "android-apps": "Search in Google Play"
     },
+    "storeNames": {
+      "ios-apps": "iOS Apps",
+      "android-apps": "Android Apps",
+      "tweets": "Tweets",
+      "pages": "Pages",
+      "youtube": "YouTube"
+    },
+    "kinds": {
+      "tweet": "Tweet",
+      "page": "Page",
+      "video": "Video",
+      "channel": "Channel"
+    },
+    "storeSelect": "Store",
+    "urlPlaceholder": "Paste a URL",
+    "analyze": "Analyze",
+    "analyzing": "Analyzing…",
+    "analyzeFailed": "Couldn't analyze that URL.",
     "login": "Login",
     "logout": "Logout",
     "usernamePlaceholder": "Your username",
@@ -23,7 +41,7 @@
     "emptyStash": "Nothing stashed yet.",
     "note": "Note",
     "notePlaceholder": "Add a note…",
-    "viewInStore": "View in store",
+    "viewInStore": "Open link",
     "stashedAt": "Stashed",
     "confirmDelete": "Remove this app from the stash?",
     "toastStashed": "Stashed {{name}}",

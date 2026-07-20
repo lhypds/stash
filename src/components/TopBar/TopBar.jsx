@@ -1,39 +1,65 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "@components/LanguageSwitcher";
 import SettingsModal from "@components/SettingsModal";
-import { useUser } from "@utils/UserContext";
+import * as api from "@utils/api";
+import { useUser } from "@contexts/UserContext";
 import styles from "./topbar.module.css";
 
-const PLATFORMS = ["ios", "android"];
-const PLATFORM_LABELS = { ios: "iOS", android: "Android" };
-
-export default function TopBar({ onSearch, onRequestLogin }) {
+export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
   const { t } = useTranslation();
   const { user, logout } = useUser();
   const navigate = useNavigate();
   const [term, setTerm] = useState("");
-  const [platform, setPlatform] = useState("ios");
+  const [store, setStore] = useState(api.STORE_KEYS[0]);
+  const [enabledStores, setEnabledStores] = useState(api.STORE_KEYS);
   const [menuOpen, setMenuOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [storeOpen, setStoreOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const menuRef = useRef(null);
   const exportRef = useRef(null);
+  const storeRef = useRef(null);
+
+  const loadSettings = useCallback(() => {
+    if (!user) {
+      setEnabledStores(api.STORE_KEYS);
+      return;
+    }
+    api
+      .getSettings(user)
+      .then(({ settings }) => setEnabledStores(api.STORE_KEYS.filter((s) => settings?.stores?.[s] !== false)))
+      .catch(() => setEnabledStores(api.STORE_KEYS));
+  }, [user]);
+
+  useEffect(loadSettings, [loadSettings]);
+
+  useEffect(() => {
+    if (enabledStores.length && !enabledStores.includes(store)) setStore(enabledStores[0]);
+  }, [enabledStores, store]);
+
+  useEffect(() => {
+    onStoreChange?.(store);
+  }, [store, onStoreChange]);
 
   useEffect(() => {
     function handleOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
       if (exportRef.current && !exportRef.current.contains(e.target)) setExportOpen(false);
+      if (storeRef.current && !storeRef.current.contains(e.target)) setStoreOpen(false);
     }
     document.addEventListener("pointerdown", handleOutside);
     return () => document.removeEventListener("pointerdown", handleOutside);
   }, []);
 
+  const isUrlStore = api.URL_STORES.has(store);
+  const placeholder = isUrlStore ? t("app.urlPlaceholder") : t(`app.searchPlaceholder.${store}`);
+
   function submit(e) {
     e.preventDefault();
     const q = term.trim();
-    if (q) onSearch?.(q, platform);
+    if (q && store) onSearch?.(q, store);
   }
 
   return (
@@ -42,28 +68,70 @@ export default function TopBar({ onSearch, onRequestLogin }) {
         stash
       </Link>
 
-      <form className={styles.search} onSubmit={submit} role="search">
-        <div className={styles.platforms}>
-          {PLATFORMS.map((p) => (
-            <button key={p} type="button" data-active={platform === p} onClick={() => setPlatform(p)}>
-              {PLATFORM_LABELS[p]}
+      {enabledStores.length > 0 && (
+        <form className={styles.search} onSubmit={submit} role="search">
+          <div
+            className={styles.storeWrap}
+            ref={storeRef}
+            data-open={storeOpen}
+            onMouseLeave={() => setStoreOpen(false)}
+          >
+            <button
+              type="button"
+              className={styles.storeTrigger}
+              onClick={() => setStoreOpen((v) => !v)}
+              aria-label={t("app.storeSelect")}
+            >
+              {t(`app.storeNames.${store}`)}
+              <span className={styles.caret}>▾</span>
             </button>
-          ))}
-        </div>
-        <input
-          className={styles.input}
-          type="search"
-          value={term}
-          onChange={(e) => setTerm(e.target.value)}
-          placeholder={t(`app.searchPlaceholder.${platform}`)}
-        />
-        <button type="submit" className={styles.submit} aria-label={t(`app.searchPlaceholder.${platform}`)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-        </button>
-      </form>
+            <div className={styles.storeMenu}>
+              {enabledStores.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  data-active={s === store}
+                  onClick={() => {
+                    setStore(s);
+                    setStoreOpen(false);
+                  }}
+                >
+                  {t(`app.storeNames.${s}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <input
+            className={isUrlStore ? `${styles.input} ${styles.urlInput}` : styles.input}
+            type="search"
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            placeholder={placeholder}
+          />
+          {isUrlStore ? (
+            <button
+              type="submit"
+              className={styles.submit}
+              aria-label={t("app.analyze")}
+              title={t("app.analyze")}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M4 11h14" />
+                <path d="M11 4a10.6 10.6 0 0 1 3 7 10.6 10.6 0 0 1-3 7 10.6 10.6 0 0 1-3-7 10.6 10.6 0 0 1 3-7z" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </button>
+          ) : (
+            <button type="submit" className={styles.submit} aria-label={placeholder}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </button>
+          )}
+        </form>
+      )}
 
       <div className={styles.right}>
         {user && (
@@ -141,7 +209,7 @@ export default function TopBar({ onSearch, onRequestLogin }) {
         )}
       </div>
 
-      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} onSaved={loadSettings} />
     </header>
   );
 }

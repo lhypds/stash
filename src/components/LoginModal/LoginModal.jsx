@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@ui";
 import UsernameInput from "@components/UsernameInput";
-import { useUser, isValidUsername } from "@utils/UserContext";
+import { useUser, isValidUsername } from "@contexts/UserContext";
 import styles from "./login.module.css";
 
 export default function LoginModal({ isOpen, onClose }) {

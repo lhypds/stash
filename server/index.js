@@ -1,6 +1,7 @@
 import express from "express";
 import fs from "node:fs/promises";
 import path from "node:path";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import gplay from "google-play-scraper";
 import { ZipArchive } from "archiver";
@@ -11,14 +12,26 @@ const DATA_DIR = path.join(ROOT, "data");
 const DIST_DIR = path.join(ROOT, "dist");
 const PORT = process.env.PORT || 3001;
 
-const PLATFORMS = ["ios", "android"];
+// type "search": term-based store search; type "url": analyze a pasted URL
+const STORES = {
+  "ios-apps": { type: "search" },
+  "android-apps": { type: "search" },
+  tweets: { type: "url" },
+  pages: { type: "url" },
+  youtube: { type: "url" },
+};
+
 const USERNAME_RE = /^[a-z0-9_-]{1,32}$/;
-const BUNDLE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$/;
+const ITEM_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$/;
+const UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15";
+// x.com / threads.net render Open Graph tags (incl. post images) only for crawler UAs
+const BOT_UA = "Mozilla/5.0 (compatible; Twitterbot/1.0)";
 
 const userDir = (username) => path.join(DATA_DIR, "users", username);
 const settingsFile = (username) => path.join(userDir(username), "settings.json");
-const platformDir = (username, platform) => path.join(userDir(username), "platforms", platform);
-const appDir = (username, platform, bundleId) => path.join(platformDir(username, platform), bundleId);
+const storeDir = (username, store) => path.join(userDir(username), "stores", store);
+const itemDir = (username, store, itemId) => path.join(storeDir(username, store), itemId);
 
 async function readJson(file, fallback) {
   try {
@@ -33,24 +46,212 @@ async function writeJson(file, value) {
   await fs.writeFile(file, JSON.stringify(value, null, 2) + "\n");
 }
 
-const DEFAULT_SETTINGS = {};
+const DEFAULT_SETTINGS = {
+  stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, true])),
+};
 
 async function ensureSettings(username) {
   const file = settingsFile(username);
   const existing = await readJson(file, null);
-  if (existing !== null) return existing;
-  await writeJson(file, DEFAULT_SETTINGS);
-  return DEFAULT_SETTINGS;
+  const merged = {
+    ...DEFAULT_SETTINGS,
+    ...(existing || {}),
+    // keep only known store keys so renamed/removed stores don't linger
+    stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, existing?.stores?.[s] ?? true])),
+  };
+  if (JSON.stringify(merged) !== JSON.stringify(existing)) await writeJson(file, merged);
+  return merged;
 }
 
 function withIconUrl(username, record) {
   return {
     ...record,
     iconUrl: record.iconFile
-      ? `/data/users/${username}/platforms/${record.platform}/${record.bundleId}/${record.iconFile}`
+      ? `/data/users/${username}/stores/${record.store}/${record.itemId}/${record.iconFile}`
       : null,
   };
 }
+
+// One-time move of the pre-store layout (platforms/<platform>/<bundleId>/app.json)
+// into stores/<store>/<itemId>/item.json.
+async function migrateLegacy() {
+  let users = [];
+  try {
+    users = await fs.readdir(path.join(DATA_DIR, "users"), { withFileTypes: true });
+  } catch {
+    return;
+  }
+  const map = { ios: "ios-apps", android: "android-apps" };
+  for (const u of users) {
+    if (!u.isDirectory()) continue;
+    const legacyRoot = path.join(userDir(u.name), "platforms");
+    for (const [platform, store] of Object.entries(map)) {
+      let entries = [];
+      try {
+        entries = await fs.readdir(path.join(legacyRoot, platform), { withFileTypes: true });
+      } catch {
+        continue;
+      }
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const dst = itemDir(u.name, store, entry.name);
+        await fs.mkdir(path.dirname(dst), { recursive: true });
+        await fs.rename(path.join(legacyRoot, platform, entry.name), dst);
+        const legacy = await readJson(path.join(dst, "app.json"), null);
+        if (!legacy) continue;
+        await writeJson(path.join(dst, "item.json"), {
+          store,
+          itemId: legacy.bundleId || entry.name,
+          kind: "app",
+          name: legacy.name || entry.name,
+          byline: legacy.developer || "",
+          url: legacy.storeUrl || "",
+          iconFile: legacy.iconFile || null,
+          note: legacy.note || "",
+          stashedAt: legacy.stashedAt || new Date().toISOString(),
+        });
+        await fs.rm(path.join(dst, "app.json"), { force: true });
+      }
+    }
+    await fs.rm(legacyRoot, { recursive: true, force: true });
+
+    // The "twitter" store was renamed to "tweets"
+    const oldTweets = storeDir(u.name, "twitter");
+    let tweetEntries = null;
+    try {
+      tweetEntries = await fs.readdir(oldTweets, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    const newTweets = storeDir(u.name, "tweets");
+    try {
+      await fs.rename(oldTweets, newTweets);
+    } catch {
+      for (const e of tweetEntries) {
+        await fs.rename(path.join(oldTweets, e.name), path.join(newTweets, e.name)).catch(() => {});
+      }
+      await fs.rm(oldTweets, { recursive: true, force: true });
+    }
+    for (const e of tweetEntries) {
+      if (!e.isDirectory()) continue;
+      const f = path.join(newTweets, e.name, "item.json");
+      const rec = await readJson(f, null);
+      if (rec) await writeJson(f, { ...rec, store: "tweets" });
+    }
+  }
+}
+
+/* ---------- URL analysis ---------- */
+
+const decodeEntities = (s) =>
+  s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&mdash;/g, "—")
+    .replace(/&ndash;/g, "–")
+    .replace(/&hellip;/g, "…")
+    .replace(/&(?:rsquo|lsquo);/g, "'")
+    .replace(/&(?:rdquo|ldquo);/g, '"')
+    .replace(/&middot;/g, "·");
+
+const stripTags = (s) =>
+  decodeEntities(s.replace(/<[^>]*>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
+
+function metaContent(html, prop) {
+  const tag = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]*>`, "i"))?.[0];
+  const content = tag?.match(/content=["']([^"']*)["']/i)?.[1];
+  return content ? decodeEntities(content).trim() : null;
+}
+
+async function fetchHtml(url, ua = UA) {
+  const r = await fetch(url, { headers: { "User-Agent": ua, Accept: "text/html,*/*" }, redirect: "follow" });
+  if (!r.ok) throw new Error(`fetch ${r.status}`);
+  return { html: (await r.text()).slice(0, 500000), finalUrl: r.url || url };
+}
+
+async function analyzePage(url) {
+  const { html, finalUrl } = await fetchHtml(url);
+  const loc = new URL(finalUrl);
+  const title =
+    metaContent(html, "og:title") || stripTags(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
+  const image = metaContent(html, "og:image");
+  return {
+    kind: "page",
+    name: title || finalUrl,
+    byline: metaContent(html, "og:site_name") || loc.hostname,
+    icon: image ? new URL(image, finalUrl).href : `${loc.origin}/favicon.ico`,
+    url: finalUrl,
+  };
+}
+
+async function analyzeYoutube(url) {
+  const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`, {
+    headers: { "User-Agent": UA },
+  });
+  if (r.ok) {
+    const j = await r.json();
+    return { kind: "video", name: j.title || url, byline: j.author_name || "YouTube", icon: j.thumbnail_url || null, url };
+  }
+  // No oEmbed → channel (or other non-video) page: fall back to Open Graph tags
+  const page = await analyzePage(url);
+  return { ...page, kind: "channel", byline: "YouTube" };
+}
+
+async function analyzeTweet(url) {
+  const host = new URL(url).hostname.replace(/^www\./, "");
+  const isTwitter = host === "twitter.com" || host === "x.com";
+
+  let text = null;
+  let byline = null;
+  if (isTwitter) {
+    try {
+      const normalized = url.replace(/^https?:\/\/(www\.)?x\.com/i, "https://twitter.com");
+      const r = await fetch(
+        `https://publish.twitter.com/oembed?url=${encodeURIComponent(normalized)}&omit_script=1`,
+        { headers: { "User-Agent": UA } },
+      );
+      if (r.ok) {
+        const j = await r.json();
+        text = stripTags(j.html || "") || null;
+        byline = j.author_name || null;
+      }
+    } catch (err) {
+      console.error("tweet oembed failed:", err.message);
+    }
+  }
+
+  // First image of the post (og:image, served to bot UAs); also the text
+  // fallback for non-Twitter hosts like threads.net
+  let icon = null;
+  try {
+    const { html, finalUrl } = await fetchHtml(url, BOT_UA);
+    const image = metaContent(html, "og:image");
+    icon = image ? new URL(image, finalUrl).href : null;
+    if (!text) text = metaContent(html, "og:description") || metaContent(html, "og:title");
+    if (!byline) byline = metaContent(html, "og:title") || host;
+  } catch (err) {
+    console.error("post page fetch failed:", err.message);
+  }
+
+  if (!text) throw new Error("no post content");
+  return {
+    kind: "tweet",
+    name: text.length > 140 ? `${text.slice(0, 140)}…` : text,
+    byline: byline || host,
+    icon,
+    url,
+  };
+}
+
+/* ---------- app ---------- */
 
 const app = express();
 app.use(express.json());
@@ -59,25 +260,25 @@ app.param("username", (req, res, next, username) => {
   if (!USERNAME_RE.test(username)) return res.status(400).json({ error: "invalid username" });
   next();
 });
-app.param("platform", (req, res, next, platform) => {
-  if (!PLATFORMS.includes(platform)) return res.status(400).json({ error: "invalid platform" });
+app.param("store", (req, res, next, store) => {
+  if (!STORES[store]) return res.status(400).json({ error: "invalid store" });
   next();
 });
-app.param("bundleId", (req, res, next, bundleId) => {
-  if (!BUNDLE_ID_RE.test(bundleId)) return res.status(400).json({ error: "invalid bundleId" });
+app.param("itemId", (req, res, next, itemId) => {
+  if (!ITEM_ID_RE.test(itemId)) return res.status(400).json({ error: "invalid itemId" });
   next();
 });
 
 app.get("/api/search", async (req, res) => {
   const term = String(req.query.term || "").trim();
-  const platform = req.query.platform;
+  const store = req.query.store;
   const country = /^[a-z]{2}$/.test(req.query.country || "") ? req.query.country : "us";
-  if (!PLATFORMS.includes(platform)) return res.status(400).json({ error: "invalid platform" });
+  if (STORES[store]?.type !== "search") return res.status(400).json({ error: "invalid store" });
   if (!term) return res.json({ results: [] });
 
   try {
     let results;
-    if (platform === "ios") {
+    if (store === "ios-apps") {
       const url =
         `https://itunes.apple.com/search?media=software&limit=24` +
         `&country=${country}&term=${encodeURIComponent(term)}`;
@@ -85,32 +286,61 @@ app.get("/api/search", async (req, res) => {
       if (!r.ok) throw new Error(`itunes ${r.status}`);
       const json = await r.json();
       results = (json.results || [])
-        .filter((a) => a.bundleId && BUNDLE_ID_RE.test(a.bundleId))
+        .filter((a) => a.bundleId && ITEM_ID_RE.test(a.bundleId))
         .map((a) => ({
-          platform: "ios",
-          bundleId: a.bundleId,
+          store,
+          itemId: a.bundleId,
+          kind: "app",
           name: a.trackName,
-          developer: a.artistName,
+          byline: a.artistName,
           icon: a.artworkUrl512 || a.artworkUrl100,
-          storeUrl: a.trackViewUrl,
+          url: a.trackViewUrl,
         }));
     } else {
       const found = await gplay.search({ term, num: 24, country });
       results = found
-        .filter((a) => BUNDLE_ID_RE.test(a.appId))
+        .filter((a) => ITEM_ID_RE.test(a.appId))
         .map((a) => ({
-          platform: "android",
-          bundleId: a.appId,
+          store,
+          itemId: a.appId,
+          kind: "app",
           name: a.title,
-          developer: a.developer,
+          byline: a.developer,
           icon: a.icon,
-          storeUrl: a.url,
+          url: a.url,
         }));
     }
     res.json({ results });
   } catch (err) {
     console.error("search failed:", err.message);
     res.status(502).json({ error: "search failed" });
+  }
+});
+
+app.get("/api/analyze", async (req, res) => {
+  const store = req.query.store;
+  const raw = String(req.query.url || "").trim();
+  if (STORES[store]?.type !== "url") return res.status(400).json({ error: "invalid store" });
+  let url;
+  try {
+    url = new URL(raw);
+    if (!/^https?:$/.test(url.protocol)) throw new Error("bad protocol");
+  } catch {
+    return res.status(400).json({ error: "invalid url" });
+  }
+
+  try {
+    const analyzed =
+      store === "youtube"
+        ? await analyzeYoutube(url.href)
+        : store === "tweets"
+          ? await analyzeTweet(url.href)
+          : await analyzePage(url.href);
+    const itemId = crypto.createHash("sha1").update(url.href).digest("hex").slice(0, 16);
+    res.json({ result: { store, itemId, ...analyzed } });
+  } catch (err) {
+    console.error("analyze failed:", err.message);
+    res.status(502).json({ error: "analyze failed" });
   }
 });
 
@@ -134,32 +364,32 @@ app.put("/api/users/:username/settings", async (req, res) => {
 
 app.get("/api/users/:username/stash", async (req, res) => {
   const { username } = req.params;
-  const apps = [];
-  for (const platform of PLATFORMS) {
+  const items = [];
+  for (const store of Object.keys(STORES)) {
     let entries = [];
     try {
-      entries = await fs.readdir(platformDir(username, platform), { withFileTypes: true });
+      entries = await fs.readdir(storeDir(username, store), { withFileTypes: true });
     } catch {
       continue;
     }
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
-      const record = await readJson(path.join(appDir(username, platform, entry.name), "app.json"), null);
-      if (record) apps.push(withIconUrl(username, record));
+      const record = await readJson(path.join(itemDir(username, store, entry.name), "item.json"), null);
+      if (record) items.push(withIconUrl(username, record));
     }
   }
-  apps.sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || ""));
-  res.json({ username, apps });
+  items.sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || ""));
+  res.json({ username, items });
 });
 
-app.post("/api/users/:username/apps", async (req, res) => {
+app.post("/api/users/:username/items", async (req, res) => {
   const { username } = req.params;
-  const { platform, bundleId, name, developer, icon, storeUrl } = req.body || {};
-  if (!PLATFORMS.includes(platform)) return res.status(400).json({ error: "invalid platform" });
-  if (!BUNDLE_ID_RE.test(bundleId || "")) return res.status(400).json({ error: "invalid bundleId" });
+  const { store, itemId, kind, name, byline, icon, url } = req.body || {};
+  if (!STORES[store]) return res.status(400).json({ error: "invalid store" });
+  if (!ITEM_ID_RE.test(itemId || "")) return res.status(400).json({ error: "invalid itemId" });
 
-  const dir = appDir(username, platform, bundleId);
-  const jsonFile = path.join(dir, "app.json");
+  const dir = itemDir(username, store, itemId);
+  const jsonFile = path.join(dir, "item.json");
   if (await readJson(jsonFile, null)) return res.status(409).json({ error: "already stashed" });
 
   await fs.mkdir(dir, { recursive: true });
@@ -168,10 +398,20 @@ app.post("/api/users/:username/apps", async (req, res) => {
   let iconFile = null;
   if (typeof icon === "string" && /^https?:\/\//.test(icon)) {
     try {
-      const r = await fetch(icon);
+      const r = await fetch(icon, { headers: { "User-Agent": UA } });
       if (r.ok) {
         const type = r.headers.get("content-type") || "";
-        const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : type.includes("gif") ? "gif" : "jpg";
+        const ext = type.includes("png")
+          ? "png"
+          : type.includes("webp")
+            ? "webp"
+            : type.includes("gif")
+              ? "gif"
+              : type.includes("svg")
+                ? "svg"
+                : type.includes("icon")
+                  ? "ico"
+                  : "jpg";
         iconFile = `icon.${ext}`;
         await fs.writeFile(path.join(dir, iconFile), Buffer.from(await r.arrayBuffer()));
       }
@@ -181,35 +421,36 @@ app.post("/api/users/:username/apps", async (req, res) => {
   }
 
   const record = {
-    platform,
-    bundleId,
-    name: String(name || bundleId),
-    developer: String(developer || ""),
-    storeUrl: typeof storeUrl === "string" ? storeUrl : "",
+    store,
+    itemId,
+    kind: String(kind || "app"),
+    name: String(name || itemId),
+    byline: String(byline || ""),
+    url: typeof url === "string" ? url : "",
     iconFile,
     note: "",
     stashedAt: new Date().toISOString(),
   };
   await writeJson(jsonFile, record);
-  res.status(201).json({ app: withIconUrl(username, record) });
+  res.status(201).json({ item: withIconUrl(username, record) });
 });
 
-app.patch("/api/users/:username/apps/:platform/:bundleId", async (req, res) => {
-  const { username, platform, bundleId } = req.params;
-  const jsonFile = path.join(appDir(username, platform, bundleId), "app.json");
+app.patch("/api/users/:username/items/:store/:itemId", async (req, res) => {
+  const { username, store, itemId } = req.params;
+  const jsonFile = path.join(itemDir(username, store, itemId), "item.json");
   const record = await readJson(jsonFile, null);
   if (!record) return res.status(404).json({ error: "not found" });
 
   const { note } = req.body || {};
   if (typeof note === "string") record.note = note;
   await writeJson(jsonFile, record);
-  res.json({ app: withIconUrl(username, record) });
+  res.json({ item: withIconUrl(username, record) });
 });
 
-app.delete("/api/users/:username/apps/:platform/:bundleId", async (req, res) => {
-  const { username, platform, bundleId } = req.params;
-  const dir = appDir(username, platform, bundleId);
-  const record = await readJson(path.join(dir, "app.json"), null);
+app.delete("/api/users/:username/items/:store/:itemId", async (req, res) => {
+  const { username, store, itemId } = req.params;
+  const dir = itemDir(username, store, itemId);
+  const record = await readJson(path.join(dir, "item.json"), null);
   if (!record) return res.status(404).json({ error: "not found" });
   await fs.rm(dir, { recursive: true, force: true });
   res.json({ ok: true });
@@ -246,6 +487,8 @@ app.use((req, res, next) => {
     if (err) next();
   });
 });
+
+await migrateLegacy();
 
 app.listen(PORT, (err) => {
   if (err) {

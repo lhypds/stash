@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, TextArea, showToast } from "@ui";
 import * as api from "@utils/api";
-import { useUser } from "@utils/UserContext";
+import { useUser } from "@contexts/UserContext";
 import styles from "./settings.module.css";
 
-export default function SettingsModal({ isOpen, onClose }) {
+export default function SettingsModal({ isOpen, onClose, onSaved }) {
   const { t } = useTranslation();
   const { user } = useUser();
   const [text, setText] = useState("");
@@ -44,6 +44,7 @@ export default function SettingsModal({ isOpen, onClose }) {
     try {
       await api.saveSettings(user, settings);
       showToast(t("app.toastSaved"));
+      onSaved?.();
       onClose();
     } catch {
       showToast(t("app.toastError"));

@@ -2,9 +2,27 @@
   "app": {
     "tagline": "好きなものをぜんぶストック。メモも書ける。",
     "searchPlaceholder": {
-      "ios": "App Store で検索",
-      "android": "Google Play で検索"
+      "ios-apps": "App Store で検索",
+      "android-apps": "Google Play で検索"
     },
+    "storeNames": {
+      "ios-apps": "iOSアプリ",
+      "android-apps": "Androidアプリ",
+      "tweets": "ツイート",
+      "pages": "ページ",
+      "youtube": "YouTube"
+    },
+    "kinds": {
+      "tweet": "ツイート",
+      "page": "ページ",
+      "video": "動画",
+      "channel": "チャンネル"
+    },
+    "storeSelect": "タイプ",
+    "urlPlaceholder": "URLを貼り付け",
+    "analyze": "分析",
+    "analyzing": "分析中…",
+    "analyzeFailed": "URLを分析できませんでした。",
     "login": "ログイン",
     "logout": "ログアウト",
     "usernamePlaceholder": "ユーザー名",
@@ -23,7 +41,7 @@
     "emptyStash": "まだ何もありません。",
     "note": "メモ",
     "notePlaceholder": "メモを書く…",
-    "viewInStore": "ストアで見る",
+    "viewInStore": "リンクを開く",
     "stashedAt": "ストック日",
     "confirmDelete": "このアプリをストックから削除しますか？",
     "toastStashed": "{{name}} をストックしました",

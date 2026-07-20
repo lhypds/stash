@@ -4,8 +4,6 @@ import { Modal, TextArea } from "@ui";
 import AppIcon from "@components/AppIcon";
 import styles from "./detail.module.css";
 
-const PLATFORM_LABELS = { ios: "iOS", android: "Android" };
-
 export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete }) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(app.note || "");
@@ -19,15 +17,16 @@ export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete
         <div className={styles.top}>
           <AppIcon src={app.iconUrl} name={app.name} className={styles.bigIcon} />
           <div className={styles.info}>
-            {app.developer && <span>{app.developer}</span>}
+            {app.byline && <span>{app.byline}</span>}
             <span className={styles.bundle}>
-              {PLATFORM_LABELS[app.platform]} · {app.bundleId}
+              {t(`app.storeNames.${app.store}`)}
+              {app.kind && app.kind !== "app" ? ` · ${t(`app.kinds.${app.kind}`)}` : ` · ${app.itemId}`}
             </span>
             <span>
               {t("app.stashedAt")}: {stashedDate}
             </span>
-            {app.storeUrl && (
-              <a href={app.storeUrl} target="_blank" rel="noreferrer">
+            {app.url && (
+              <a href={app.url} target="_blank" rel="noreferrer">
                 {t("app.viewInStore")} ↗
               </a>
             )}
@@ -37,7 +36,9 @@ export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete
         <label className={styles.label}>{t("app.note")}</label>
         {isOwner ? (
           <TextArea
+            className={styles.noteArea}
             value={note}
+            minHeight={120}
             onChange={(e) => setNote(e.target.value)}
             placeholder={t("app.notePlaceholder")}
           />

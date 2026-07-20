@@ -24,30 +24,71 @@
   display: flex;
   align-items: stretch;
   border: 1px solid var(--ink);
-  overflow: hidden;
   background: var(--bg);
 }
 
-.platforms {
+.storeWrap {
+  position: relative;
   display: flex;
   border-right: 1px solid var(--ink);
 }
 
-.platforms button {
-  width: 64px;
-  padding: 0;
+.storeTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 124px;
   height: 36px;
-  font-size: 12px;
-  background: var(--bg);
+  padding: 0 10px;
   border: none;
-  text-align: center;
+  background: var(--bg);
+  font-size: 12px;
   white-space: nowrap;
 }
 
-.platforms button[data-active="true"] {
+.storeTrigger:hover {
   background: var(--ink);
   color: var(--bg);
 }
+
+.caret {
+  font-size: 10px;
+}
+
+.storeMenu {
+  display: none;
+  position: absolute;
+  left: -1px;
+  top: 100%;
+  padding-top: 1px;
+  flex-direction: column;
+  min-width: calc(100% + 1px);
+  z-index: 20;
+}
+
+.storeWrap:hover .storeMenu,
+.storeWrap[data-open="true"] .storeMenu {
+  display: flex;
+}
+
+.storeMenu button {
+  height: 30px;
+  padding: 0 12px;
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--ink);
+  border-top: none;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.storeMenu button:hover,
+.storeMenu button[data-active="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
 
 .input {
   flex: 1;
@@ -58,6 +99,10 @@
   background: transparent;
   outline: none;
   font-size: 14px;
+}
+
+.urlInput::placeholder {
+  font-size: 12px;
 }
 
 .submit {

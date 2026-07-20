@@ -42,6 +42,12 @@
   color: var(--muted);
 }
 
+.noteArea {
+  min-height: 120px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .readNote {
   font-size: 14px;
   white-space: pre-wrap;

@@ -2,9 +2,27 @@
   "app": {
     "tagline": "收藏你喜欢的一切，还能写笔记。",
     "searchPlaceholder": {
-      "ios": "搜索 App Store",
-      "android": "搜索 Google Play"
+      "ios-apps": "搜索 App Store",
+      "android-apps": "搜索 Google Play"
     },
+    "storeNames": {
+      "ios-apps": "iOS 应用",
+      "android-apps": "Android 应用",
+      "tweets": "推文",
+      "pages": "网页",
+      "youtube": "YouTube"
+    },
+    "kinds": {
+      "tweet": "推文",
+      "page": "网页",
+      "video": "视频",
+      "channel": "频道"
+    },
+    "storeSelect": "类型",
+    "urlPlaceholder": "粘贴链接",
+    "analyze": "分析",
+    "analyzing": "分析中…",
+    "analyzeFailed": "无法分析该链接。",
     "login": "登录",
     "logout": "退出登录",
     "usernamePlaceholder": "你的用户名",
@@ -23,7 +41,7 @@
     "emptyStash": "还没有收藏。",
     "note": "笔记",
     "notePlaceholder": "写点笔记…",
-    "viewInStore": "在商店中查看",
+    "viewInStore": "打开链接",
     "stashedAt": "收藏于",
     "confirmDelete": "从收藏中移除此应用？",
     "toastStashed": "已收藏 {{name}}",

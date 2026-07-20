@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher, UsernameInput } from "@components";
-import { useUser, isValidUsername } from "@utils/UserContext";
+import { useUser, isValidUsername } from "@contexts/UserContext";
 import styles from "./home.module.css";
 
 export default function Home() {
