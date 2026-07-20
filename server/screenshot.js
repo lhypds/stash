@@ -14,7 +14,9 @@ let idleTimer = null;
 
 function getBrowser() {
   if (!browserPromise) {
-    browserPromise = puppeteer.launch();
+    // Server runs the process as root, and Chrome's sandbox refuses to start
+    // under root without this flag
+    browserPromise = puppeteer.launch({ args: ["--no-sandbox", "--disable-setuid-sandbox"] });
     browserPromise
       .then((browser) => browser.on("disconnected", () => (browserPromise = null)))
       .catch(() => (browserPromise = null));
