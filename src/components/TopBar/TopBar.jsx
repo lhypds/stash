@@ -73,7 +73,10 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
   function submit(e) {
     e.preventDefault();
     const q = term.trim();
-    if (q && store) onSearch?.(q, store);
+    if (q && store) {
+      onSearch?.(q, store);
+      if (isUrlStore) setTerm("");
+    }
   }
 
   return (
