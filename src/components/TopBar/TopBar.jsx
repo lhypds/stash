@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import ConfirmModal from "@components/ConfirmModal";
 import LanguageSwitcher from "@components/LanguageSwitcher";
 import SettingsModal from "@components/SettingsModal";
 import * as api from "@utils/api";
 import { useUser } from "@contexts/UserContext";
 import styles from "./topbar.module.css";
+
+// iPadOS reports itself as Mac, hence the maxTouchPoints check
+const isIOS =
+  /iP(ad|hone|od)/.test(navigator.userAgent) ||
+  (navigator.userAgent.includes("Mac") && navigator.maxTouchPoints > 1);
 
 export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
   const { t } = useTranslation();
@@ -21,6 +27,7 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
   const [exportOpen, setExportOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [confirmExport, setConfirmExport] = useState(false);
   const menuRef = useRef(null);
   const exportRef = useRef(null);
   const storeRef = useRef(null);
@@ -114,6 +121,9 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder={placeholder}
+            // iOS scrolls the page to "reveal" inputs inside the sticky bar
+            // and can leave it stuck under the bar after the keyboard closes
+            onBlur={isIOS ? () => window.scrollTo(0, 0) : undefined}
           />
           {isUrlStore ? (
             <button
@@ -164,7 +174,7 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
               <button
                 onClick={() => {
                   setExportOpen(false);
-                  window.location.assign(`/api/users/${user}/export.zip`);
+                  setConfirmExport(true);
                 }}
               >
                 ZIP
@@ -216,6 +226,16 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
         )}
       </div>
 
+      <ConfirmModal
+        isOpen={confirmExport}
+        message={t("app.confirmExport")}
+        confirmLabel={t("button.download")}
+        onCancel={() => setConfirmExport(false)}
+        onConfirm={() => {
+          setConfirmExport(false);
+          window.location.assign(`/api/users/${user}/export.zip`);
+        }}
+      />
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} onSaved={loadSettings} />
     </header>
   );

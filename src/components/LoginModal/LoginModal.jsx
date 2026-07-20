@@ -19,6 +19,9 @@ export default function LoginModal({ isOpen, onClose }) {
       setError(true);
       return;
     }
+    // Dismiss the iOS keyboard before the route swap; unmounting a focused
+    // input can leave the viewport stuck where the keyboard pushed it
+    document.activeElement?.blur();
     login(username);
     setName("");
     setError(false);

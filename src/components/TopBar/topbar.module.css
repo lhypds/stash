@@ -229,3 +229,22 @@
     margin-left: 160px;
   }
 }
+
+/* Phones: the hanging selector would eat half the row, so it moves
+   in-flow and the search box takes the full width */
+@media (max-width: 640px) {
+  .search {
+    margin-left: 0;
+  }
+
+  .storeWrap {
+    position: static;
+    border: none;
+    border-right: 1px solid var(--ink);
+  }
+
+  .storeMenu {
+    right: auto;
+    left: -1px;
+  }
+}

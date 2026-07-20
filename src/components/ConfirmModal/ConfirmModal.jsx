@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Modal } from "@ui";
 import styles from "./confirm.module.css";
 
-export default function ConfirmModal({ isOpen, message, onCancel, onConfirm }) {
+export default function ConfirmModal({ isOpen, message, confirmLabel, onCancel, onConfirm }) {
   const { t } = useTranslation();
   return (
     <Modal isOpen={isOpen} onClose={onCancel} closeOnOverlay className={styles.modal}>
@@ -13,7 +13,7 @@ export default function ConfirmModal({ isOpen, message, onCancel, onConfirm }) {
             {t("button.cancel")}
           </button>
           <button className={styles.confirm} onClick={onConfirm}>
-            {t("button.delete")}
+            {confirmLabel ?? t("button.delete")}
           </button>
         </div>
       </div>
