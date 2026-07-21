@@ -87,7 +87,12 @@ const Modal = ({ isOpen, onClose, title, children, closeOnOverlay = false, class
 
   return (
     <div className={styles.overlay} onPointerDown={handleOverlayPointerDown} onClick={handleOverlayClick}>
-      <div className={[styles.modal, className].filter(Boolean).join(" ")}>
+      <div
+        className={[styles.modal, className].filter(Boolean).join(" ")}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title || "Dialog"}
+      >
         <div className={styles.header}>
           {title && <span className={styles.title}>{title}</span>}
           <button className={styles.closeButton} onClick={onClose} disabled={!onClose} aria-label="Close">

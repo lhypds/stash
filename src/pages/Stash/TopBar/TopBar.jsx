@@ -13,7 +13,8 @@ import styles from "./topbar.module.css";
 // True when a keystroke lands in a text field, so global shortcuts like "/"
 // stay out of the way while the user is actually typing.
 const isEditable = (el) =>
-  el instanceof HTMLElement && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+  el instanceof HTMLElement &&
+  (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
 
 // The universal analyser: one box that filters the stash as you type, and — on
 // submit — analyzes whatever's pasted (links become Pages/Posts/Videos/
@@ -48,7 +49,14 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
       }
       // "/" jumps to the search box — unless the user is already typing
       // somewhere (the box itself, a note, a modal field), where "/" is literal.
-      if (e.key === "/" && !isEditable(e.target)) {
+      if (
+        e.key === "/" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !isEditable(e.target) &&
+        !document.querySelector('[aria-modal="true"]')
+      ) {
         e.preventDefault();
         inputRef.current?.focus();
       }
