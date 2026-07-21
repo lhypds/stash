@@ -22,6 +22,7 @@
     },
     "storeSelect": "类型",
     "sourceSelect": "来源",
+    "otherSource": "其他",
     "analyze": "分析",
     "analysisResults": "分析结果",
     "analyzing": "分析中…",

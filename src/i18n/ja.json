@@ -22,6 +22,7 @@
     },
     "storeSelect": "タイプ",
     "sourceSelect": "提供元",
+    "otherSource": "その他",
     "analyze": "分析",
     "analysisResults": "分析結果",
     "analyzing": "分析中…",
