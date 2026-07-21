@@ -12,6 +12,7 @@
       "chats": "对话"
     },
     "allStores": "全部",
+    "allSources": "全部",
     "kinds": {
       "post": "帖子",
       "page": "网页",
@@ -22,6 +23,7 @@
       "android-apps": "Android 应用"
     },
     "storeSelect": "类型",
+    "sourceSelect": "来源",
     "analyze": "分析",
     "analysisResults": "分析结果",
     "analyzing": "分析中…",

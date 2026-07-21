@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Modal, TextArea } from "@ui";
 import ItemThumbnail from "@components/ItemThumbnail";
 import { SHOT_STORES } from "@utils/api";
-import { videoEmbedUrl } from "@utils/url";
+import { sourceName, videoEmbedUrl } from "@utils/url";
 import { itemMeta } from "@utils/item";
 import styles from "./detail.module.css";
 
@@ -11,6 +11,7 @@ export default function ItemDetailModal({ item, isOwner, onClose, onSave, onDele
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(item.note || "");
   const videoEmbed = item.store === "videos" && item.kind === "video" ? videoEmbedUrl(item.url) : null;
+  const source = sourceName(item.url);
 
   const dirty = note !== (item.note || "");
   const stashedDate = item.stashedAt ? new Date(item.stashedAt).toLocaleString(i18n.language) : "";
@@ -29,6 +30,11 @@ export default function ItemDetailModal({ item, isOwner, onClose, onSave, onDele
             {item.byline && (
               <span>
                 {t("app.byline")}: {item.byline}
+              </span>
+            )}
+            {source && (
+              <span>
+                {t("app.sourceSelect")}: {source}
               </span>
             )}
             <span className={styles.bundle}>

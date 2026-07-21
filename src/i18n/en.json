@@ -12,6 +12,7 @@
       "chats": "Chats"
     },
     "allStores": "All",
+    "allSources": "All",
     "kinds": {
       "post": "Post",
       "page": "Page",
@@ -22,6 +23,7 @@
       "android-apps": "Android App"
     },
     "storeSelect": "Store",
+    "sourceSelect": "Source",
     "analyze": "Analyze",
     "analysisResults": "Analysis results",
     "analyzing": "Analyzing…",

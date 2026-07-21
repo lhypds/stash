@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { showToast } from "@ui";
-import { LoginModal, ItemCard, ItemDetailModal, ConfirmModal } from "@components";
+import { LoginModal, ItemCard, ItemDetailModal, ConfirmModal, FilterDropdown } from "@components";
 import TopBar from "./TopBar";
 import * as api from "@utils/api";
-import { extractUrls } from "@utils/url";
+import { extractUrls, sourceName } from "@utils/url";
 import { useUser } from "@contexts/UserContext";
 import styles from "./stash.module.css";
 
@@ -28,9 +28,8 @@ export default function Stash() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [storeFilter, setStoreFilter] = useState(null);
-  const [storeOpen, setStoreOpen] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState(null);
   const [query, setQuery] = useState("");
-  const storeRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +38,7 @@ export default function Stash() {
     setSearch(null);
     setDetail(null);
     setStoreFilter(null);
+    setSourceFilter(null);
     setQuery("");
     api
       .getStash(username)
@@ -79,48 +79,21 @@ export default function Stash() {
     };
   }, [detail, username]);
 
-  // Close the store-filter dropdown on an outside tap/click or Escape
-  useEffect(() => {
-    function handleOutside(e) {
-      if (storeRef.current && !storeRef.current.contains(e.target)) setStoreOpen(false);
-    }
-    function handleKey(e) {
-      if (e.key === "Escape" && storeRef.current?.contains(document.activeElement)) {
-        setStoreOpen(false);
-        storeRef.current.querySelector("button")?.focus();
-      }
-    }
-    document.addEventListener("pointerdown", handleOutside);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("pointerdown", handleOutside);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, []);
-
-  // Arrow-key navigation for the store filter: open on ArrowDown, then move
-  // focus between options (they're real buttons, so Enter/Space just work)
-  function handleStoreKeyDown(e) {
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    e.preventDefault();
-    if (!storeOpen) {
-      setStoreOpen(true);
-      return;
-    }
-    const opts = [...storeRef.current.querySelectorAll('[role="option"]')];
-    const i = opts.indexOf(document.activeElement);
-    const next = e.key === "ArrowDown" ? i + 1 : i - 1;
-    opts[(next + opts.length) % opts.length]?.focus();
-  }
-
   const stashedKeys = useMemo(() => new Set(items.map(itemKey)), [items]);
+  // The platforms present in this stash (YouTube, Bilibili, …), derived from
+  // each item's URL. Sorted so the source filter's options stay stable.
+  const sources = useMemo(
+    () => [...new Set(items.map((a) => sourceName(a.url)).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [items],
+  );
   const visibleItems = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items
       .filter((a) => !storeFilter || a.store === storeFilter)
+      .filter((a) => !sourceFilter || sourceName(a.url) === sourceFilter)
       .filter((a) => !q || [a.name, a.byline, a.note].some((f) => f?.toLowerCase().includes(q)))
       .sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || ""));
-  }, [items, storeFilter, query]);
+  }, [items, storeFilter, sourceFilter, query]);
 
   // The brain: analyze whatever is in the box. Links are pulled out and each
   // is auto-typed by the server (Page/Post/Video/Channel). Plain text with no
@@ -251,61 +224,32 @@ export default function Stash() {
         ) : (
           <>
             <div className={styles.head}>
-              <div
-                className={styles.storeFilter}
-                ref={storeRef}
-                data-open={storeOpen}
-                onMouseLeave={() => setStoreOpen(false)}
-                onKeyDown={handleStoreKeyDown}
-              >
-                <button
-                  type="button"
-                  className={styles.storeTrigger}
-                  onClick={() => setStoreOpen((v) => !v)}
-                  aria-label={t("app.storeSelect")}
-                  aria-haspopup="listbox"
-                  aria-expanded={storeOpen}
-                >
-                  {storeFilter ? t(`app.storeNames.${storeFilter}`) : t("app.allStores")}
-                  <span className={styles.caret}>▾</span>
-                </button>
-                <div className={styles.storeMenu} role="listbox">
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={!storeFilter}
-                    data-active={!storeFilter}
-                    onClick={() => {
-                      setStoreFilter(null);
-                      setStoreOpen(false);
-                    }}
-                  >
-                    {t("app.allStores")}
-                  </button>
-                  {api.STORE_KEYS.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      role="option"
-                      aria-selected={s === storeFilter}
-                      data-active={s === storeFilter}
-                      onClick={() => {
-                        setStoreFilter(s);
-                        setStoreOpen(false);
-                      }}
-                    >
-                      {t(`app.storeNames.${s}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <FilterDropdown
+                label={t("app.storeSelect")}
+                allLabel={t("app.allStores")}
+                value={storeFilter}
+                options={api.STORE_KEYS}
+                getLabel={(s) => t(`app.storeNames.${s}`)}
+                onChange={setStoreFilter}
+              />
+              {sources.length > 0 && (
+                <FilterDropdown
+                  label={t("app.sourceSelect")}
+                  allLabel={t("app.allSources")}
+                  value={sourceFilter}
+                  options={sources}
+                  onChange={setSourceFilter}
+                />
+              )}
             </div>
             {loading ? (
               <p className={styles.hint}>{t("common.loading")}</p>
             ) : loadError ? (
               <p className={styles.hint}>{t("app.userNotFound")}</p>
             ) : visibleItems.length === 0 ? (
-              <p className={styles.hint}>{t(query.trim() || storeFilter ? "app.noResults" : "app.emptyStash")}</p>
+              <p className={styles.hint}>
+                {t(query.trim() || storeFilter || sourceFilter ? "app.noResults" : "app.emptyStash")}
+              </p>
             ) : (
               <div className={styles.grid}>
                 {visibleItems.map((a) => (

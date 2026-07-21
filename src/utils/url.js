@@ -37,6 +37,9 @@ export function extractUrls(text) {
 // as a subdomain (space.bilibili.com → Bilibili); unmapped hosts fall back to
 // the bare domain.
 const SOURCE_NAMES = {
+  "apps.apple.com": "App Store",
+  "itunes.apple.com": "App Store",
+  "play.google.com": "Google Play",
   "x.com": "X",
   "twitter.com": "X",
   "threads.net": "Threads",

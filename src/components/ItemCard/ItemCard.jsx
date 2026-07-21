@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import ItemThumbnail from "@components/ItemThumbnail";
 import { itemMeta } from "@utils/item";
-import styles from "./itemcard.module.css";
+import styles from "./card.module.css";
 
 const THUMB_KINDS = new Set(["post", "video"]);
 
