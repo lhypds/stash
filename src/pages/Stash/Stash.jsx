@@ -10,6 +10,33 @@ import styles from "./stash.module.css";
 const countryForLang = (lang) => (lang === "ja" ? "jp" : lang === "zh" ? "cn" : "us");
 const itemKey = (a) => `${a.store}:${a.itemId}`;
 
+const MAX_URLS = 10;
+
+// Pasted "share" text buries the link among emoji and captions, and can hold
+// several at once (e.g. RedNote's "15 【…】 😆 code 😆 https://…"). Pull out
+// every http(s) URL, trim punctuation that tends to cling to the end, and
+// drop duplicates.
+function extractUrls(text) {
+  const matches = String(text).match(/https?:\/\/[^\s<>"'`）】」』]+/gi) || [];
+  const seen = new Set();
+  const urls = [];
+  for (const match of matches) {
+    const trimmed = match.replace(/[.,;:!?、。，！？）)\]}】」』>"'`]+$/u, "");
+    let href;
+    try {
+      const u = new URL(trimmed);
+      if (u.protocol !== "http:" && u.protocol !== "https:") continue;
+      href = u.href;
+    } catch {
+      continue;
+    }
+    if (seen.has(href)) continue;
+    seen.add(href);
+    urls.push(href);
+  }
+  return urls;
+}
+
 export default function Stash() {
   const { username } = useParams();
   const { t, i18n } = useTranslation();
@@ -82,20 +109,41 @@ export default function Stash() {
   }, [items, storeFilter, filterText]);
 
   async function handleSearch(term, store) {
-    const isUrl = api.URL_STORES.has(store);
-    setSearch({ term, store, loading: true, results: [] });
-    try {
-      if (isUrl) {
-        const { result } = await api.analyzeUrl(store, term);
-        setSearch({ term, store, loading: false, results: [result] });
-      } else {
+    if (!api.URL_STORES.has(store)) {
+      setSearch({ term, store, loading: true, results: [] });
+      try {
         const { results } = await api.searchStore(store, term, countryForLang(i18n.language));
         setSearch({ term, store, loading: false, results });
+      } catch {
+        setSearch(null);
+        showToast(t("app.searchFailed"));
       }
-    } catch {
-      setSearch(null);
-      showToast(t(isUrl ? "app.analyzeFailed" : "app.searchFailed"));
+      return;
     }
+
+    // A URL-store term may be a share blurb with the link buried inside, or a
+    // batch of links at once. Analyze each; anything we can't read (e.g. a
+    // 404) opens in a new tab so the user can still get to it.
+    const found = extractUrls(term);
+    if (found.length === 0) {
+      showToast(t("app.noUrlFound"));
+      return;
+    }
+    const urls = found.slice(0, MAX_URLS);
+    if (found.length > MAX_URLS) showToast(t("app.urlsCapped", { max: MAX_URLS }));
+
+    setSearch({ term, store, loading: true, results: [] });
+    const settled = await Promise.allSettled(urls.map((u) => api.analyzeUrl(store, u)));
+    const results = [];
+    const failed = [];
+    settled.forEach((outcome, i) => {
+      if (outcome.status === "fulfilled") results.push(outcome.value.result);
+      else failed.push(urls[i]);
+    });
+
+    for (const u of failed) window.open(u, "_blank", "noopener,noreferrer");
+    setSearch(results.length ? { term, store, loading: false, results } : null);
+    if (failed.length) showToast(t("app.openedFailed", { count: failed.length }));
   }
 
   async function handleStash(result) {
