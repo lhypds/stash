@@ -14,10 +14,11 @@
 }
 
 .head {
+  height: 28px;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .heading {
@@ -34,16 +35,10 @@
   font-weight: 400;
 }
 
-.count {
-  font-size: 13px;
-  color: var(--muted);
-}
-
 /* Store filter — moved down from the search bar to sit on the @username row.
    Custom dropdown (not a native select) to match the top bar's selector look */
 .storeFilter {
   position: relative;
-  margin-left: auto;
 }
 
 .storeTrigger {
@@ -66,7 +61,7 @@
 .storeMenu {
   display: none;
   position: absolute;
-  right: 0;
+  left: 0;
   top: calc(100% - 1px);
   flex-direction: column;
   z-index: 20;

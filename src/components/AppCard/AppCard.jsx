@@ -51,8 +51,7 @@ function sourceName(url) {
 
 export default function AppCard({ app, onClick }) {
   const { t } = useTranslation();
-  const typeLabel =
-    app.kind && app.kind !== "app" ? t(`app.kinds.${app.kind}`) : t(`app.storeNames.${app.store}`);
+  const typeLabel = app.kind && app.kind !== "app" ? t(`app.kinds.${app.kind}`) : t(`app.storeNames.${app.store}`);
   // The source bracket would just be noise where the label already says where
   // it's from: pages carry their domain in the title/byline, and apps' store
   // name is the type label (so "iOS Apps [apps.apple.com]" is redundant).

@@ -273,8 +273,6 @@ export default function Stash() {
         ) : (
           <>
             <div className={styles.head}>
-              <h2 className={styles.heading}>@{username}</h2>
-              <span className={styles.count}>{visibleItems.length}</span>
               <div
                 className={styles.storeFilter}
                 ref={storeRef}

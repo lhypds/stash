@@ -4,7 +4,7 @@
   align-items: flex-start;
   gap: 6px;
   padding: 14px;
-  border: 1px solid var(--line);
+  border: 1px solid #000;
   background: var(--bg);
   min-width: 0;
 }

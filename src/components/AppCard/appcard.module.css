@@ -4,14 +4,10 @@
   align-items: flex-start;
   gap: 4px;
   padding: 14px;
-  border: 1px solid var(--line);
+  border: 1px solid #000;
   background: var(--bg);
   text-align: left;
   min-width: 0;
-}
-
-.card:hover {
-  border-color: var(--ink);
 }
 
 .thumb {

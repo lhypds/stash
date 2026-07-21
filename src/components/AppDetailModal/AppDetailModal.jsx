@@ -59,7 +59,7 @@ export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete
         </div>
 
         {videoEmbed && (
-          <>
+          <div>
             <div className={styles.labelRow}>
               <label className={styles.label}>{t("app.video")}</label>
               <a href={app.url} target="_blank" rel="noreferrer" className={styles.shotLink}>
@@ -75,11 +75,11 @@ export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete
                 allowFullScreen
               />
             </div>
-          </>
+          </div>
         )}
 
         {app.screenshotUrl ? (
-          <>
+          <div>
             <div className={styles.labelRow}>
               <label className={styles.label}>{t("app.screenshot")}</label>
               <a href={app.screenshotUrl} target="_blank" rel="noreferrer" className={styles.shotLink}>
@@ -89,26 +89,28 @@ export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete
             <div className={styles.shotWrap}>
               <img src={app.screenshotUrl} alt={t("app.screenshot")} className={styles.shot} loading="lazy" />
             </div>
-          </>
+          </div>
         ) : app.store === "pages" ? (
-          <>
+          <div>
             <label className={styles.label}>{t("app.screenshot")}</label>
             <p className={styles.shotPending}>{t("app.screenshotPending")}</p>
-          </>
+          </div>
         ) : null}
 
-        <label className={styles.label}>{t("app.note")}</label>
-        {isOwner ? (
-          <TextArea
-            className={styles.noteArea}
-            value={note}
-            minHeight={120}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={t("app.notePlaceholder")}
-          />
-        ) : (
-          <p className={styles.readNote}>{app.note || "—"}</p>
-        )}
+        <div>
+          <label className={styles.label}>{t("app.note")}</label>
+          {isOwner ? (
+            <TextArea
+              className={styles.noteArea}
+              value={note}
+              minHeight={120}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={t("app.notePlaceholder")}
+            />
+          ) : (
+            <p className={styles.readNote}>{app.note || "—"}</p>
+          )}
+        </div>
 
         {isOwner && (
           <div className={styles.actions}>
