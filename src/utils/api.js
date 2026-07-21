@@ -21,8 +21,10 @@ export const URL_STORES = new Set(["posts", "pages", "videos", "channels"]);
 export const searchStore = (store, term, country = "us") =>
   request(`/api/search?store=${store}&country=${country}&term=${encodeURIComponent(term)}`);
 
-export const analyzeUrl = (store, url) =>
-  request(`/api/analyze?store=${store}&url=${encodeURIComponent(url)}`);
+// The server auto-detects the type (Page/Post/Video/Channel, or an app from an
+// App Store / Google Play link) from the URL's host. country steers app lookups.
+export const analyzeUrl = (url, country = "us") =>
+  request(`/api/analyze?store=auto&country=${country}&url=${encodeURIComponent(url)}`);
 
 export const ensureUser = (username) => request(`/api/users/${username}`, { method: "POST" });
 

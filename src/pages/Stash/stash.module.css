@@ -15,7 +15,7 @@
 
 .head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   margin-bottom: 16px;
 }
@@ -39,28 +39,78 @@
   color: var(--muted);
 }
 
-.filter {
+/* Store filter — moved down from the search bar to sit on the @username row.
+   Custom dropdown (not a native select) to match the top bar's selector look */
+.storeFilter {
+  position: relative;
   margin-left: auto;
+}
+
+.storeTrigger {
   display: flex;
   align-items: center;
   gap: 6px;
-  border-bottom: 1px solid var(--muted);
-  color: var(--muted);
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--ink);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
-.filter:focus-within {
-  border-color: var(--ink);
-  color: var(--ink);
+.caret {
+  font-size: 10px;
 }
 
-.filterInput {
-  border: none;
-  background: none;
-  outline: none;
-  font-size: 13px;
-  padding: 2px 0;
-  width: 140px;
+.storeMenu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% - 1px);
+  flex-direction: column;
+  z-index: 20;
+}
+
+.storeFilter[data-open="true"] .storeMenu {
+  display: flex;
+}
+
+.storeMenu button {
+  height: 28px;
+  padding: 0 12px;
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--ink);
+  border-top: none;
   color: var(--ink);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.storeMenu button:first-child {
+  border-top: 1px solid var(--ink);
+}
+
+.storeMenu button[data-active="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+@media (hover: hover) {
+  .storeTrigger:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .storeFilter:hover .storeMenu {
+    display: flex;
+  }
+
+  .storeMenu button:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
 }
 
 .closeResults {

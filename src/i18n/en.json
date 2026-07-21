@@ -1,10 +1,7 @@
 {
   "app": {
     "tagline": "Stash everything you love, with notes.",
-    "searchPlaceholder": {
-      "ios-apps": "Search in App Store",
-      "android-apps": "Search in Google Play"
-    },
+    "universalPlaceholder": "paste links, type text...",
     "storeNames": {
       "ios-apps": "iOS Apps",
       "android-apps": "Android Apps",
@@ -13,6 +10,7 @@
       "videos": "Videos",
       "channels": "Channels"
     },
+    "allStores": "All",
     "kinds": {
       "post": "Post",
       "page": "Page",
@@ -20,13 +18,8 @@
       "channel": "Channel"
     },
     "storeSelect": "Store",
-    "urlPlaceholder": {
-      "default": "Paste a URL",
-      "posts": "Paste an x.com, Threads, RedNote, Instagram… URL",
-      "videos": "Paste a YouTube, bilibili, TikTok… video URL",
-      "channels": "Paste a YouTube, bilibili, TikTok… channel URL"
-    },
     "analyze": "Analyze",
+    "analysisResults": "Analysis results",
     "analyzing": "Analyzing…",
     "analyzeFailed": "Couldn't analyze that URL.",
     "noUrlFound": "No link found in that text.",
@@ -50,7 +43,6 @@
     "searching": "Searching…",
     "searchFailed": "Search failed. Try again.",
     "emptyStash": "Nothing stashed yet.",
-    "filterStash": "Filter stashed items",
     "note": "Note",
     "notePlaceholder": "Add a note…",
     "screenshot": "Screenshot",

@@ -133,6 +133,72 @@ const VIDEO_PLATFORMS = [
 const videoPlatformFor = (host) =>
   VIDEO_PLATFORMS.find((p) => p.hosts.some((h) => host === h || host.endsWith(`.${h}`)));
 
+// Which store a pasted link belongs to, chosen by host. App-store links map to
+// the app stores (looked up via analyzeAppUrl); the video/channel split is
+// resolved later inside analyzeVideo. Anything unrecognized is a generic page.
+function urlStoreFor(href) {
+  let host;
+  try {
+    host = new URL(href).hostname.replace(/^www\.|^m\./, "");
+  } catch {
+    return "pages";
+  }
+  if (host === "apps.apple.com" || host === "itunes.apple.com") return "ios-apps";
+  if (host === "play.google.com") return "android-apps";
+  if (platformFor(host)) return "posts";
+  if (videoPlatformFor(host)) return "videos";
+  return "pages";
+}
+
+// SSRF guard: keep server-side fetches off loopback, link-local (incl. the
+// 169.254.169.254 cloud metadata endpoint), and private ranges. This screens
+// the literal host only — it can't stop a public name that resolves to, or
+// redirects into, a private address, so it's a floor, not full protection.
+function isBlockedHost(hostname) {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) {
+    return true;
+  }
+  if (h === "::1" || h === "::" || h.startsWith("fe80:") || h.startsWith("fc") || h.startsWith("fd")) return true;
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    if (a === 0 || a === 10 || a === 127) return true;
+    if (a === 169 && b === 254) return true; // link-local + cloud metadata
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+  }
+  return false;
+}
+
+// Resolve an App Store / Google Play link to its app via the same lookups the
+// term search uses, so a pasted store URL stashes as a real app (icon, name,
+// developer) rather than a generic page. Returns fields without `store`.
+async function analyzeAppUrl(href, store, country) {
+  const u = new URL(href);
+  if (store === "ios-apps") {
+    const id = u.pathname.match(/\/id(\d+)/)?.[1] || (/^\d+$/.test(u.searchParams.get("id")) ? u.searchParams.get("id") : null);
+    if (!id) throw new Error("no app id in url");
+    const r = await fetch(`https://itunes.apple.com/lookup?id=${id}&country=${country}`);
+    if (!r.ok) throw new Error(`itunes ${r.status}`);
+    const a = (await r.json()).results?.[0];
+    if (!a?.bundleId) throw new Error("app not found");
+    return {
+      itemId: a.bundleId,
+      kind: "app",
+      name: a.trackName,
+      byline: a.artistName,
+      icon: a.artworkUrl512 || a.artworkUrl100,
+      url: a.trackViewUrl || href,
+    };
+  }
+  const appId = u.searchParams.get("id");
+  if (!appId) throw new Error("no app id in url");
+  const a = await gplay.app({ appId, country });
+  return { itemId: a.appId, kind: "app", name: a.title, byline: a.developer, icon: a.icon, url: a.url || href };
+}
+
 const userDir = (username) => path.join(DATA_DIR, "users", username);
 const settingsFile = (username) => path.join(userDir(username), "settings.json");
 const storeDir = (username, store) => path.join(userDir(username), "stores", store);
@@ -530,6 +596,32 @@ async function analyzePost(url) {
 
 const app = express();
 app.use(express.json());
+app.set("trust proxy", true);
+
+// Coarse per-IP fixed-window limiter for the outbound-fetch endpoints. Sized so
+// a single paste (up to MAX_URLS analyze calls at once) is fine, but a script
+// hammering them isn't. In-memory, so it resets on restart and is per-process.
+const rateHits = new Map();
+function rateLimit(windowMs, max) {
+  return (req, res, next) => {
+    const now = Date.now();
+    const ip = req.ip || req.socket?.remoteAddress || "?";
+    const rec = rateHits.get(ip);
+    if (!rec || now - rec.start >= windowMs) {
+      rateHits.set(ip, { start: now, count: 1 });
+    } else if (rec.count >= max) {
+      return res.status(429).json({ error: "too many requests" });
+    } else {
+      rec.count++;
+    }
+    // Opportunistic cleanup so the map can't grow without bound
+    if (rateHits.size > 5000) {
+      for (const [k, v] of rateHits) if (now - v.start >= windowMs) rateHits.delete(k);
+    }
+    next();
+  };
+}
+const analyzeLimiter = rateLimit(60000, 120);
 
 app.param("username", (req, res, next, username) => {
   if (!USERNAME_RE.test(username)) return res.status(400).json({ error: "invalid username" });
@@ -544,7 +636,7 @@ app.param("itemId", (req, res, next, itemId) => {
   next();
 });
 
-app.get("/api/search", async (req, res) => {
+app.get("/api/search", analyzeLimiter, async (req, res) => {
   const term = String(req.query.term || "").trim();
   const store = req.query.store;
   const country = /^[a-z]{2}$/.test(req.query.country || "") ? req.query.country : "us";
@@ -592,10 +684,9 @@ app.get("/api/search", async (req, res) => {
   }
 });
 
-app.get("/api/analyze", async (req, res) => {
-  const store = req.query.store;
+app.get("/api/analyze", analyzeLimiter, async (req, res) => {
   const raw = String(req.query.url || "").trim();
-  if (STORES[store]?.type !== "url") return res.status(400).json({ error: "invalid store" });
+  const country = /^[a-z]{2}$/.test(req.query.country || "") ? req.query.country : "us";
   let url;
   try {
     url = new URL(raw);
@@ -603,8 +694,21 @@ app.get("/api/analyze", async (req, res) => {
   } catch {
     return res.status(400).json({ error: "invalid url" });
   }
+  if (isBlockedHost(url.hostname)) return res.status(400).json({ error: "invalid url" });
+
+  // The universal analyser sends store=auto (or nothing) and lets the host
+  // decide; an explicit store still pins the analyzer for direct callers
+  let store = req.query.store;
+  if (!store || store === "auto") store = urlStoreFor(url.href);
+  const type = STORES[store]?.type;
+  if (type !== "url" && type !== "search") return res.status(400).json({ error: "invalid store" });
 
   try {
+    // An app-store link is looked up as a real app; a URL store is analyzed
+    if (type === "search") {
+      const analyzed = await analyzeAppUrl(url.href, store, country);
+      return res.json({ result: { store, ...analyzed } });
+    }
     const isVideoStore = store === "videos" || store === "channels";
     const analyzed = isVideoStore
       ? await analyzeVideo(url.href, store)

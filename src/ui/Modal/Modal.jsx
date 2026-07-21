@@ -1,10 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import styles from "./modal.module.css";
 
 // Number of currently open modals; scroll unlocks only when the last one closes
 let lockCount = 0;
 
 const Modal = ({ isOpen, onClose, title, children, closeOnOverlay = false, className }) => {
+  // Whether the current press started on the overlay itself (a genuine
+  // backdrop click) vs. a drag that began inside the modal
+  const pressedOnOverlay = useRef(false);
+
   // Prevent touchmove on background
   // allow scroll on textarea/input/select but prevent on the rest of the background
   useEffect(() => {
@@ -43,14 +47,22 @@ const Modal = ({ isOpen, onClose, title, children, closeOnOverlay = false, class
 
   if (!isOpen) return null;
 
+  // A plain click closes on the backdrop, but `click` fires on the common
+  // ancestor of the press and release — so selecting text in a field and
+  // releasing outside the modal targets the overlay and would close it.
+  // Require the press to have started on the overlay too.
+  const handleOverlayPointerDown = (e) => {
+    pressedOnOverlay.current = e.target === e.currentTarget;
+  };
   const handleOverlayClick = (e) => {
-    if (closeOnOverlay && e.target === e.currentTarget) {
+    if (closeOnOverlay && e.target === e.currentTarget && pressedOnOverlay.current) {
       onClose();
     }
+    pressedOnOverlay.current = false;
   };
 
   return (
-    <div className={styles.overlay} onClick={handleOverlayClick}>
+    <div className={styles.overlay} onPointerDown={handleOverlayPointerDown} onClick={handleOverlayClick}>
       <div className={[styles.modal, className].filter(Boolean).join(" ")}>
         <div className={styles.header}>
           {title && <span className={styles.title}>{title}</span>}

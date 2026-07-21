@@ -1,10 +1,7 @@
 {
   "app": {
     "tagline": "收藏你喜欢的一切，还能写笔记。",
-    "searchPlaceholder": {
-      "ios-apps": "搜索 App Store",
-      "android-apps": "搜索 Google Play"
-    },
+    "universalPlaceholder": "粘贴链接，输入文字…",
     "storeNames": {
       "ios-apps": "iOS 应用",
       "android-apps": "Android 应用",
@@ -13,6 +10,7 @@
       "videos": "视频",
       "channels": "频道"
     },
+    "allStores": "全部",
     "kinds": {
       "post": "帖子",
       "page": "网页",
@@ -20,13 +18,8 @@
       "channel": "频道"
     },
     "storeSelect": "类型",
-    "urlPlaceholder": {
-      "default": "粘贴链接",
-      "posts": "粘贴 x.com、Threads、小红书、Instagram… 链接",
-      "videos": "粘贴 YouTube、bilibili、TikTok… 视频链接",
-      "channels": "粘贴 YouTube、bilibili、TikTok… 频道链接"
-    },
     "analyze": "分析",
+    "analysisResults": "分析结果",
     "analyzing": "分析中…",
     "analyzeFailed": "无法分析该链接。",
     "noUrlFound": "没有在文本中找到链接。",
@@ -49,7 +42,6 @@
     "searching": "搜索中…",
     "searchFailed": "搜索失败，请重试。",
     "emptyStash": "还没有收藏。",
-    "filterStash": "筛选收藏内容",
     "note": "笔记",
     "notePlaceholder": "写点笔记…",
     "screenshot": "网页截图",

@@ -1,10 +1,7 @@
 {
   "app": {
     "tagline": "好きなものをぜんぶストック。メモも書ける。",
-    "searchPlaceholder": {
-      "ios-apps": "App Store で検索",
-      "android-apps": "Google Play で検索"
-    },
+    "universalPlaceholder": "リンクを貼り付け、テキストを入力…",
     "storeNames": {
       "ios-apps": "iOSアプリ",
       "android-apps": "Androidアプリ",
@@ -13,6 +10,7 @@
       "videos": "動画",
       "channels": "チャンネル"
     },
+    "allStores": "すべて",
     "kinds": {
       "post": "投稿",
       "page": "ページ",
@@ -20,13 +18,8 @@
       "channel": "チャンネル"
     },
     "storeSelect": "タイプ",
-    "urlPlaceholder": {
-      "default": "URLを貼り付け",
-      "posts": "x.com、Threads、RedNote、Instagram…のURLを貼り付け",
-      "videos": "YouTube、bilibili、TikTok…の動画URLを貼り付け",
-      "channels": "YouTube、bilibili、TikTok…のチャンネルURLを貼り付け"
-    },
     "analyze": "分析",
+    "analysisResults": "分析結果",
     "analyzing": "分析中…",
     "analyzeFailed": "URLを分析できませんでした。",
     "noUrlFound": "テキストにリンクが見つかりませんでした。",
@@ -49,7 +42,6 @@
     "searching": "検索中…",
     "searchFailed": "検索に失敗しました。もう一度お試しください。",
     "emptyStash": "まだ何もありません。",
-    "filterStash": "ストックを絞り込む",
     "note": "メモ",
     "notePlaceholder": "メモを書く…",
     "screenshot": "スクリーンショット",

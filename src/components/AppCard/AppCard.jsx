@@ -53,9 +53,10 @@ export default function AppCard({ app, onClick }) {
   const { t } = useTranslation();
   const typeLabel =
     app.kind && app.kind !== "app" ? t(`app.kinds.${app.kind}`) : t(`app.storeNames.${app.store}`);
-  // Pages are already identified by their domain in the title/byline, so the
-  // source bracket would just be noise — show it for everything else
-  const source = app.kind === "page" ? null : sourceName(app.url);
+  // The source bracket would just be noise where the label already says where
+  // it's from: pages carry their domain in the title/byline, and apps' store
+  // name is the type label (so "iOS Apps [apps.apple.com]" is redundant).
+  const source = app.kind === "page" || app.kind === "app" ? null : sourceName(app.url);
   const noteLine = app.note?.split("\n").find((line) => line.trim());
   return (
     <button className={styles.card} onClick={onClick}>

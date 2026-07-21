@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import ConfirmModal from "@components/ConfirmModal";
 import LanguageSwitcher from "@components/LanguageSwitcher";
 import SettingsModal from "@components/SettingsModal";
-import * as api from "@utils/api";
 import { useUser } from "@contexts/UserContext";
+import brainIcon from "@assets/brain.svg";
 import styles from "./topbar.module.css";
 
 // iPadOS reports itself as Mac, hence the maxTouchPoints check
@@ -13,70 +13,42 @@ const isIOS =
   /iP(ad|hone|od)/.test(navigator.userAgent) ||
   (navigator.userAgent.includes("Mac") && navigator.maxTouchPoints > 1);
 
-export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
+// The universal analyser: one box that filters the stash as you type, and — on
+// the brain — analyzes whatever's pasted (links become Pages/Posts/Videos/
+// Channels; plain text falls back to an app-store search).
+export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin }) {
   const { t } = useTranslation();
   const { user, logout } = useUser();
   const navigate = useNavigate();
-  const [term, setTerm] = useState("");
-  const [store, setStore] = useState(() => {
-    const saved = localStorage.getItem("stash:store");
-    return api.STORE_KEYS.includes(saved) ? saved : api.STORE_KEYS[0];
-  });
-  const [enabledStores, setEnabledStores] = useState(api.STORE_KEYS);
   const [menuOpen, setMenuOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-  const [storeOpen, setStoreOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmExport, setConfirmExport] = useState(false);
   const menuRef = useRef(null);
   const exportRef = useRef(null);
-  const storeRef = useRef(null);
-
-  const loadSettings = useCallback(() => {
-    if (!user) {
-      setEnabledStores(api.STORE_KEYS);
-      return;
-    }
-    api
-      .getSettings(user)
-      .then(({ settings }) => setEnabledStores(api.STORE_KEYS.filter((s) => settings?.stores?.[s] !== false)))
-      .catch(() => setEnabledStores(api.STORE_KEYS));
-  }, [user]);
-
-  useEffect(loadSettings, [loadSettings]);
-
-  useEffect(() => {
-    if (enabledStores.length && !enabledStores.includes(store)) setStore(enabledStores[0]);
-  }, [enabledStores, store]);
-
-  useEffect(() => {
-    onStoreChange?.(store);
-    setTerm("");
-    localStorage.setItem("stash:store", store);
-  }, [store, onStoreChange]);
 
   useEffect(() => {
     function handleOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
       if (exportRef.current && !exportRef.current.contains(e.target)) setExportOpen(false);
-      if (storeRef.current && !storeRef.current.contains(e.target)) setStoreOpen(false);
+    }
+    function handleKey(e) {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setExportOpen(false);
+      }
     }
     document.addEventListener("pointerdown", handleOutside);
-    return () => document.removeEventListener("pointerdown", handleOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("pointerdown", handleOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, []);
-
-  const isUrlStore = api.URL_STORES.has(store);
-  const placeholder = isUrlStore
-    ? t([`app.urlPlaceholder.${store}`, "app.urlPlaceholder.default"])
-    : t(`app.searchPlaceholder.${store}`);
 
   function submit(e) {
     e.preventDefault();
-    const q = term.trim();
-    if (q && store) {
-      onSearch?.(q, store);
-      if (isUrlStore) setTerm("");
-    }
+    onAnalyze?.(query);
   }
 
   return (
@@ -85,73 +57,28 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
         stash
       </Link>
 
-      {enabledStores.length > 0 && (
-        <form className={styles.search} onSubmit={submit} role="search">
-          <div
-            className={styles.storeWrap}
-            ref={storeRef}
-            data-open={storeOpen}
-            onMouseLeave={() => setStoreOpen(false)}
-          >
-            <button
-              type="button"
-              className={styles.storeTrigger}
-              onClick={() => setStoreOpen((v) => !v)}
-              aria-label={t("app.storeSelect")}
-            >
-              {t(`app.storeNames.${store}`)}
-              <span className={styles.caret}>▾</span>
-            </button>
-            <div className={styles.storeMenu}>
-              {enabledStores.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  data-active={s === store}
-                  onClick={() => {
-                    setStore(s);
-                    setStoreOpen(false);
-                  }}
-                >
-                  {t(`app.storeNames.${s}`)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <input
-            className={styles.input}
-            type="search"
-            value={term}
-            onChange={(e) => setTerm(e.target.value)}
-            placeholder={placeholder}
-            // iOS scrolls the page to "reveal" inputs inside the sticky bar
-            // and can leave it stuck under the bar after the keyboard closes
-            onBlur={isIOS ? () => window.scrollTo(0, 0) : undefined}
+      <form className={styles.search} onSubmit={submit} role="search">
+        <input
+          className={styles.input}
+          type="search"
+          value={query}
+          onChange={(e) => onQueryChange?.(e.target.value)}
+          placeholder={t("app.universalPlaceholder")}
+          enterKeyHint="search"
+          // iOS scrolls the page to "reveal" inputs inside the sticky bar
+          // and can leave it stuck under the bar after the keyboard closes
+          onBlur={isIOS ? () => window.scrollTo(0, 0) : undefined}
+        />
+        <button type="submit" className={styles.submit} aria-label={t("app.analyze")} title={t("app.analyze")}>
+          {/* Painted via CSS mask so it inherits currentColor (and inverts on
+              hover). The url() is double-quoted: Vite inlines the SVG as a data
+              URI containing single quotes, which an unquoted url() would reject. */}
+          <span
+            className={styles.brain}
+            style={{ maskImage: `url("${brainIcon}")`, WebkitMaskImage: `url("${brainIcon}")` }}
           />
-          {isUrlStore ? (
-            <button
-              type="submit"
-              className={styles.submit}
-              aria-label={t("app.analyze")}
-              title={t("app.analyze")}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="11" cy="11" r="7" />
-                <path d="M4 11h14" />
-                <path d="M11 4a10.6 10.6 0 0 1 3 7 10.6 10.6 0 0 1-3 7 10.6 10.6 0 0 1-3-7 10.6 10.6 0 0 1 3-7z" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-            </button>
-          ) : (
-            <button type="submit" className={styles.submit} aria-label={placeholder}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="7" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-            </button>
-          )}
-        </form>
-      )}
+        </button>
+      </form>
 
       <div className={styles.right}>
         {user && (
@@ -166,6 +93,8 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
               onClick={() => setExportOpen((v) => !v)}
               aria-label={t("app.export")}
               title={t("app.export")}
+              aria-haspopup="menu"
+              aria-expanded={exportOpen}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 3v12" />
@@ -193,7 +122,13 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
             data-open={menuOpen}
             onMouseLeave={() => setMenuOpen(false)}
           >
-            <button className={styles.profile} onClick={() => setMenuOpen((v) => !v)} aria-label={user}>
+            <button
+              className={styles.profile}
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label={user}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="8" r="4" />
                 <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
@@ -239,7 +174,7 @@ export default function TopBar({ onSearch, onStoreChange, onRequestLogin }) {
           window.location.assign(`/api/users/${user}/export.zip`);
         }}
       />
-      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} onSaved={loadSettings} />
+      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </header>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { showToast } from "@ui";
@@ -51,7 +51,9 @@ export default function Stash() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [storeFilter, setStoreFilter] = useState(null);
-  const [filterText, setFilterText] = useState("");
+  const [storeOpen, setStoreOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const storeRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +61,8 @@ export default function Stash() {
     setLoadError(false);
     setSearch(null);
     setDetail(null);
-    setFilterText("");
+    setStoreFilter(null);
+    setQuery("");
     api
       .getStash(username)
       .then((data) => {
@@ -99,21 +102,65 @@ export default function Stash() {
     };
   }, [detail, username]);
 
+  // Close the store-filter dropdown on an outside tap/click or Escape
+  useEffect(() => {
+    function handleOutside(e) {
+      if (storeRef.current && !storeRef.current.contains(e.target)) setStoreOpen(false);
+    }
+    function handleKey(e) {
+      if (e.key === "Escape" && storeRef.current?.contains(document.activeElement)) {
+        setStoreOpen(false);
+        storeRef.current.querySelector("button")?.focus();
+      }
+    }
+    document.addEventListener("pointerdown", handleOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("pointerdown", handleOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
+
+  // Arrow-key navigation for the store filter: open on ArrowDown, then move
+  // focus between options (they're real buttons, so Enter/Space just work)
+  function handleStoreKeyDown(e) {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    if (!storeOpen) {
+      setStoreOpen(true);
+      return;
+    }
+    const opts = [...storeRef.current.querySelectorAll('[role="option"]')];
+    const i = opts.indexOf(document.activeElement);
+    const next = e.key === "ArrowDown" ? i + 1 : i - 1;
+    opts[(next + opts.length) % opts.length]?.focus();
+  }
+
   const stashedKeys = useMemo(() => new Set(items.map(itemKey)), [items]);
   const visibleItems = useMemo(() => {
-    const q = filterText.trim().toLowerCase();
+    const q = query.trim().toLowerCase();
     return items
       .filter((a) => !storeFilter || a.store === storeFilter)
       .filter((a) => !q || [a.name, a.byline, a.note].some((f) => f?.toLowerCase().includes(q)))
       .sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || ""));
-  }, [items, storeFilter, filterText]);
+  }, [items, storeFilter, query]);
 
-  async function handleSearch(term, store) {
-    if (!api.URL_STORES.has(store)) {
-      setSearch({ term, store, loading: true, results: [] });
+  // The brain: analyze whatever is in the box. Links are pulled out and each
+  // is auto-typed by the server (Page/Post/Video/Channel). Plain text with no
+  // link falls back to an app-store search, honoring the store filter when
+  // it names an app store and defaulting to iOS otherwise.
+  async function handleAnalyze(text) {
+    const term = text.trim();
+    if (!term) return;
+
+    const found = extractUrls(term);
+    if (found.length === 0) {
+      const store = storeFilter === "ios-apps" || storeFilter === "android-apps" ? storeFilter : "ios-apps";
+      setQuery("");
+      setSearch({ term, mode: "search", loading: true, results: [] });
       try {
         const { results } = await api.searchStore(store, term, countryForLang(i18n.language));
-        setSearch({ term, store, loading: false, results });
+        setSearch({ term, mode: "search", loading: false, results });
       } catch {
         setSearch(null);
         showToast(t("app.searchFailed"));
@@ -121,19 +168,16 @@ export default function Stash() {
       return;
     }
 
-    // A URL-store term may be a share blurb with the link buried inside, or a
-    // batch of links at once. Analyze each; anything we can't read (e.g. a
-    // 404) opens in a new tab so the user can still get to it.
-    const found = extractUrls(term);
-    if (found.length === 0) {
-      showToast(t("app.noUrlFound"));
-      return;
-    }
+    // A share blurb can bury the link among emoji and captions, or carry a
+    // batch at once. Analyze each; anything we can't read (e.g. a 404) opens
+    // in a new tab so the user can still get to it.
     const urls = found.slice(0, MAX_URLS);
     if (found.length > MAX_URLS) showToast(t("app.urlsCapped", { max: MAX_URLS }));
 
-    setSearch({ term, store, loading: true, results: [] });
-    const settled = await Promise.allSettled(urls.map((u) => api.analyzeUrl(store, u)));
+    setQuery("");
+    setSearch({ term, mode: "analyze", loading: true, results: [] });
+    const country = countryForLang(i18n.language);
+    const settled = await Promise.allSettled(urls.map((u) => api.analyzeUrl(u, country)));
     const results = [];
     const failed = [];
     settled.forEach((outcome, i) => {
@@ -142,7 +186,7 @@ export default function Stash() {
     });
 
     for (const u of failed) window.open(u, "_blank", "noopener,noreferrer");
-    setSearch(results.length ? { term, store, loading: false, results } : null);
+    setSearch(results.length ? { term, mode: "analyze", loading: false, results } : null);
     if (failed.length) showToast(t("app.openedFailed", { count: failed.length }));
   }
 
@@ -190,22 +234,27 @@ export default function Stash() {
 
   return (
     <div className={styles.page}>
-      <TopBar onSearch={handleSearch} onStoreChange={setStoreFilter} onRequestLogin={() => setLoginOpen(true)} />
+      <TopBar
+        query={query}
+        onQueryChange={setQuery}
+        onAnalyze={handleAnalyze}
+        onRequestLogin={() => setLoginOpen(true)}
+      />
       <main className={styles.main}>
         {search ? (
           <>
             <div className={styles.head}>
               <h2 className={`${styles.heading} ${styles.resultsHeading}`}>
-                {t("app.resultsFor", { term: search.term })}
+                {search.mode === "analyze"
+                  ? t("app.analysisResults")
+                  : t("app.resultsFor", { term: search.term })}
               </h2>
               <button className={styles.closeResults} onClick={() => setSearch(null)}>
                 ✕ {t("app.backToStash")}
               </button>
             </div>
             {search.loading ? (
-              <p className={styles.hint}>
-                {t(api.URL_STORES.has(search.store) ? "app.analyzing" : "app.searching")}
-              </p>
+              <p className={styles.hint}>{t(search.mode === "search" ? "app.searching" : "app.analyzing")}</p>
             ) : search.results.length === 0 ? (
               <p className={styles.hint}>{t("app.noResults")}</p>
             ) : (
@@ -226,26 +275,61 @@ export default function Stash() {
             <div className={styles.head}>
               <h2 className={styles.heading}>@{username}</h2>
               <span className={styles.count}>{visibleItems.length}</span>
-              <label className={styles.filter}>
-                <input
-                  className={styles.filterInput}
-                  type="search"
-                  value={filterText}
-                  onChange={(e) => setFilterText(e.target.value)}
-                  aria-label={t("app.filterStash")}
-                />
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-              </label>
+              <div
+                className={styles.storeFilter}
+                ref={storeRef}
+                data-open={storeOpen}
+                onMouseLeave={() => setStoreOpen(false)}
+                onKeyDown={handleStoreKeyDown}
+              >
+                <button
+                  type="button"
+                  className={styles.storeTrigger}
+                  onClick={() => setStoreOpen((v) => !v)}
+                  aria-label={t("app.storeSelect")}
+                  aria-haspopup="listbox"
+                  aria-expanded={storeOpen}
+                >
+                  {storeFilter ? t(`app.storeNames.${storeFilter}`) : t("app.allStores")}
+                  <span className={styles.caret}>▾</span>
+                </button>
+                <div className={styles.storeMenu} role="listbox">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={!storeFilter}
+                    data-active={!storeFilter}
+                    onClick={() => {
+                      setStoreFilter(null);
+                      setStoreOpen(false);
+                    }}
+                  >
+                    {t("app.allStores")}
+                  </button>
+                  {api.STORE_KEYS.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      role="option"
+                      aria-selected={s === storeFilter}
+                      data-active={s === storeFilter}
+                      onClick={() => {
+                        setStoreFilter(s);
+                        setStoreOpen(false);
+                      }}
+                    >
+                      {t(`app.storeNames.${s}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
             {loading ? (
               <p className={styles.hint}>{t("common.loading")}</p>
             ) : loadError ? (
               <p className={styles.hint}>{t("app.userNotFound")}</p>
             ) : visibleItems.length === 0 ? (
-              <p className={styles.hint}>{t(filterText.trim() ? "app.noResults" : "app.emptyStash")}</p>
+              <p className={styles.hint}>{t(query.trim() || storeFilter ? "app.noResults" : "app.emptyStash")}</p>
             ) : (
               <div className={styles.grid}>
                 {visibleItems.map((a) => (

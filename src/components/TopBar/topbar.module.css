@@ -28,71 +28,6 @@
   background: var(--bg);
 }
 
-/* Hangs off the left edge of the search box and grows leftward,
-   so the store name's width never moves the input */
-.storeWrap {
-  position: absolute;
-  top: -1px;
-  bottom: -1px;
-  right: 100%;
-  display: flex;
-  border: 1px solid var(--ink);
-  background: var(--bg);
-}
-
-.storeTrigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  height: 36px;
-  padding: 0 10px;
-  border: none;
-  background: var(--bg);
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.caret {
-  font-size: 10px;
-}
-
-.storeMenu {
-  display: none;
-  position: absolute;
-  right: -1px;
-  top: 100%;
-  flex-direction: column;
-  z-index: 20;
-}
-
-.storeWrap[data-open="true"] .storeMenu {
-  display: flex;
-}
-
-.storeMenu button {
-  height: 30px;
-  padding: 0 12px;
-  text-align: left;
-  background: var(--bg);
-  border: 1px solid var(--ink);
-  border-top: none;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-/* Own top border: the menu can be wider than the selector, whose
-   bottom border (same pixel row) only covers part of the width */
-.storeMenu button:first-child {
-  border-top: 1px solid var(--ink);
-}
-
-.storeMenu button[data-active="true"] {
-  background: var(--ink);
-  color: var(--bg);
-}
-
-
 .input {
   flex: 1;
   min-width: 0;
@@ -105,7 +40,22 @@
 }
 
 .input::placeholder {
-  font-size: 12px;
+  font-size: 14px;
+}
+
+/* The mask-image (the blur.svg) is set inline; painting with currentColor lets
+   it inherit the button's color and invert on hover, which an <img> can't */
+.brain {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background-color: currentColor;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
 }
 
 .submit {
@@ -192,20 +142,6 @@
    trigger or option leaves the element in a sticky :hover state that
    keeps its menu visually open even after data-open flips to false */
 @media (hover: hover) {
-  .storeTrigger:hover {
-    background: var(--ink);
-    color: var(--bg);
-  }
-
-  .storeWrap:hover .storeMenu {
-    display: flex;
-  }
-
-  .storeMenu button:hover {
-    background: var(--ink);
-    color: var(--bg);
-  }
-
   .submit:hover {
     background: var(--ink);
     color: var(--bg);
@@ -240,26 +176,5 @@
   .search {
     grid-column: 1 / -1;
     grid-row: 2;
-    /* room for the hanging selector and its right-anchored dropdown */
-    margin-left: 160px;
-  }
-}
-
-/* Phones: the hanging selector would eat half the row, so it moves
-   in-flow and the search box takes the full width */
-@media (max-width: 640px) {
-  .search {
-    margin-left: 0;
-  }
-
-  .storeWrap {
-    position: static;
-    border: none;
-    border-right: 1px solid var(--ink);
-  }
-
-  .storeMenu {
-    right: auto;
-    left: -1px;
   }
 }
