@@ -76,8 +76,10 @@ const VIDEO_PLATFORMS = [
   {
     // bilibili.tv is the international site; spaces live on a subdomain
     // (space.bilibili.com) or under /<locale>/space/<id> on .tv.
-    // og:image is the real cover, but bilibili's CDN appends a resize/crop
-    // transform (e.g. "...jpg@100w_100h_1c.png"); strip it for full size.
+    // For a video, og:image is the real cover, but bilibili's CDN appends a
+    // resize/crop transform (e.g. "...jpg@100w_100h_1c.png"); strip it for
+    // full size. A space page's og:image is only bilibili's favicon, so the
+    // owner's name and avatar come from the public card API instead.
     // Its CDN also 403s hotlinked fetches that carry a foreign Referer, but
     // allows them with none, so the browser preview must drop the Referer
     label: "bilibili",
@@ -85,6 +87,18 @@ const VIDEO_PLATFORMS = [
     channel: (u) => u.hostname.startsWith("space.") || u.pathname.includes("/space/"),
     cleanIcon: (icon) => icon.replace(/^(.*\.(?:jpe?g|png|webp))@.*$/i, "$1"),
     iconReferrerPolicy: "no-referrer",
+    channelInfo: async (u) => {
+      const mid = u.hostname.startsWith("space.")
+        ? u.pathname.match(/^\/(\d+)/)?.[1]
+        : u.pathname.match(/\/space\/(\d+)/)?.[1];
+      if (!mid) return null;
+      const r = await fetch(`https://api.bilibili.com/x/web-interface/card?mid=${mid}&photo=false`, {
+        headers: { "User-Agent": UA, Referer: "https://space.bilibili.com/" },
+      });
+      if (!r.ok) return null;
+      const card = (await r.json())?.data?.card;
+      return card ? { name: card.name || null, icon: card.face || null } : null;
+    },
   },
   {
     label: "TikTok",
@@ -406,6 +420,22 @@ async function analyzeVideo(url, store) {
   const host = u.hostname.replace(/^www\.|^m\./, "");
   const platform = videoPlatformFor(host);
   const isChannelUrl = platform ? !!platform.channel?.(u) : store === "channels";
+
+  // Some platforms serve the channel owner's name and avatar only from an API,
+  // not the space page's OG tags — prefer it, but fall through to OG if it fails
+  if (isChannelUrl && platform?.channelInfo) {
+    const info = await platform.channelInfo(u).catch(() => null);
+    if (info?.icon) {
+      return {
+        kind: "channel",
+        name: info.name || url,
+        byline: platform.label,
+        icon: info.icon,
+        url,
+        iconReferrerPolicy: platform.iconReferrerPolicy,
+      };
+    }
+  }
 
   if (platform?.oembed && !isChannelUrl) {
     const r = await fetch(platform.oembed(url), { headers: { "User-Agent": UA } });
