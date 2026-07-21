@@ -4,7 +4,7 @@ const POST_PLATFORMS = [
   { label: "X", hosts: ["x.com", "twitter.com"], ua: BOT_UA, oembed: true },
   { label: "Threads", hosts: ["threads.net", "threads.com"], ua: BOT_UA },
   { label: "Instagram", hosts: ["instagram.com", "instagr.am"], ua: META_UA },
-  { label: "RedNote", hosts: ["xiaohongshu.com", "xhslink.com"], ua: UA, postInTitle: true },
+  { label: "RedNote", hosts: ["xiaohongshu.com", "xhslink.com", "rednote.com"], ua: UA, postInTitle: true },
   { label: "Facebook", hosts: ["facebook.com", "fb.com", "fb.watch"], ua: META_UA },
   { label: "Bluesky", hosts: ["bsky.app"], ua: BOT_UA },
   { label: "Mastodon", hosts: ["mastodon.social"], ua: BOT_UA },

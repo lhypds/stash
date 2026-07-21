@@ -48,6 +48,7 @@ const SOURCE_NAMES = {
   "instagr.am": "Instagram",
   "xiaohongshu.com": "RedNote",
   "xhslink.com": "RedNote",
+  "rednote.com": "RedNote",
   "facebook.com": "Facebook",
   "fb.com": "Facebook",
   "fb.watch": "Facebook",
@@ -83,6 +84,23 @@ export function sourceName(url) {
     if (host === domain || host.endsWith(`.${domain}`)) return name;
   }
   return host;
+}
+
+// The platform names we recognize by name; every other host is an obscure
+// one-off we lump together rather than let it clutter the source filter.
+const KNOWN_SOURCES = new Set(Object.values(SOURCE_NAMES));
+
+// Stable option value for the "everything else" bucket in the source filter;
+// its visible label is localized at the call site.
+export const OTHER_SOURCE = "__other__";
+
+// The source-filter bucket for a URL: a recognized platform name, OTHER_SOURCE
+// for any other host, or null when there's no usable URL. Unlike sourceName,
+// unmapped hosts collapse into one bucket instead of each getting an entry.
+export function sourceBucket(url) {
+  const name = sourceName(url);
+  if (!name) return null;
+  return KNOWN_SOURCES.has(name) ? name : OTHER_SOURCE;
 }
 
 // A YouTube watch/share/shorts/live URL → its privacy-friendly nocookie embed

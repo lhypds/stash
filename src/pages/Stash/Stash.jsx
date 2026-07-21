@@ -5,7 +5,7 @@ import { showToast } from "@ui";
 import { LoginModal, ItemCard, ItemDetailModal, ConfirmModal, FilterDropdown } from "@components";
 import TopBar from "./TopBar";
 import * as api from "@utils/api";
-import { extractUrls, sourceName } from "@utils/url";
+import { extractUrls, sourceBucket, OTHER_SOURCE } from "@utils/url";
 import { useUser } from "@contexts/UserContext";
 import styles from "./stash.module.css";
 
@@ -95,17 +95,17 @@ export default function Stash() {
         ...new Set(
           items
             .filter((a) => !storeFilter || a.store === storeFilter)
-            .map((a) => sourceName(a.url))
+            .map((a) => sourceBucket(a.url))
             .filter(Boolean),
         ),
-      ].sort((a, b) => a.localeCompare(b)),
+      ].sort((a, b) => (a === OTHER_SOURCE ? 1 : b === OTHER_SOURCE ? -1 : a.localeCompare(b))),
     [items, storeFilter],
   );
   const visibleItems = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items
       .filter((a) => !storeFilter || a.store === storeFilter)
-      .filter((a) => !sourceFilter || sourceName(a.url) === sourceFilter)
+      .filter((a) => !sourceFilter || sourceBucket(a.url) === sourceFilter)
       .filter((a) => !q || [a.name, a.byline, a.note].some((f) => f?.toLowerCase().includes(q)))
       .sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || ""));
   }, [items, storeFilter, sourceFilter, query]);
@@ -282,6 +282,7 @@ export default function Stash() {
                   allLabel={t("app.allSources")}
                   value={sourceFilter}
                   options={sources}
+                  getLabel={(s) => (s === OTHER_SOURCE ? t("app.otherSource") : s)}
                   onChange={setSourceFilter}
                 />
               )}
