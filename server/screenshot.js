@@ -39,6 +39,42 @@ function scheduleIdleClose() {
   idleTimer.unref?.();
 }
 
+// Some app-style share pages set their title only after client-side rendering.
+// Reuse the screenshot browser so analyzers can read that final document title
+// without launching a separate Chrome process.
+export async function readRenderedTitle(url) {
+  active++;
+  clearTimeout(idleTimer);
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setViewport(VIEWPORT);
+    await page.setUserAgent(UA);
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+    } catch (err) {
+      if (err.name !== "TimeoutError") throw err;
+    }
+    let initialTitle = (await page.title()).trim();
+    if (!initialTitle) {
+      await page.waitForFunction(() => document.title.trim().length > 0, { timeout: 10000 }).catch(() => {});
+      initialTitle = (await page.title()).trim();
+    }
+    if (initialTitle) {
+      await page
+        .waitForFunction((initial) => document.title.trim().length > 0 && document.title.trim() !== initial, { timeout: 10000 }, initialTitle)
+        .catch(() => {});
+    }
+    const title = (await page.title()).trim();
+    if (!title) throw new Error("no page title");
+    return { title, finalUrl: page.url() || url };
+  } finally {
+    await page.close().catch(() => {});
+    active--;
+    if (active === 0) scheduleIdleClose();
+  }
+}
+
 // Scroll through the page to trigger lazy-loaded images before capturing.
 // App-style pages such as ChatGPT keep the conversation inside their own
 // viewport-height scroll root, so window.scrollTo alone never reaches it.

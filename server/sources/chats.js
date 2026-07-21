@@ -1,11 +1,12 @@
 import { UA, matchesHost, fetchHtml, metaContent, stripTags } from "./html.js";
+import { readRenderedTitle } from "../screenshot.js";
 
 const CHAT_PLATFORMS = [
   { label: "ChatGPT", hosts: ["chatgpt.com", "chat.openai.com"], titleInTag: true },
   { label: "Gemini", hosts: ["gemini.google.com", "g.co"] },
   { label: "Grok", hosts: ["grok.com", "x.ai"] },
   { label: "Claude", hosts: ["claude.ai"] },
-  { label: "Doubao", hosts: ["doubao.com"] },
+  { label: "Doubao", hosts: ["doubao.com"], renderedTitle: true },
 ];
 
 export const chatPlatformFor = (host) => CHAT_PLATFORMS.find((platform) => matchesHost(platform, host));
@@ -25,6 +26,17 @@ function stripBrand(title, label) {
 export async function analyzeChat(url) {
   const host = new URL(url).hostname.replace(/^www\./, "");
   const platform = chatPlatformFor(host);
+  if (platform?.renderedTitle) {
+    const { title, finalUrl } = await readRenderedTitle(url);
+    const loc = new URL(finalUrl);
+    return {
+      kind: "chat",
+      name: title,
+      byline: platform.label,
+      icon: `${loc.origin}/favicon.ico`,
+      url: finalUrl,
+    };
+  }
   const { html, finalUrl } = await fetchHtml(url, platform?.ua || UA, 2000000);
   const loc = new URL(finalUrl);
   const ogTitle = metaContent(html, "og:title");

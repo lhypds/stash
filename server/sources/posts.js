@@ -10,10 +10,40 @@ const POST_PLATFORMS = [
   { label: "Mastodon", hosts: ["mastodon.social"], ua: BOT_UA },
   // Zhihu may return 403 to server-side metadata requests. Keep it stashable
   // as a Post even when its title/cover cannot be read from the public page.
-  { label: "Zhihu", hosts: ["zhihu.com"], ua: UA, postInTitle: true, allowMetadataFallback: true },
+  {
+    label: "Zhihu",
+    hosts: ["zhihu.com"],
+    ua: UA,
+    postInTitle: true,
+    metadataFallback: "microlink",
+    allowMetadataFallback: true,
+  },
 ];
 
 export const postPlatformFor = (host) => POST_PLATFORMS.find((platform) => matchesHost(platform, host));
+
+// Zhihu blocks unauthenticated server-side page requests in some regions.
+// Microlink retains the page's public metadata, so use it only after the
+// direct request failed and only for platforms that explicitly opt in.
+async function fetchFallbackMetadata(url, provider) {
+  if (provider !== "microlink") return null;
+  try {
+    const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(url)}`;
+    const r = await fetch(endpoint, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error(`fetch ${r.status}`);
+    const { data } = await r.json();
+    const title = typeof data?.title === "string" ? data.title.trim() : "";
+    if (!title || /安全验证|captcha/i.test(title)) throw new Error("no usable title");
+    return {
+      text: title,
+      byline: typeof data.author === "string" ? data.author.trim() : null,
+      icon: data.image?.url || data.logo?.url || null,
+    };
+  } catch (err) {
+    console.error("post metadata fallback failed:", err.message);
+    return null;
+  }
+}
 
 export async function analyzePost(url) {
   const host = new URL(url).hostname.replace(/^www\./, "");
@@ -50,6 +80,14 @@ export async function analyzePost(url) {
     }
   } catch (err) {
     console.error("post page fetch failed:", err.message);
+  }
+  if (!text && platform?.metadataFallback) {
+    const fallback = await fetchFallbackMetadata(url, platform.metadataFallback);
+    if (fallback) {
+      text = fallback.text;
+      byline = fallback.byline || byline;
+      icon = fallback.icon || icon;
+    }
   }
   if (!text && platform?.allowMetadataFallback) {
     text = platform.label;
