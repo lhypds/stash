@@ -15,6 +15,7 @@ import {
   searchSources,
   analyzeSource,
 } from "./sources/index.js";
+import { ensureSettings, writeSettings, passwordsMatch } from "./settings.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -34,7 +35,6 @@ const PORT = process.env.PORT || 3001;
 const USERNAME_RE = /^[a-z0-9_-]{1,32}$/;
 
 const userDir = (username) => path.join(DATA_DIR, "users", username);
-const settingsFile = (username) => path.join(userDir(username), "settings.json");
 const storeDir = (username, store) => path.join(userDir(username), "stores", store);
 const itemDir = (username, store, itemId) => path.join(storeDir(username, store), itemId);
 
@@ -49,27 +49,6 @@ async function readJson(file, fallback) {
 async function writeJson(file, value) {
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, JSON.stringify(value, null, 2) + "\n");
-}
-
-const DEFAULT_SETTINGS = {
-  stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, true])),
-  isLocked: false,
-  password: "",
-};
-
-async function ensureSettings(username) {
-  const file = settingsFile(username);
-  const existing = await readJson(file, null);
-  const merged = {
-    ...DEFAULT_SETTINGS,
-    ...(existing || {}),
-    isLocked: existing?.isLocked === true,
-    password: typeof existing?.password === "string" ? existing.password : "",
-    // keep only known store keys so renamed/removed stores don't linger
-    stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, existing?.stores?.[s] ?? true])),
-  };
-  if (JSON.stringify(merged) !== JSON.stringify(existing)) await writeJson(file, merged);
-  return merged;
 }
 
 function withIconUrl(username, record) {
@@ -171,12 +150,6 @@ async function requireUnlockedOwner(req, res, next) {
   }
   req.session = session;
   next();
-}
-
-function passwordsMatch(a, b) {
-  const left = Buffer.from(String(a));
-  const right = Buffer.from(String(b));
-  return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
 // Coarse per-IP fixed-window limiter for the outbound-fetch endpoints. Sized so
@@ -300,7 +273,7 @@ app.put("/api/users/:username/lock", requireOwner, async (req, res) => {
     return res.status(423).json({ error: "stash locked", code: "STASH_LOCKED" });
   }
   const next = { ...settings, isLocked: true, password };
-  await writeJson(settingsFile(req.params.username), next);
+  await writeSettings(req.params.username, next);
   const live = sessions.get(req.session.token);
   if (live) live.unlocked = false;
   res.json({ hasLock: true, locked: true });
@@ -317,7 +290,7 @@ app.post("/api/users/:username/unlock", requireOwner, async (req, res) => {
   if (!password || !passwordsMatch(password, settings.password)) {
     return res.status(401).json({ error: "incorrect password", code: "INVALID_PASSWORD" });
   }
-  await writeJson(settingsFile(req.params.username), { ...settings, isLocked: false, password: "" });
+  await writeSettings(req.params.username, { ...settings, isLocked: false, password: "" });
   const live = sessions.get(req.session.token);
   if (live) live.unlocked = true;
   res.json({ hasLock: false, locked: false });
@@ -342,7 +315,7 @@ app.put("/api/users/:username/settings", requireUnlockedOwner, async (req, res) 
   if (settings.isLocked === true && (typeof settings.password !== "string" || !settings.password)) {
     return res.status(400).json({ error: "password required", code: "PASSWORD_REQUIRED" });
   }
-  await writeJson(settingsFile(req.params.username), settings);
+  await writeSettings(req.params.username, settings);
   res.json({ settings });
 });
 
