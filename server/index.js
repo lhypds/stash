@@ -16,7 +16,7 @@ import {
   isBlockedHost,
   searchSources,
   analyzeSource,
-} from "./sources.js";
+} from "./sources/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
