@@ -67,6 +67,7 @@ const SOURCE_NAMES = {
   "nico.ms": "niconico",
   "pornhub.com": "Pornhub",
   "channels.weixin.qq.com": "WeChat",
+  "weixin.qq.com": "WeChat",
   "chatgpt.com": "ChatGPT",
   "chat.openai.com": "ChatGPT",
   "gemini.google.com": "Gemini",

@@ -37,24 +37,31 @@ const VIDEO_PLATFORMS = [
   },
   {
     label: "WeChat",
-    hosts: ["channels.weixin.qq.com"],
+    hosts: ["channels.weixin.qq.com", "weixin.qq.com"],
     iconReferrerPolicy: "no-referrer",
     videoInfo: async (u) => {
-      if (u.pathname !== "/finder-preview/pages/sph") return null;
-      const shortUri = u.searchParams.get("id");
+      let previewUrl = u;
+      let shortUri = null;
+      if (u.hostname === "weixin.qq.com") {
+        shortUri = u.pathname.match(/^\/sph\/([^/]+)\/?$/)?.[1] || null;
+        previewUrl = new URL("https://channels.weixin.qq.com/finder-preview/pages/sph");
+        if (shortUri) previewUrl.searchParams.set("id", shortUri);
+      } else if (u.pathname === "/finder-preview/pages/sph") {
+        shortUri = u.searchParams.get("id");
+      }
       if (!shortUri) return null;
-      const endpoint = new URL("/finder-preview/api/feed/get_feed_info", u.origin);
+      const endpoint = new URL("/finder-preview/api/feed/get_feed_info", previewUrl.origin);
       endpoint.searchParams.set(
         "_rid",
         `${Math.floor(Date.now() / 1000).toString(16)}-${crypto.randomBytes(4).toString("hex")}`,
       );
-      endpoint.searchParams.set("_pageUrl", `${u.origin}${u.pathname}`);
+      endpoint.searchParams.set("_pageUrl", `${previewUrl.origin}${previewUrl.pathname}`);
       const r = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Origin: u.origin,
-          Referer: u.href,
+          Origin: previewUrl.origin,
+          Referer: previewUrl.href,
           "User-Agent": UA,
         },
         body: JSON.stringify({ baseReq: { generalToken: "" }, shortUri }),
