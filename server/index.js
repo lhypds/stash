@@ -18,7 +18,7 @@ try {
     const m = line.match(/^\s*([A-Za-z_]\w*)\s*=\s*(.*?)\s*$/);
     if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^(['"])(.*)\1$/, "$2");
   }
-} catch {}
+} catch { }
 
 const PORT = process.env.PORT || 3001;
 
@@ -110,6 +110,44 @@ const VIDEO_PLATFORMS = [
     ua: BOT_UA,
     oembed: (url) => `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
     channel: (u) => /^\/@[^/]+\/?$/.test(u.pathname),
+  },
+  {
+    label: "WeChat",
+    hosts: ["channels.weixin.qq.com"],
+    iconReferrerPolicy: "no-referrer",
+    videoInfo: async (u) => {
+      if (u.pathname !== "/finder-preview/pages/sph") return null;
+      const shortUri = u.searchParams.get("id");
+      if (!shortUri) return null;
+
+      const endpoint = new URL("/finder-preview/api/feed/get_feed_info", u.origin);
+      endpoint.searchParams.set(
+        "_rid",
+        `${Math.floor(Date.now() / 1000).toString(16)}-${crypto.randomBytes(4).toString("hex")}`,
+      );
+      endpoint.searchParams.set("_pageUrl", `${u.origin}${u.pathname}`);
+      const r = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: u.origin,
+          Referer: u.href,
+          "User-Agent": UA,
+        },
+        body: JSON.stringify({ baseReq: { generalToken: "" }, shortUri }),
+      });
+      if (!r.ok) throw new Error(`wechat channels ${r.status}`);
+      const json = await r.json();
+      if (json.errCode !== 0) throw new Error(json.errMsg || "wechat channels metadata failed");
+      const feed = json.data?.feedInfo;
+      const author = json.data?.authorInfo;
+      if (!feed && !author) return null;
+      return {
+        name: feed?.description || author?.nickname || u.href,
+        byline: author?.nickname || "WeChat",
+        icon: feed?.coverUrl || author?.headImgUrl || null,
+      };
+    },
   },
   {
     label: "Vimeo",
@@ -309,7 +347,7 @@ async function renameStore(username, from, to) {
     // destination already exists → move the entries individually
     await fs.mkdir(newDir, { recursive: true });
     for (const e of entries) {
-      await fs.rename(path.join(oldDir, e.name), path.join(newDir, e.name)).catch(() => {});
+      await fs.rename(path.join(oldDir, e.name), path.join(newDir, e.name)).catch(() => { });
     }
     await fs.rm(oldDir, { recursive: true, force: true });
   }
@@ -357,7 +395,7 @@ async function mergeAppStores(username) {
       }
       if (record) await writeJson(path.join(dst, "item.json"), { ...record, store: "apps", itemId });
     }
-    if (allMoved) await fs.rmdir(oldDir).catch(() => {});
+    if (allMoved) await fs.rmdir(oldDir).catch(() => { });
   }
 }
 
@@ -431,7 +469,7 @@ async function migrateLegacy() {
       const store = rec?.kind === "channel" ? "channels" : "videos";
       const dst = itemDir(u.name, store, e.name);
       await fs.mkdir(path.dirname(dst), { recursive: true });
-      await fs.rename(src, dst).catch(() => {});
+      await fs.rename(src, dst).catch(() => { });
       if (rec) await writeJson(path.join(dst, "item.json"), { ...rec, store });
     }
     if (ytEntries.length) await fs.rm(oldYoutube, { recursive: true, force: true });
@@ -489,9 +527,9 @@ async function migrateLegacy() {
         let platform = null;
         try {
           platform = videoPlatformFor(new URL(rec.url).hostname.replace(/^www\.|^m\./, ""));
-        } catch {}
+        } catch { }
         if (rec.iconFile && platform?.noThumbnail) {
-          await fs.rm(path.join(dir, rec.iconFile), { force: true }).catch(() => {});
+          await fs.rm(path.join(dir, rec.iconFile), { force: true }).catch(() => { });
           await writeJson(f, { ...rec, iconFile: null });
           continue;
         }
@@ -581,6 +619,20 @@ async function analyzeVideo(url, store) {
         name: info.name || url,
         byline: platform.label,
         icon: info.icon,
+        url,
+        iconReferrerPolicy: platform.iconReferrerPolicy,
+      };
+    }
+  }
+
+  if (!isChannelUrl && platform?.videoInfo) {
+    const info = await platform.videoInfo(u);
+    if (info) {
+      return {
+        kind: "video",
+        name: info.name || url,
+        byline: info.byline || platform.label,
+        icon: info.icon || null,
         url,
         iconReferrerPolicy: platform.iconReferrerPolicy,
       };
