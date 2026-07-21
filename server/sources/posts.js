@@ -8,6 +8,9 @@ const POST_PLATFORMS = [
   { label: "Facebook", hosts: ["facebook.com", "fb.com", "fb.watch"], ua: META_UA },
   { label: "Bluesky", hosts: ["bsky.app"], ua: BOT_UA },
   { label: "Mastodon", hosts: ["mastodon.social"], ua: BOT_UA },
+  // Zhihu may return 403 to server-side metadata requests. Keep it stashable
+  // as a Post even when its title/cover cannot be read from the public page.
+  { label: "Zhihu", hosts: ["zhihu.com"], ua: UA, postInTitle: true, allowMetadataFallback: true },
 ];
 
 export const postPlatformFor = (host) => POST_PLATFORMS.find((platform) => matchesHost(platform, host));
@@ -47,6 +50,10 @@ export async function analyzePost(url) {
     }
   } catch (err) {
     console.error("post page fetch failed:", err.message);
+  }
+  if (!text && platform?.allowMetadataFallback) {
+    text = platform.label;
+    icon = new URL("/favicon.ico", url).href;
   }
   if (!text) throw new Error("no post content");
   return {

@@ -5,6 +5,7 @@ const CHAT_PLATFORMS = [
   { label: "Gemini", hosts: ["gemini.google.com", "g.co"] },
   { label: "Grok", hosts: ["grok.com", "x.ai"] },
   { label: "Claude", hosts: ["claude.ai"] },
+  { label: "Doubao", hosts: ["doubao.com"] },
 ];
 
 export const chatPlatformFor = (host) => CHAT_PLATFORMS.find((platform) => matchesHost(platform, host));
@@ -28,7 +29,7 @@ export async function analyzeChat(url) {
   const loc = new URL(finalUrl);
   const ogTitle = metaContent(html, "og:title");
   const docTitle = stripTags(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
-  const title = (platform?.titleInTag ? docTitle || ogTitle : ogTitle || docTitle) || finalUrl;
+  const title = (platform?.titleInTag ? docTitle || ogTitle : ogTitle || docTitle) || platform?.label || finalUrl;
   const image = metaContent(html, "og:image");
   return {
     kind: "chat",

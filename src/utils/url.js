@@ -54,6 +54,7 @@ const SOURCE_NAMES = {
   "fb.watch": "Facebook",
   "bsky.app": "Bluesky",
   "mastodon.social": "Mastodon",
+  "zhihu.com": "Zhihu",
   "youtube.com": "YouTube",
   "youtu.be": "YouTube",
   "bilibili.com": "Bilibili",
@@ -73,6 +74,7 @@ const SOURCE_NAMES = {
   "grok.com": "Grok",
   "x.ai": "Grok",
   "claude.ai": "Claude",
+  "doubao.com": "Doubao",
 };
 
 // Where the item came from, e.g. "Bilibili", "YouTube". Falls back to the bare
