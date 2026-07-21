@@ -73,10 +73,6 @@
     color: var(--bg);
   }
 
-  .filter:hover .menu {
-    display: flex;
-  }
-
   .menu button:hover {
     background: var(--ink);
     color: var(--bg);

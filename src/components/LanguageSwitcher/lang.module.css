@@ -65,17 +65,10 @@
   color: white;
 }
 
-/* Hover behavior only on hover-capable devices: on touch, tapping an
-   option would otherwise leave the wrapper in a sticky :hover state that
-   keeps the dropdown visually open even after data-open flips to false */
 @media (hover: hover) {
   .wrapper:hover .trigger {
     background: black;
     color: white;
-  }
-
-  .wrapper:hover .dropdown {
-    display: flex;
   }
 
   .option:hover {

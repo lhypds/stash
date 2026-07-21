@@ -135,9 +135,6 @@
   border-top: 1px solid var(--ink);
 }
 
-/* Hover behavior only on hover-capable devices: on touch, tapping a
-   trigger or option leaves the element in a sticky :hover state that
-   keeps its menu visually open even after data-open flips to false */
 @media (hover: hover) {
   .submit:hover {
     background: var(--ink);
@@ -157,11 +154,6 @@
   .profile:hover {
     background: var(--ink);
     color: var(--bg);
-  }
-
-  .exportWrap:hover .menu,
-  .profileWrap:hover .menu {
-    display: flex;
   }
 
   .menu button:hover {
