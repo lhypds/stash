@@ -76,11 +76,20 @@ export async function readRenderedTitle(url) {
 }
 
 // Scroll through the page to trigger lazy-loaded images before capturing.
-// App-style pages such as ChatGPT keep the conversation inside their own
-// viewport-height scroll root, so window.scrollTo alone never reaches it.
+// App-style pages such as ChatGPT and Doubao keep the conversation inside
+// their own viewport-height scroll root, so window.scrollTo never reaches it.
 async function autoScroll(page) {
   await page.evaluate(async (max) => {
-    const nested = document.querySelector("[data-scroll-root]");
+    const explicit = document.querySelector("[data-scroll-root]");
+    const nested =
+      explicit?.scrollHeight > explicit?.clientHeight
+        ? explicit
+        : [...document.querySelectorAll("body *")]
+            .filter((el) => {
+              const overflowY = getComputedStyle(el).overflowY;
+              return (overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight + 1;
+            })
+            .sort((a, b) => b.scrollHeight - a.scrollHeight)[0];
     const target = nested?.scrollHeight > nested?.clientHeight ? nested : document.scrollingElement;
     const step = target === document.scrollingElement ? window.innerHeight : target.clientHeight;
     for (let y = 0; y < Math.min(target.scrollHeight, max); y += step) {
@@ -94,16 +103,31 @@ async function autoScroll(page) {
   await new Promise((r) => setTimeout(r, 400));
 }
 
-// Puppeteer's `fullPage` captures the document's scroll height, but ChatGPT's
-// document never exceeds the viewport: its `[data-scroll-root]` child scrolls
-// instead. Expand that child and its height-constrained ancestors so the
-// browser exposes the whole conversation as normal document content.
+// Puppeteer's `fullPage` captures the document's scroll height, but app-style
+// pages may keep the document at viewport height and scroll a nested element.
+// Expand the explicit ChatGPT root, or otherwise the largest scroll container,
+// so the browser exposes the whole conversation as normal document content.
 async function expandNestedScrollRoot(page) {
   return page.evaluate((max) => {
-    const root = document.querySelector("[data-scroll-root]");
+    const explicit = document.querySelector("[data-scroll-root]");
+    const useExplicit = explicit?.scrollHeight > explicit?.clientHeight;
+    const root =
+      useExplicit
+        ? explicit
+        : [...document.querySelectorAll("body *")]
+            .filter((el) => {
+              const overflowY = getComputedStyle(el).overflowY;
+              return (overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight + 1;
+            })
+            .sort((a, b) => b.scrollHeight - a.scrollHeight)[0];
     if (!root || root.scrollHeight <= root.clientHeight + 1) return false;
 
     const height = Math.min(Math.ceil(root.scrollHeight), max);
+    const position = getComputedStyle(root).position;
+    if (!useExplicit && (position === "fixed" || position === "absolute")) {
+      root.style.setProperty("position", "relative", "important");
+      root.style.setProperty("inset", "auto", "important");
+    }
     root.style.setProperty("height", `${height}px`, "important");
     root.style.setProperty("min-height", `${height}px`, "important");
     root.style.setProperty("max-height", "none", "important");
