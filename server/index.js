@@ -243,6 +243,8 @@ async function writeJson(file, value) {
 
 const DEFAULT_SETTINGS = {
   stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, true])),
+  isLocked: false,
+  password: "",
 };
 
 async function ensureSettings(username) {
@@ -251,6 +253,8 @@ async function ensureSettings(username) {
   const merged = {
     ...DEFAULT_SETTINGS,
     ...(existing || {}),
+    isLocked: existing?.isLocked === true,
+    password: typeof existing?.password === "string" ? existing.password : "",
     // keep only known store keys so renamed/removed stores don't linger
     stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, existing?.stores?.[s] ?? true])),
   };
@@ -656,6 +660,84 @@ const app = express();
 app.use(express.json());
 app.set("trust proxy", true);
 
+// Login sessions are deliberately kept server-side so the password never has
+// to live in localStorage. A restart signs everyone out; the client quietly
+// restores passwordless accounts and asks locked accounts to log in again.
+const SESSION_COOKIE = "stash_session";
+const SESSION_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const sessions = new Map();
+
+function cookieValue(req, name) {
+  const prefix = `${name}=`;
+  const part = String(req.headers.cookie || "")
+    .split(";")
+    .map((value) => value.trim())
+    .find((value) => value.startsWith(prefix));
+  if (!part) return null;
+  try {
+    return decodeURIComponent(part.slice(prefix.length));
+  } catch {
+    return null;
+  }
+}
+
+function currentSession(req) {
+  const token = cookieValue(req, SESSION_COOKIE);
+  const session = token ? sessions.get(token) : null;
+  if (!session) return null;
+  if (session.expiresAt <= Date.now()) {
+    sessions.delete(token);
+    return null;
+  }
+  return { token, ...session };
+}
+
+function startSession(username, unlocked, req, res) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  sessions.set(token, { username, unlocked, expiresAt: Date.now() + SESSION_AGE_MS });
+  res.cookie(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: req.secure,
+    maxAge: SESSION_AGE_MS,
+    path: "/",
+  });
+}
+
+function clearSession(req, res) {
+  const session = currentSession(req);
+  if (session) sessions.delete(session.token);
+  res.clearCookie(SESSION_COOKIE, { httpOnly: true, sameSite: "lax", secure: req.secure, path: "/" });
+}
+
+function requireOwner(req, res, next) {
+  const session = currentSession(req);
+  if (!session || session.username !== req.params.username) {
+    return res.status(401).json({ error: "login required", code: "LOGIN_REQUIRED" });
+  }
+  req.session = session;
+  next();
+}
+
+async function requireUnlockedOwner(req, res, next) {
+  const session = currentSession(req);
+  if (!session || session.username !== req.params.username) {
+    return res.status(401).json({ error: "login required", code: "LOGIN_REQUIRED" });
+  }
+  const settings = await ensureSettings(req.params.username);
+  if (settings.isLocked && !session.unlocked) {
+    return res.status(423).json({ error: "stash locked", code: "STASH_LOCKED" });
+  }
+  req.session = session;
+  next();
+}
+
+function passwordsMatch(a, b) {
+  const left = Buffer.from(String(a));
+  const right = Buffer.from(String(b));
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
 // Coarse per-IP fixed-window limiter for the outbound-fetch endpoints. Sized so
 // a single paste (up to MAX_URLS analyze calls at once) is fine, but a script
 // hammering them isn't. In-memory, so it resets on restart and is per-process.
@@ -791,14 +873,82 @@ app.post("/api/users/:username", async (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/users/:username/settings", async (req, res) => {
+app.post("/api/users/:username/login", async (req, res) => {
+  const { username } = req.params;
+  const settings = await ensureSettings(username);
+  startSession(username, !settings.isLocked, req, res);
+  res.json({ ok: true, username, hasLock: settings.isLocked, locked: settings.isLocked });
+});
+
+app.get("/api/session", async (req, res) => {
+  const session = currentSession(req);
+  if (!session) return res.status(401).json({ error: "login required", code: "LOGIN_REQUIRED" });
+  const settings = await ensureSettings(session.username);
+  res.json({
+    username: session.username,
+    hasLock: settings.isLocked,
+    locked: settings.isLocked && !session.unlocked,
+  });
+});
+
+app.delete("/api/session", (req, res) => {
+  clearSession(req, res);
+  res.json({ ok: true });
+});
+
+app.get("/api/users/:username/lock", requireOwner, async (req, res) => {
+  const settings = await ensureSettings(req.params.username);
+  res.json({ hasLock: settings.isLocked, locked: settings.isLocked && !req.session.unlocked });
+});
+
+app.put("/api/users/:username/lock", requireOwner, async (req, res) => {
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  if (!password) return res.status(400).json({ error: "password required", code: "PASSWORD_REQUIRED" });
+  const settings = await ensureSettings(req.params.username);
+  if (settings.isLocked && !req.session.unlocked) {
+    return res.status(423).json({ error: "stash locked", code: "STASH_LOCKED" });
+  }
+  const next = { ...settings, isLocked: true, password };
+  await writeJson(settingsFile(req.params.username), next);
+  const live = sessions.get(req.session.token);
+  if (live) live.unlocked = false;
+  res.json({ hasLock: true, locked: true });
+});
+
+app.post("/api/users/:username/unlock", requireOwner, async (req, res) => {
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const settings = await ensureSettings(req.params.username);
+  if (!settings.isLocked) {
+    const live = sessions.get(req.session.token);
+    if (live) live.unlocked = true;
+    return res.json({ hasLock: false, locked: false });
+  }
+  if (!password || !passwordsMatch(password, settings.password)) {
+    return res.status(401).json({ error: "incorrect password", code: "INVALID_PASSWORD" });
+  }
+  const live = sessions.get(req.session.token);
+  if (live) live.unlocked = true;
+  res.json({ hasLock: true, locked: false });
+});
+
+app.post("/api/users/:username/relock", requireOwner, async (req, res) => {
+  const settings = await ensureSettings(req.params.username);
+  const live = sessions.get(req.session.token);
+  if (live) live.unlocked = !settings.isLocked;
+  res.json({ hasLock: settings.isLocked, locked: settings.isLocked });
+});
+
+app.get("/api/users/:username/settings", requireUnlockedOwner, async (req, res) => {
   res.json({ settings: await ensureSettings(req.params.username) });
 });
 
-app.put("/api/users/:username/settings", async (req, res) => {
+app.put("/api/users/:username/settings", requireUnlockedOwner, async (req, res) => {
   const { settings } = req.body || {};
   if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
     return res.status(400).json({ error: "invalid settings" });
+  }
+  if (settings.isLocked === true && (typeof settings.password !== "string" || !settings.password)) {
+    return res.status(400).json({ error: "password required", code: "PASSWORD_REQUIRED" });
   }
   await writeJson(settingsFile(req.params.username), settings);
   res.json({ settings });
@@ -824,7 +974,7 @@ app.get("/api/users/:username/stash", async (req, res) => {
   res.json({ username, items });
 });
 
-app.post("/api/users/:username/items", async (req, res) => {
+app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) => {
   const { username } = req.params;
   const { store, itemId, kind, name, byline, icon, url } = req.body || {};
   if (!STORES[store]) return res.status(400).json({ error: "invalid store" });
@@ -884,7 +1034,7 @@ app.post("/api/users/:username/items", async (req, res) => {
   res.status(201).json({ item: withIconUrl(username, record) });
 });
 
-app.patch("/api/users/:username/items/:store/:itemId", async (req, res) => {
+app.patch("/api/users/:username/items/:store/:itemId", requireUnlockedOwner, async (req, res) => {
   const { username, store, itemId } = req.params;
   const jsonFile = path.join(itemDir(username, store, itemId), "item.json");
   const record = await readJson(jsonFile, null);
@@ -896,7 +1046,7 @@ app.patch("/api/users/:username/items/:store/:itemId", async (req, res) => {
   res.json({ item: withIconUrl(username, record) });
 });
 
-app.delete("/api/users/:username/items/:store/:itemId", async (req, res) => {
+app.delete("/api/users/:username/items/:store/:itemId", requireUnlockedOwner, async (req, res) => {
   const { username, store, itemId } = req.params;
   const dir = itemDir(username, store, itemId);
   const record = await readJson(path.join(dir, "item.json"), null);
@@ -905,7 +1055,7 @@ app.delete("/api/users/:username/items/:store/:itemId", async (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/users/:username/export.zip", async (req, res) => {
+app.get("/api/users/:username/export.zip", requireUnlockedOwner, async (req, res) => {
   const { username } = req.params;
   const dir = userDir(username);
   try {

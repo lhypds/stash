@@ -3,6 +3,7 @@ export { default as FilterDropdown } from "./FilterDropdown";
 export { default as ItemThumbnail } from "./ItemThumbnail";
 export { default as ItemCard } from "./ItemCard";
 export { default as LoginModal } from "./LoginModal";
+export { default as LockModal } from "./LockModal";
 export { default as ItemDetailModal } from "./ItemDetailModal";
 export { default as ConfirmModal } from "./ConfirmModal";
 export { default as SettingsModal } from "./SettingsModal";

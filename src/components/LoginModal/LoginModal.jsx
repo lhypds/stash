@@ -11,22 +11,31 @@ export default function LoginModal({ isOpen, onClose }) {
   const { login } = useUser();
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function submit() {
+  async function submit() {
+    if (submitting) return;
     const username = name.trim().toLowerCase();
     if (!isValidUsername(username)) {
-      setError(true);
+      setError("username");
       return;
     }
-    // Dismiss the iOS keyboard before the route swap; unmounting a focused
-    // input can leave the viewport stuck where the keyboard pushed it
-    document.activeElement?.blur();
-    login(username);
-    setName("");
-    setError(false);
-    onClose();
-    navigate(`/${username}`);
+    setSubmitting(true);
+    try {
+      await login(username);
+      // Dismiss the iOS keyboard before the route swap; unmounting a focused
+      // input can leave the viewport stuck where the keyboard pushed it
+      document.activeElement?.blur();
+      setName("");
+      setError("");
+      onClose();
+      navigate(`/${username}`);
+    } catch {
+      setError("login");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -44,16 +53,18 @@ export default function LoginModal({ isOpen, onClose }) {
           ariaLabel={t("app.usernamePlaceholder")}
           onChange={(v) => {
             setName(v);
-            setError(false);
+            setError("");
           }}
           onSubmit={submit}
         />
         {error ? (
-          <p className={styles.error}>{t("app.usernameInvalid")}</p>
+          <p className={styles.error}>
+            {t(error === "username" ? "app.usernameInvalid" : "app.toastError")}
+          </p>
         ) : (
           <p className={styles.hint}>{t("app.loginHint")}</p>
         )}
-        <button type="button" className={styles.submit} onClick={submit}>
+        <button type="button" className={styles.submit} onClick={submit} disabled={submitting}>
           {t("app.login")}
         </button>
       </div>

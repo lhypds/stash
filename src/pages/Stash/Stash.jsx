@@ -17,7 +17,7 @@ const MAX_URLS = 10;
 export default function Stash() {
   const { username } = useParams();
   const { t, i18n } = useTranslation();
-  const { user } = useUser();
+  const { user, locked } = useUser();
   const isOwner = user === username;
 
   const [items, setItems] = useState([]);
@@ -145,6 +145,10 @@ export default function Stash() {
       setLoginOpen(true);
       return;
     }
+    if (locked) {
+      showToast(t("app.unlockFirst"));
+      return;
+    }
     try {
       const { item } = await api.stashItem(user, result);
       if (isOwner) setItems((prev) => [item, ...prev]);
@@ -265,7 +269,7 @@ export default function Stash() {
       {detail && (
         <ItemDetailModal
           item={detail}
-          isOwner={isOwner}
+          isOwner={isOwner && !locked}
           onClose={() => setDetail(null)}
           onSave={handleSaveItem}
           onDelete={handleDeleteItem}

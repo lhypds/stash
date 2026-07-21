@@ -77,6 +77,10 @@
   font-weight: 600;
 }
 
+.go:disabled {
+  opacity: 0.55;
+}
+
 .hint,
 .error {
   font-size: 13px;

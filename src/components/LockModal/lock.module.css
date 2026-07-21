@@ -9,26 +9,12 @@
 }
 
 .input {
+  width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--ink);
+  background: var(--bg);
   font-size: 15px;
   outline: none;
-  background: var(--bg);
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  cursor: text;
-}
-
-.input:empty::before {
-  content: attr(data-placeholder);
-  color: var(--muted);
-  pointer-events: none;
-}
-
-.hint {
-  font-size: 13px;
-  color: var(--muted);
 }
 
 .error {
@@ -38,9 +24,9 @@
 
 .submit {
   padding: 10px;
+  border: 1px solid var(--ink);
   background: var(--ink);
   color: var(--bg);
-  border: 1px solid var(--ink);
   font-size: 15px;
   font-weight: 600;
 }

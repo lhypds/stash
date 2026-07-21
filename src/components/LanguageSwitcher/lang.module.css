@@ -21,6 +21,13 @@
   user-select: none;
 }
 
+.label {
+  display: block;
+  line-height: 1;
+  text-align: center;
+  transform: translateY(1px);
+}
+
 .dropdown {
   display: none;
   position: absolute;

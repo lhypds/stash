@@ -4,6 +4,7 @@ async function request(url, options) {
   if (!res.ok) {
     const err = new Error(body.error || `HTTP ${res.status}`);
     err.status = res.status;
+    err.code = body.code;
     throw err;
   }
   return body;
@@ -31,6 +32,22 @@ export const analyzeUrl = (url, country = "us") =>
   request(`/api/analyze?store=auto&country=${country}&url=${encodeURIComponent(url)}`);
 
 export const ensureUser = (username) => request(`/api/users/${username}`, { method: "POST" });
+
+export const login = (username) => request(`/api/users/${username}/login`, json("POST", {}));
+
+export const getSession = () => request("/api/session");
+
+export const logout = () => request("/api/session", { method: "DELETE" });
+
+export const getLock = (username) => request(`/api/users/${username}/lock`);
+
+export const lockUser = (username, password) =>
+  request(`/api/users/${username}/lock`, json("PUT", { password }));
+
+export const unlockUser = (username, password) =>
+  request(`/api/users/${username}/unlock`, json("POST", { password }));
+
+export const relockUser = (username) => request(`/api/users/${username}/relock`, json("POST", {}));
 
 export const getSettings = (username) => request(`/api/users/${username}/settings`);
 
