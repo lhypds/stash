@@ -32,10 +32,10 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
       if (exportRef.current && !exportRef.current.contains(e.target)) setExportOpen(false);
     }
     function handleKey(e) {
-      if (e.key === "Escape") {
-        setMenuOpen(false);
-        setExportOpen(false);
-      }
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      setMenuOpen(false);
+      setExportOpen(false);
+      onQueryChange?.("");
     }
     document.addEventListener("pointerdown", handleOutside);
     document.addEventListener("keydown", handleKey);
@@ -43,7 +43,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
       document.removeEventListener("pointerdown", handleOutside);
       document.removeEventListener("keydown", handleKey);
     };
-  }, []);
+  }, [onQueryChange]);
 
   function submit(e) {
     e.preventDefault();

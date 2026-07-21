@@ -3,11 +3,35 @@ import styles from "./modal.module.css";
 
 // Number of currently open modals; scroll unlocks only when the last one closes
 let lockCount = 0;
+const openModals = [];
 
 const Modal = ({ isOpen, onClose, title, children, closeOnOverlay = false, className }) => {
   // Whether the current press started on the overlay itself (a genuine
   // backdrop click) vs. a drag that began inside the modal
   const pressedOnOverlay = useRef(false);
+  const modalId = useRef(Symbol("modal"));
+
+  // Escape closes only the topmost dialog. Listen during capture so other
+  // page-level Escape shortcuts do not also run for the same key press.
+  useEffect(() => {
+    if (!isOpen || !onClose) return;
+    const id = modalId.current;
+    openModals.push(id);
+
+    const handleKeyDown = (e) => {
+      if (e.key !== "Escape" || openModals.at(-1) !== id) return;
+      e.preventDefault();
+      e.stopPropagation();
+      onClose();
+    };
+
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+      const index = openModals.lastIndexOf(id);
+      if (index !== -1) openModals.splice(index, 1);
+    };
+  }, [isOpen, onClose]);
 
   // Prevent touchmove on background
   // allow scroll on textarea/input/select but prevent on the rest of the background
