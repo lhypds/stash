@@ -253,6 +253,12 @@ export default function Stash() {
         onQueryChange={setQuery}
         onAnalyze={handleAnalyze}
         onRequestLogin={() => setLoginOpen(true)}
+        onHome={() => {
+          setSearch(null);
+          setQuery("");
+          setDetail(null);
+          setConfirm(null);
+        }}
       />
       <main className={styles.main}>
         {search ? (

@@ -19,7 +19,7 @@ const isEditable = (el) =>
 // The universal analyser: one box that filters the stash as you type, and — on
 // submit — analyzes whatever's pasted (links become Pages/Posts/Videos/
 // Channels; plain text falls back to an app-store search).
-export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin }) {
+export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin, onHome }) {
   const { t } = useTranslation();
   const { user, hasLock, locked, logout, unlock, setPasswordAndLock, relock, refreshLock } = useUser();
   const navigate = useNavigate();
@@ -115,7 +115,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
 
   return (
     <header className={styles.bar}>
-      <Link to={user ? `/${user}` : "/"} className={styles.logo}>
+      <Link to={user ? `/${user}` : "/"} className={styles.logo} onClick={onHome}>
         stash
       </Link>
 
