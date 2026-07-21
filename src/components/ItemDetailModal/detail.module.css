@@ -94,12 +94,6 @@
   line-height: 1.5;
 }
 
-.readNote {
-  font-size: 14px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
 .actions {
   display: flex;
   justify-content: flex-end;
@@ -133,6 +127,10 @@
   font-size: 12px;
 }
 
-.deleteBtn:hover {
+.deleteBtn:hover:not(:disabled) {
   background: var(--soft);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.35;
 }

@@ -7,7 +7,7 @@ import { sourceName, videoEmbedUrl } from "@utils/url";
 import { itemMeta } from "@utils/item";
 import styles from "./detail.module.css";
 
-export default function ItemDetailModal({ item, isOwner, onClose, onSave, onDelete }) {
+export default function ItemDetailModal({ item, isOwner, locked = false, onClose, onSave, onDelete }) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(item.note || "");
   const videoEmbed = item.store === "videos" && item.kind === "video" ? videoEmbedUrl(item.url) : null;
@@ -92,25 +92,21 @@ export default function ItemDetailModal({ item, isOwner, onClose, onSave, onDele
 
         <div>
           <label className={styles.label}>{t("app.note")}</label>
-          {isOwner ? (
-            <TextArea
-              className={styles.noteArea}
-              value={note}
-              minHeight={120}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder={t("app.notePlaceholder")}
-            />
-          ) : (
-            <p className={styles.readNote}>{item.note || "—"}</p>
-          )}
+          <TextArea
+            className={styles.noteArea}
+            value={note}
+            minHeight={120}
+            readOnly={!isOwner || locked}
+            onChange={(e) => setNote(e.target.value)}
+          />
         </div>
 
         {isOwner && (
           <div className={styles.actions}>
-            <button className={styles.deleteBtn} onClick={() => onDelete(item)}>
+            <button className={styles.deleteBtn} disabled={locked} onClick={() => onDelete(item)}>
               {t("button.delete")}
             </button>
-            <button className={styles.saveBtn} disabled={!dirty} onClick={() => onSave(item, { note })}>
+            <button className={styles.saveBtn} disabled={locked || !dirty} onClick={() => onSave(item, { note })}>
               {t("button.save")}
             </button>
           </div>

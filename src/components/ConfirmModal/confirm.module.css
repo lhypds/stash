@@ -42,6 +42,10 @@
   font-size: 12px;
 }
 
-.confirm:hover {
+.confirm:hover:not(:disabled) {
   background: #333;
+}
+
+.confirm:disabled {
+  opacity: 0.35;
 }

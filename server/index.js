@@ -926,9 +926,10 @@ app.post("/api/users/:username/unlock", requireOwner, async (req, res) => {
   if (!password || !passwordsMatch(password, settings.password)) {
     return res.status(401).json({ error: "incorrect password", code: "INVALID_PASSWORD" });
   }
+  await writeJson(settingsFile(req.params.username), { ...settings, isLocked: false, password: "" });
   const live = sessions.get(req.session.token);
   if (live) live.unlocked = true;
-  res.json({ hasLock: true, locked: false });
+  res.json({ hasLock: false, locked: false });
 });
 
 app.post("/api/users/:username/relock", requireOwner, async (req, res) => {

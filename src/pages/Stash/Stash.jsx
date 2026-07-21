@@ -17,7 +17,7 @@ const MAX_URLS = 10;
 export default function Stash() {
   const { username } = useParams();
   const { t, i18n } = useTranslation();
-  const { user, locked } = useUser();
+  const { user, locked, refreshLock } = useUser();
   const isOwner = user === username;
 
   const [items, setItems] = useState([]);
@@ -78,6 +78,12 @@ export default function Stash() {
       clearInterval(timer);
     };
   }, [detail, username]);
+
+  // A lock change invalidates any destructive action that was already waiting
+  // for confirmation (including a lock applied from another browser context).
+  useEffect(() => {
+    if (locked) setConfirm(null);
+  }, [locked]);
 
   const stashedKeys = useMemo(() => new Set(items.map(itemKey)), [items]);
   // The platforms present in this stash (YouTube, Bilibili, …), derived from
@@ -161,28 +167,50 @@ export default function Stash() {
   }
 
   async function handleSaveItem(item, patch) {
+    if (locked) {
+      showToast(t("app.unlockFirst"));
+      return;
+    }
     try {
       const { item: updated } = await api.updateItem(username, item.store, item.itemId, patch);
       setItems((prev) => prev.map((a) => (itemKey(a) === itemKey(updated) ? updated : a)));
       setDetail(null);
       showToast(t("app.toastSaved"));
-    } catch {
-      showToast(t("app.toastError"));
+    } catch (err) {
+      if (err.code === "STASH_LOCKED") {
+        await refreshLock().catch(() => {});
+        showToast(t("app.unlockFirst"));
+      } else {
+        showToast(t("app.toastError"));
+      }
     }
   }
 
   function handleDeleteItem(item) {
+    if (locked) {
+      showToast(t("app.unlockFirst"));
+      return;
+    }
     setConfirm({ message: t("app.confirmDelete"), action: () => deleteItem(item) });
   }
 
   async function deleteItem(item) {
+    if (locked) {
+      showToast(t("app.unlockFirst"));
+      return;
+    }
     try {
       await api.removeItem(username, item.store, item.itemId);
       setItems((prev) => prev.filter((a) => itemKey(a) !== itemKey(item)));
       setDetail(null);
       showToast(t("app.toastDeleted"));
-    } catch {
-      showToast(t("app.toastError"));
+    } catch (err) {
+      if (err.code === "STASH_LOCKED") {
+        await refreshLock().catch(() => {});
+        showToast(t("app.unlockFirst"));
+      } else {
+        showToast(t("app.toastError"));
+      }
     }
   }
 
@@ -269,7 +297,8 @@ export default function Stash() {
       {detail && (
         <ItemDetailModal
           item={detail}
-          isOwner={isOwner && !locked}
+          isOwner={isOwner}
+          locked={locked}
           onClose={() => setDetail(null)}
           onSave={handleSaveItem}
           onDelete={handleDeleteItem}
@@ -278,8 +307,14 @@ export default function Stash() {
       <ConfirmModal
         isOpen={!!confirm}
         message={confirm?.message}
+        confirmDisabled={locked}
         onCancel={() => setConfirm(null)}
         onConfirm={() => {
+          if (locked) {
+            setConfirm(null);
+            showToast(t("app.unlockFirst"));
+            return;
+          }
           setConfirm(null);
           confirm.action();
         }}
