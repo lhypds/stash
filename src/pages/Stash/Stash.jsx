@@ -86,11 +86,20 @@ export default function Stash() {
   }, [locked]);
 
   const stashedKeys = useMemo(() => new Set(items.map(itemKey)), [items]);
-  // The platforms present in this stash (YouTube, Bilibili, …), derived from
-  // each item's URL. Sorted so the source filter's options stay stable.
+  // The platforms present in the selected store (YouTube, Bilibili, …),
+  // derived from each item's URL. With All Stores selected, include every
+  // source. Sorted so the source filter's options stay stable.
   const sources = useMemo(
-    () => [...new Set(items.map((a) => sourceName(a.url)).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
-    [items],
+    () =>
+      [
+        ...new Set(
+          items
+            .filter((a) => !storeFilter || a.store === storeFilter)
+            .map((a) => sourceName(a.url))
+            .filter(Boolean),
+        ),
+      ].sort((a, b) => a.localeCompare(b)),
+    [items, storeFilter],
   );
   const visibleItems = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -262,7 +271,10 @@ export default function Stash() {
                 value={storeFilter}
                 options={api.STORE_KEYS}
                 getLabel={(s) => t(`app.storeNames.${s}`)}
-                onChange={setStoreFilter}
+                onChange={(store) => {
+                  setStoreFilter(store);
+                  setSourceFilter(null);
+                }}
               />
               {sources.length > 0 && (
                 <FilterDropdown
