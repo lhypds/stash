@@ -29,8 +29,7 @@ const STORES = {
   videos: { type: "url" },
   channels: { type: "url" },
   chats: { type: "url" },
-  "ios-apps": { type: "search" },
-  "android-apps": { type: "search" },
+  apps: { type: "search" },
 };
 
 // Stores whose items get a background full-page screenshot after stashing.
@@ -38,7 +37,7 @@ const STORES = {
 const SHOT_STORES = new Set(["pages", "chats"]);
 
 const USERNAME_RE = /^[a-z0-9_-]{1,32}$/;
-const ITEM_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$/;
+const ITEM_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,220}$/;
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15";
 // Most post platforms render Open Graph tags (incl. post images) only for
@@ -166,8 +165,7 @@ function urlStoreFor(href) {
   } catch {
     return "pages";
   }
-  if (host === "apps.apple.com" || host === "itunes.apple.com") return "ios-apps";
-  if (host === "play.google.com") return "android-apps";
+  if (host === "apps.apple.com" || host === "itunes.apple.com" || host === "play.google.com") return "apps";
   if (chatPlatformFor(host)) return "chats";
   if (platformFor(host)) return "posts";
   if (videoPlatformFor(host)) return "videos";
@@ -199,9 +197,12 @@ function isBlockedHost(hostname) {
 // Resolve an App Store / Google Play link to its app via the same lookups the
 // term search uses, so a pasted store URL stashes as a real app (icon, name,
 // developer) rather than a generic page. Returns fields without `store`.
-async function analyzeAppUrl(href, store, country) {
+const appItemId = (platform, id) => `${platform}-${id}`;
+
+async function analyzeAppUrl(href, country) {
   const u = new URL(href);
-  if (store === "ios-apps") {
+  const host = u.hostname.replace(/^www\./, "");
+  if (host === "apps.apple.com" || host === "itunes.apple.com") {
     const id = u.pathname.match(/\/id(\d+)/)?.[1] || (/^\d+$/.test(u.searchParams.get("id")) ? u.searchParams.get("id") : null);
     if (!id) throw new Error("no app id in url");
     const r = await fetch(`https://itunes.apple.com/lookup?id=${id}&country=${country}`);
@@ -209,7 +210,7 @@ async function analyzeAppUrl(href, store, country) {
     const a = (await r.json()).results?.[0];
     if (!a?.bundleId) throw new Error("app not found");
     return {
-      itemId: a.bundleId,
+      itemId: appItemId("ios", a.bundleId),
       kind: "app",
       name: a.trackName,
       byline: a.artistName,
@@ -218,9 +219,16 @@ async function analyzeAppUrl(href, store, country) {
     };
   }
   const appId = u.searchParams.get("id");
-  if (!appId) throw new Error("no app id in url");
+  if (host !== "play.google.com" || !appId) throw new Error("no app id in url");
   const a = await gplay.app({ appId, country });
-  return { itemId: a.appId, kind: "app", name: a.title, byline: a.developer, icon: a.icon, url: a.url || href };
+  return {
+    itemId: appItemId("android", a.appId),
+    kind: "app",
+    name: a.title,
+    byline: a.developer,
+    icon: a.icon,
+    url: a.url || href,
+  };
 }
 
 const userDir = (username) => path.join(DATA_DIR, "users", username);
@@ -313,6 +321,46 @@ async function renameStore(username, from, to) {
   }
 }
 
+// Merge the two former mobile-app stores into one. Prefix item IDs with their
+// marketplace so the same reverse-domain ID can exist on both platforms.
+async function mergeAppStores(username) {
+  for (const [from, platform] of [
+    ["ios-apps", "ios"],
+    ["android-apps", "android"],
+  ]) {
+    const oldDir = storeDir(username, from);
+    let entries = [];
+    try {
+      entries = await fs.readdir(oldDir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    let allMoved = true;
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        allMoved = false;
+        continue;
+      }
+      const src = path.join(oldDir, entry.name);
+      const record = await readJson(path.join(src, "item.json"), null);
+      const itemId = appItemId(platform, record?.itemId || entry.name);
+      const dst = itemDir(username, "apps", itemId);
+      await fs.mkdir(path.dirname(dst), { recursive: true });
+      try {
+        await fs.rename(src, dst);
+      } catch {
+        // Preserve both copies if a partial/previous migration already made
+        // the destination; a later manual cleanup can resolve the duplicate.
+        allMoved = false;
+        continue;
+      }
+      if (record) await writeJson(path.join(dst, "item.json"), { ...record, store: "apps", itemId });
+    }
+    if (allMoved) await fs.rmdir(oldDir).catch(() => {});
+  }
+}
+
 // One-time move of the pre-store layout (platforms/<platform>/<bundleId>/app.json)
 // into stores/<store>/<itemId>/item.json.
 async function migrateLegacy() {
@@ -393,6 +441,8 @@ async function migrateLegacy() {
     await renameStore(u.name, "youtube-videos", "videos");
     await renameStore(u.name, "youtube-channels", "channels");
 
+    await mergeAppStores(u.name);
+
     // Carry store visibility settings across the renames above
     const settings = await readJson(settingsFile(u.name), null);
     if (settings?.stores) {
@@ -408,6 +458,12 @@ async function migrateLegacy() {
         for (const key of to) stores[key] = stores[from];
         delete stores[from];
       }
+      if (stores.apps === undefined) {
+        const oldAppValues = [stores["ios-apps"], stores["android-apps"]].filter((value) => value !== undefined);
+        if (oldAppValues.length) stores.apps = oldAppValues.some(Boolean);
+      }
+      delete stores["ios-apps"];
+      delete stores["android-apps"];
       if (JSON.stringify(stores) !== JSON.stringify(settings.stores)) {
         await writeJson(settingsFile(u.name), { ...settings, stores });
       }
@@ -784,38 +840,44 @@ app.get("/api/search", analyzeLimiter, async (req, res) => {
   if (!term) return res.json({ results: [] });
 
   try {
-    let results;
-    if (store === "ios-apps") {
-      const url =
-        `https://itunes.apple.com/search?media=software&limit=24` +
-        `&country=${country}&term=${encodeURIComponent(term)}`;
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(`itunes ${r.status}`);
-      const json = await r.json();
-      results = (json.results || [])
-        .filter((a) => a.bundleId && ITEM_ID_RE.test(a.bundleId))
-        .map((a) => ({
-          store,
-          itemId: a.bundleId,
-          kind: "app",
-          name: a.trackName,
-          byline: a.artistName,
-          icon: a.artworkUrl512 || a.artworkUrl100,
-          url: a.trackViewUrl,
-        }));
-    } else {
-      const found = await gplay.search({ term, num: 24, country });
-      results = found
-        .filter((a) => ITEM_ID_RE.test(a.appId))
-        .map((a) => ({
-          store,
-          itemId: a.appId,
-          kind: "app",
-          name: a.title,
-          byline: a.developer,
-          icon: a.icon,
-          url: a.url,
-        }));
+    const searches = await Promise.allSettled([
+      (async () => {
+        const url =
+          `https://itunes.apple.com/search?media=software&limit=12` +
+          `&country=${country}&term=${encodeURIComponent(term)}`;
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`itunes ${r.status}`);
+        const json = await r.json();
+        return (json.results || [])
+          .filter((a) => a.bundleId && ITEM_ID_RE.test(appItemId("ios", a.bundleId)))
+          .map((a) => ({
+            store,
+            itemId: appItemId("ios", a.bundleId),
+            kind: "app",
+            name: a.trackName,
+            byline: a.artistName,
+            icon: a.artworkUrl512 || a.artworkUrl100,
+            url: a.trackViewUrl,
+          }));
+      })(),
+      (async () => {
+        const found = await gplay.search({ term, num: 12, country });
+        return found
+          .filter((a) => ITEM_ID_RE.test(appItemId("android", a.appId)))
+          .map((a) => ({
+            store,
+            itemId: appItemId("android", a.appId),
+            kind: "app",
+            name: a.title,
+            byline: a.developer,
+            icon: a.icon,
+            url: a.url,
+          }));
+      })(),
+    ]);
+    const results = searches.flatMap((result) => (result.status === "fulfilled" ? result.value : []));
+    if (!results.length && searches.every((result) => result.status === "rejected")) {
+      throw new Error("app searches failed");
     }
     res.json({ results });
   } catch (err) {
@@ -846,7 +908,7 @@ app.get("/api/analyze", analyzeLimiter, async (req, res) => {
   try {
     // An app-store link is looked up as a real app; a URL store is analyzed
     if (type === "search") {
-      const analyzed = await analyzeAppUrl(url.href, store, country);
+      const analyzed = await analyzeAppUrl(url.href, country);
       return res.json({ result: { store, ...analyzed } });
     }
     const isVideoStore = store === "videos" || store === "channels";

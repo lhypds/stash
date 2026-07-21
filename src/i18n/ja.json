@@ -3,8 +3,7 @@
     "tagline": "好きなものをぜんぶストック。メモも書ける。",
     "universalPlaceholder": "リンクを貼り付け、テキストを入力…",
     "storeNames": {
-      "ios-apps": "iOSアプリ",
-      "android-apps": "Androidアプリ",
+      "apps": "アプリ",
       "posts": "投稿",
       "pages": "ページ",
       "videos": "動画",
@@ -19,8 +18,7 @@
       "video": "動画",
       "channel": "チャンネル",
       "chat": "チャット",
-      "ios-apps": "iOSアプリ",
-      "android-apps": "Androidアプリ"
+      "apps": "アプリ"
     },
     "storeSelect": "タイプ",
     "sourceSelect": "提供元",

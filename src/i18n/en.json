@@ -3,8 +3,7 @@
     "tagline": "Stash everything you love, with notes.",
     "universalPlaceholder": "paste links, type text...",
     "storeNames": {
-      "ios-apps": "iOS Apps",
-      "android-apps": "Android Apps",
+      "apps": "Apps",
       "posts": "Posts",
       "pages": "Pages",
       "videos": "Videos",
@@ -19,8 +18,7 @@
       "video": "Video",
       "channel": "Channel",
       "chat": "Chat",
-      "ios-apps": "iOS App",
-      "android-apps": "Android App"
+      "apps": "App"
     },
     "storeSelect": "Store",
     "sourceSelect": "Source",

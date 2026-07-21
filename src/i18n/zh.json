@@ -3,8 +3,7 @@
     "tagline": "收藏你喜欢的一切，还能写笔记。",
     "universalPlaceholder": "粘贴链接，输入文字…",
     "storeNames": {
-      "ios-apps": "iOS 应用",
-      "android-apps": "Android 应用",
+      "apps": "应用",
       "posts": "帖子",
       "pages": "网页",
       "videos": "视频",
@@ -19,8 +18,7 @@
       "video": "视频",
       "channel": "频道",
       "chat": "对话",
-      "ios-apps": "iOS 应用",
-      "android-apps": "Android 应用"
+      "apps": "应用"
     },
     "storeSelect": "类型",
     "sourceSelect": "来源",

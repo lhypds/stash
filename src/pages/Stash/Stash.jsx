@@ -120,7 +120,7 @@ export default function Stash() {
 
     const found = extractUrls(term);
     if (found.length === 0) {
-      const store = storeFilter === "ios-apps" || storeFilter === "android-apps" ? storeFilter : "ios-apps";
+      const store = "apps";
       setQuery("");
       setSearch({ term, mode: "search", loading: true, results: [] });
       try {

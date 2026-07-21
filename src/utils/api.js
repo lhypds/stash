@@ -16,7 +16,7 @@ const json = (method, body) => ({
   body: JSON.stringify(body),
 });
 
-export const STORE_KEYS = ["pages", "posts", "videos", "channels", "chats", "ios-apps", "android-apps"];
+export const STORE_KEYS = ["pages", "posts", "videos", "channels", "chats", "apps"];
 export const URL_STORES = new Set(["posts", "pages", "videos", "channels", "chats"]);
 
 // Stores whose items get a background screenshot instead of arriving with one;
