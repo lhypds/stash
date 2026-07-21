@@ -1,5 +1,4 @@
 export { default as LanguageSwitcher } from "./LanguageSwitcher";
-export { default as TopBar } from "./TopBar";
 export { default as AppIcon } from "./AppIcon";
 export { default as AppCard } from "./AppCard";
 export { default as ResultCard } from "./ResultCard";

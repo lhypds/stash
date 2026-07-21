@@ -5,12 +5,8 @@ import ConfirmModal from "@components/ConfirmModal";
 import LanguageSwitcher from "@components/LanguageSwitcher";
 import SettingsModal from "@components/SettingsModal";
 import { useUser } from "@contexts/UserContext";
+import { isIOS } from "@utils/mobile";
 import styles from "./topbar.module.css";
-
-// iPadOS reports itself as Mac, hence the maxTouchPoints check
-const isIOS =
-  /iP(ad|hone|od)/.test(navigator.userAgent) ||
-  (navigator.userAgent.includes("Mac") && navigator.maxTouchPoints > 1);
 
 // The universal analyser: one box that filters the stash as you type, and — on
 // submit — analyzes whatever's pasted (links become Pages/Posts/Videos/

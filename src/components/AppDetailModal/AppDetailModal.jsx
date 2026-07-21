@@ -3,26 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Modal, TextArea } from "@ui";
 import AppIcon from "@components/AppIcon";
 import { SHOT_STORES } from "@utils/api";
+import { videoEmbedUrl } from "@utils/url";
 import styles from "./detail.module.css";
-
-function videoEmbedUrl(url) {
-  try {
-    const u = new URL(url);
-    const host = u.hostname.replace(/^www\.|^m\./, "");
-    if (host === "youtu.be" || host === "youtube.com" || host.endsWith(".youtube.com")) {
-      const id =
-        host === "youtu.be"
-          ? u.pathname.split("/")[1]
-          : u.pathname === "/watch"
-            ? u.searchParams.get("v")
-            : u.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/)?.[1];
-      return id && /^[\w-]{6,20}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : null;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
 
 export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete }) {
   const { t, i18n } = useTranslation();

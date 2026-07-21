@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { showToast } from "@ui";
-import { TopBar, LoginModal, AppCard, ResultCard, AppDetailModal, ConfirmModal } from "@components";
+import { LoginModal, AppCard, ResultCard, AppDetailModal, ConfirmModal } from "@components";
+import TopBar from "./TopBar";
 import * as api from "@utils/api";
+import { extractUrls } from "@utils/url";
 import { useUser } from "@contexts/UserContext";
 import styles from "./stash.module.css";
 
@@ -11,31 +13,6 @@ const countryForLang = (lang) => (lang === "ja" ? "jp" : lang === "zh" ? "cn" : 
 const itemKey = (a) => `${a.store}:${a.itemId}`;
 
 const MAX_URLS = 10;
-
-// Pasted "share" text buries the link among emoji and captions, and can hold
-// several at once (e.g. RedNote's "15 【…】 😆 code 😆 https://…"). Pull out
-// every http(s) URL, trim punctuation that tends to cling to the end, and
-// drop duplicates.
-function extractUrls(text) {
-  const matches = String(text).match(/https?:\/\/[^\s<>"'`）】」』]+/gi) || [];
-  const seen = new Set();
-  const urls = [];
-  for (const match of matches) {
-    const trimmed = match.replace(/[.,;:!?、。，！？）)\]}】」』>"'`]+$/u, "");
-    let href;
-    try {
-      const u = new URL(trimmed);
-      if (u.protocol !== "http:" && u.protocol !== "https:") continue;
-      href = u.href;
-    } catch {
-      continue;
-    }
-    if (seen.has(href)) continue;
-    seen.add(href);
-    urls.push(href);
-  }
-  return urls;
-}
 
 export default function Stash() {
   const { username } = useParams();
