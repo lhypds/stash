@@ -17,7 +17,9 @@
       "page": "网页",
       "video": "视频",
       "channel": "频道",
-      "chat": "对话"
+      "chat": "对话",
+      "ios-apps": "iOS 应用",
+      "android-apps": "Android 应用"
     },
     "storeSelect": "类型",
     "analyze": "分析",
@@ -52,6 +54,8 @@
     "video": "视频",
     "videoOpen": "去原网站观看",
     "viewInStore": "打开链接",
+    "byline": "来源",
+    "meta": "类型",
     "stashedAt": "收藏于",
     "confirmDelete": "从收藏中移除此应用？",
     "toastStashed": "已收藏 {{name}}",

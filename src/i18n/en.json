@@ -17,7 +17,9 @@
       "page": "Page",
       "video": "Video",
       "channel": "Channel",
-      "chat": "Chat"
+      "chat": "Chat",
+      "ios-apps": "iOS App",
+      "android-apps": "Android App"
     },
     "storeSelect": "Store",
     "analyze": "Analyze",
@@ -53,6 +55,8 @@
     "video": "Video",
     "videoOpen": "Watch on site",
     "viewInStore": "Open link",
+    "byline": "Byline",
+    "meta": "Meta",
     "stashedAt": "Stashed",
     "confirmDelete": "Remove this app from the stash?",
     "toastStashed": "Stashed {{name}}",

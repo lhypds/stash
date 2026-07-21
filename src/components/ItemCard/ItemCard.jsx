@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import ItemThumbnail from "@components/ItemThumbnail";
-import { sourceName } from "@utils/url";
+import { itemMeta } from "@utils/item";
 import styles from "./itemcard.module.css";
 
 const THUMB_KINDS = new Set(["post", "video"]);
@@ -11,7 +11,7 @@ const THUMB_KINDS = new Set(["post", "video"]);
 //   "result" — a not-yet-stashed search result, with its own Stash button.
 export default function ItemCard({ item, mode = "stash", onClick, stashed, onStash }) {
   const { t } = useTranslation();
-  const icon = (
+  const thumbnail = (
     <ItemThumbnail
       src={mode === "result" ? item.icon : item.iconUrl}
       name={item.name}
@@ -21,16 +21,15 @@ export default function ItemCard({ item, mode = "stash", onClick, stashed, onSta
     />
   );
 
+  const meta = <span className={styles.meta}>{itemMeta(item, t)}</span>;
+
+  // Result mode
   if (mode === "result") {
     return (
       <div className={`${styles.card} ${styles.result}`}>
-        {icon}
+        {thumbnail}
         <span className={styles.name}>{item.name}</span>
-        <span className={styles.meta}>
-          {t(`app.storeNames.${item.store}`)}
-          {item.kind && item.kind !== "app" ? ` · ${t(`app.kinds.${item.kind}`)}` : ""}
-          {item.byline ? ` · ${item.byline}` : ""}
-        </span>
+        {meta}
         <button className={styles.stashBtn} disabled={stashed} onClick={onStash}>
           {stashed ? `✓ ${t("app.stashed")}` : t("app.stash")}
         </button>
@@ -38,20 +37,13 @@ export default function ItemCard({ item, mode = "stash", onClick, stashed, onSta
     );
   }
 
-  const typeLabel = item.kind && item.kind !== "app" ? t(`app.kinds.${item.kind}`) : t(`app.storeNames.${item.store}`);
-  // The source bracket would just be noise where the label already says where
-  // it's from: pages carry their domain in the title/byline, and apps' store
-  // name is the type label (so "iOS Apps [apps.apple.com]" is redundant).
-  const source = item.kind === "page" || item.kind === "app" ? null : sourceName(item.url);
+  // Stash mode
   const noteLine = item.note?.split("\n").find((line) => line.trim());
   return (
     <button className={`${styles.card} ${styles.stash}`} onClick={onClick}>
-      {icon}
+      {thumbnail}
       <span className={styles.name}>{item.name}</span>
-      <span className={styles.meta}>
-        {typeLabel}
-        {source ? ` [${source}]` : ""}
-      </span>
+      {meta}
       {noteLine && <span className={styles.note}>{noteLine}</span>}
     </button>
   );

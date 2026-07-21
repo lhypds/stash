@@ -4,6 +4,7 @@ import { Modal, TextArea } from "@ui";
 import ItemThumbnail from "@components/ItemThumbnail";
 import { SHOT_STORES } from "@utils/api";
 import { videoEmbedUrl } from "@utils/url";
+import { itemMeta } from "@utils/item";
 import styles from "./detail.module.css";
 
 export default function ItemDetailModal({ item, isOwner, onClose, onSave, onDelete }) {
@@ -25,10 +26,13 @@ export default function ItemDetailModal({ item, isOwner, onClose, onSave, onDele
             className={styles.bigIcon}
           />
           <div className={styles.info}>
-            {item.byline && <span>{item.byline}</span>}
+            {item.byline && (
+              <span>
+                {t("app.byline")}: {item.byline}
+              </span>
+            )}
             <span className={styles.bundle}>
-              {t(`app.storeNames.${item.store}`)}
-              {item.kind && item.kind !== "app" ? ` · ${t(`app.kinds.${item.kind}`)}` : ` · ${item.itemId}`}
+              {t("app.meta")}: {itemMeta(item, t)}
             </span>
             <span>
               {t("app.stashedAt")}: {stashedDate}

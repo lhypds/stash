@@ -17,7 +17,9 @@
       "page": "ページ",
       "video": "動画",
       "channel": "チャンネル",
-      "chat": "チャット"
+      "chat": "チャット",
+      "ios-apps": "iOSアプリ",
+      "android-apps": "Androidアプリ"
     },
     "storeSelect": "タイプ",
     "analyze": "分析",
@@ -52,6 +54,8 @@
     "video": "動画",
     "videoOpen": "サイトで視聴",
     "viewInStore": "リンクを開く",
+    "byline": "提供元",
+    "meta": "種別",
     "stashedAt": "ストック日",
     "confirmDelete": "このアプリをストックから削除しますか？",
     "toastStashed": "{{name}} をストックしました",
