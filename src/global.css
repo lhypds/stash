@@ -36,14 +36,3 @@ textarea {
 a {
   color: inherit;
 }
-
-/* iOS Safari auto-zooms into focused text controls sized under 16px.
-   -webkit-touch-callout only exists on iOS, so desktop keeps its sizes. */
-@supports (-webkit-touch-callout: none) {
-  input,
-  select,
-  textarea,
-  [contenteditable] {
-    font-size: 16px !important;
-  }
-}
