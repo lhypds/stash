@@ -1,7 +1,7 @@
 import { useState } from "react";
-import styles from "./appicon.module.css";
+import styles from "./thumbnail.module.css";
 
-export default function AppIcon({ src, name, fallback, className, referrerPolicy }) {
+export default function ItemThumbnail({ src, name, fallback, className, referrerPolicy }) {
   const [failed, setFailed] = useState(false);
   const cls = [styles.icon, className].filter(Boolean).join(" ");
 

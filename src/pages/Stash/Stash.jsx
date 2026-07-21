@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { showToast } from "@ui";
-import { LoginModal, AppCard, ResultCard, AppDetailModal, ConfirmModal } from "@components";
+import { LoginModal, ItemCard, ItemDetailModal, ConfirmModal } from "@components";
 import TopBar from "./TopBar";
 import * as api from "@utils/api";
 import { extractUrls } from "@utils/url";
@@ -237,9 +237,10 @@ export default function Stash() {
             ) : (
               <div className={styles.grid}>
                 {search.results.map((r) => (
-                  <ResultCard
+                  <ItemCard
                     key={itemKey(r)}
-                    result={r}
+                    mode="result"
+                    item={r}
                     stashed={isOwner && stashedKeys.has(itemKey(r))}
                     onStash={() => handleStash(r)}
                   />
@@ -308,7 +309,7 @@ export default function Stash() {
             ) : (
               <div className={styles.grid}>
                 {visibleItems.map((a) => (
-                  <AppCard key={itemKey(a)} app={a} onClick={() => setDetail(a)} />
+                  <ItemCard key={itemKey(a)} item={a} onClick={() => setDetail(a)} />
                 ))}
               </div>
             )}
@@ -318,8 +319,8 @@ export default function Stash() {
 
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
       {detail && (
-        <AppDetailModal
-          app={detail}
+        <ItemDetailModal
+          item={detail}
           isOwner={isOwner}
           onClose={() => setDetail(null)}
           onSave={handleSaveItem}

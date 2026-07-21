@@ -1,9 +1,8 @@
 export { default as LanguageSwitcher } from "./LanguageSwitcher";
-export { default as AppIcon } from "./AppIcon";
-export { default as AppCard } from "./AppCard";
-export { default as ResultCard } from "./ResultCard";
+export { default as ItemThumbnail } from "./ItemThumbnail";
+export { default as ItemCard } from "./ItemCard";
 export { default as LoginModal } from "./LoginModal";
-export { default as AppDetailModal } from "./AppDetailModal";
+export { default as ItemDetailModal } from "./ItemDetailModal";
 export { default as ConfirmModal } from "./ConfirmModal";
 export { default as SettingsModal } from "./SettingsModal";
 export { default as UsernameInput } from "./UsernameInput";
