@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import AppIcon from "@components/AppIcon";
 import styles from "./appcard.module.css";
 
-const THUMB_KINDS = new Set(["tweet", "video"]);
+const THUMB_KINDS = new Set(["post", "video"]);
 
 export default function AppCard({ app, onClick }) {
   const { t } = useTranslation();

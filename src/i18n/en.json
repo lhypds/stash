@@ -8,13 +8,13 @@
     "storeNames": {
       "ios-apps": "iOS Apps",
       "android-apps": "Android Apps",
-      "tweets": "Tweets",
+      "posts": "Posts",
       "pages": "Pages",
       "videos": "Videos",
       "channels": "Channels"
     },
     "kinds": {
-      "tweet": "Tweet",
+      "post": "Post",
       "page": "Page",
       "video": "Video",
       "channel": "Channel"
@@ -22,7 +22,7 @@
     "storeSelect": "Store",
     "urlPlaceholder": {
       "default": "Paste a URL",
-      "tweets": "Paste an x.com, Threads, RedNote, Instagram… URL",
+      "posts": "Paste an x.com, Threads, RedNote, Instagram… URL",
       "videos": "Paste a YouTube, bilibili, TikTok… video URL",
       "channels": "Paste a YouTube, bilibili, TikTok… channel URL"
     },

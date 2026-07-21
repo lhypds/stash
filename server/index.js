@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 3001;
 // type "search": term-based store search; type "url": analyze a pasted URL
 const STORES = {
   pages: { type: "url" },
-  tweets: { type: "url" },
+  posts: { type: "url" },
   videos: { type: "url" },
   channels: { type: "url" },
   "ios-apps": { type: "search" },
@@ -41,11 +41,11 @@ const UA =
 const BOT_UA = "Mozilla/5.0 (compatible; Twitterbot/1.0)";
 const META_UA = "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
 
-// Platforms the "tweets" store understands. Hosts match exactly or by
+// Platforms the "posts" store understands. Hosts match exactly or by
 // subdomain; `ua` is the identity that makes the platform serve OG tags
 // (Meta properties only answer facebookexternalhit, rednote blocks known
 // crawlers but serves a plain browser). Unknown hosts still get the
-// generic OG fallback in analyzeTweet.
+// generic OG fallback in analyzePost.
 const POST_PLATFORMS = [
   { label: "X", hosts: ["x.com", "twitter.com"], ua: BOT_UA, oembed: true },
   { label: "Threads", hosts: ["threads.net", "threads.com"], ua: BOT_UA },
@@ -248,8 +248,17 @@ async function migrateLegacy() {
     }
     await fs.rm(legacyRoot, { recursive: true, force: true });
 
-    // The "twitter" store was renamed to "tweets"
-    await renameStore(u.name, "twitter", "tweets");
+    // The "twitter" store became "tweets" and is now "posts"
+    await renameStore(u.name, "twitter", "posts");
+    await renameStore(u.name, "tweets", "posts");
+
+    // Items stashed as "tweet" are now "post"
+    for (const e of await fs.readdir(storeDir(u.name, "posts"), { withFileTypes: true }).catch(() => [])) {
+      if (!e.isDirectory()) continue;
+      const f = path.join(itemDir(u.name, "posts", e.name), "item.json");
+      const rec = await readJson(f, null);
+      if (rec?.kind === "tweet") await writeJson(f, { ...rec, kind: "post" });
+    }
 
     // The "youtube" store was split into "videos" and "channels"
     const oldYoutube = storeDir(u.name, "youtube");
@@ -281,6 +290,8 @@ async function migrateLegacy() {
     if (settings?.stores) {
       const stores = { ...settings.stores };
       for (const [from, ...to] of [
+        ["twitter", "posts"],
+        ["tweets", "posts"],
         ["youtube", "videos", "channels"],
         ["youtube-videos", "videos"],
         ["youtube-channels", "channels"],
@@ -429,7 +440,7 @@ async function analyzeVideo(url, store) {
   };
 }
 
-async function analyzeTweet(url) {
+async function analyzePost(url) {
   const host = new URL(url).hostname.replace(/^www\./, "");
   const platform = platformFor(host);
 
@@ -448,7 +459,7 @@ async function analyzeTweet(url) {
         byline = j.author_name || null;
       }
     } catch (err) {
-      console.error("tweet oembed failed:", err.message);
+      console.error("post oembed failed:", err.message);
     }
   }
 
@@ -477,7 +488,7 @@ async function analyzeTweet(url) {
 
   if (!text) throw new Error("no post content");
   return {
-    kind: "tweet",
+    kind: "post",
     name: text.length > 140 ? `${text.slice(0, 140)}…` : text,
     byline: byline || platform?.label || host,
     icon,
@@ -567,8 +578,8 @@ app.get("/api/analyze", async (req, res) => {
     const isVideoStore = store === "videos" || store === "channels";
     const analyzed = isVideoStore
       ? await analyzeVideo(url.href, store)
-      : store === "tweets"
-        ? await analyzeTweet(url.href)
+      : store === "posts"
+        ? await analyzePost(url.href)
         : await analyzePage(url.href);
     // A video-platform URL lands in the store matching what it actually is,
     // regardless of which of the two stores it was analyzed from

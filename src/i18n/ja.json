@@ -8,13 +8,13 @@
     "storeNames": {
       "ios-apps": "iOSアプリ",
       "android-apps": "Androidアプリ",
-      "tweets": "ツイート",
+      "posts": "投稿",
       "pages": "ページ",
       "videos": "動画",
       "channels": "チャンネル"
     },
     "kinds": {
-      "tweet": "ツイート",
+      "post": "投稿",
       "page": "ページ",
       "video": "動画",
       "channel": "チャンネル"
@@ -22,7 +22,7 @@
     "storeSelect": "タイプ",
     "urlPlaceholder": {
       "default": "URLを貼り付け",
-      "tweets": "x.com、Threads、RedNote、Instagram…のURLを貼り付け",
+      "posts": "x.com、Threads、RedNote、Instagram…のURLを貼り付け",
       "videos": "YouTube、bilibili、TikTok…の動画URLを貼り付け",
       "channels": "YouTube、bilibili、TikTok…のチャンネルURLを貼り付け"
     },

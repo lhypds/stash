@@ -53,11 +53,6 @@
   white-space: nowrap;
 }
 
-.storeTrigger:hover {
-  background: var(--ink);
-  color: var(--bg);
-}
-
 .caret {
   font-size: 10px;
 }
@@ -71,7 +66,6 @@
   z-index: 20;
 }
 
-.storeWrap:hover .storeMenu,
 .storeWrap[data-open="true"] .storeMenu {
   display: flex;
 }
@@ -93,7 +87,6 @@
   border-top: 1px solid var(--ink);
 }
 
-.storeMenu button:hover,
 .storeMenu button[data-active="true"] {
   background: var(--ink);
   color: var(--bg);
@@ -125,11 +118,6 @@
   justify-content: center;
 }
 
-.submit:hover {
-  background: var(--ink);
-  color: var(--bg);
-}
-
 .right {
   display: flex;
   align-items: center;
@@ -152,11 +140,6 @@
   line-height: 1;
 }
 
-.export:hover {
-  background: var(--ink);
-  color: var(--bg);
-}
-
 .profileWrap {
   position: relative;
 }
@@ -175,11 +158,6 @@
   line-height: 1;
 }
 
-.profile:hover {
-  background: var(--ink);
-  color: var(--bg);
-}
-
 .menu {
   position: absolute;
   right: 0;
@@ -189,8 +167,6 @@
   z-index: 20;
 }
 
-.exportWrap:hover .menu,
-.profileWrap:hover .menu,
 .exportWrap[data-open="true"] .menu,
 .profileWrap[data-open="true"] .menu {
   display: flex;
@@ -212,9 +188,48 @@
   border-top: 1px solid var(--ink);
 }
 
-.menu button:hover {
-  background: var(--ink);
-  color: var(--bg);
+/* Hover behavior only on hover-capable devices: on touch, tapping a
+   trigger or option leaves the element in a sticky :hover state that
+   keeps its menu visually open even after data-open flips to false */
+@media (hover: hover) {
+  .storeTrigger:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .storeWrap:hover .storeMenu {
+    display: flex;
+  }
+
+  .storeMenu button:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .submit:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .export:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .profile:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .exportWrap:hover .menu,
+  .profileWrap:hover .menu {
+    display: flex;
+  }
+
+  .menu button:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
 }
 
 @media (max-width: 1080px) {

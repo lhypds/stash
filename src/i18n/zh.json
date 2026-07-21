@@ -8,13 +8,13 @@
     "storeNames": {
       "ios-apps": "iOS 应用",
       "android-apps": "Android 应用",
-      "tweets": "推文",
+      "posts": "帖子",
       "pages": "网页",
       "videos": "视频",
       "channels": "频道"
     },
     "kinds": {
-      "tweet": "推文",
+      "post": "帖子",
       "page": "网页",
       "video": "视频",
       "channel": "频道"
@@ -22,7 +22,7 @@
     "storeSelect": "类型",
     "urlPlaceholder": {
       "default": "粘贴链接",
-      "tweets": "粘贴 x.com、Threads、小红书、Instagram… 链接",
+      "posts": "粘贴 x.com、Threads、小红书、Instagram… 链接",
       "videos": "粘贴 YouTube、bilibili、TikTok… 视频链接",
       "channels": "粘贴 YouTube、bilibili、TikTok… 频道链接"
     },

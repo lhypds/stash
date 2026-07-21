@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import AppIcon from "@components/AppIcon";
 import styles from "./resultcard.module.css";
 
-const THUMB_KINDS = new Set(["tweet", "video"]);
+const THUMB_KINDS = new Set(["post", "video"]);
 
 export default function ResultCard({ result, stashed, onStash }) {
   const { t } = useTranslation();
