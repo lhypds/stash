@@ -15,8 +15,12 @@ const json = (method, body) => ({
   body: JSON.stringify(body),
 });
 
-export const STORE_KEYS = ["pages", "posts", "videos", "channels", "ios-apps", "android-apps"];
-export const URL_STORES = new Set(["posts", "pages", "videos", "channels"]);
+export const STORE_KEYS = ["pages", "posts", "videos", "channels", "chats", "ios-apps", "android-apps"];
+export const URL_STORES = new Set(["posts", "pages", "videos", "channels", "chats"]);
+
+// Stores whose items get a background screenshot instead of arriving with one;
+// the detail view polls for it to land. Mirrors SHOT_STORES on the server.
+export const SHOT_STORES = new Set(["pages", "chats"]);
 
 export const searchStore = (store, term, country = "us") =>
   request(`/api/search?store=${store}&country=${country}&term=${encodeURIComponent(term)}`);

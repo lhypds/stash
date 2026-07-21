@@ -76,10 +76,10 @@ export default function Stash() {
     };
   }, [username]);
 
-  // Page screenshots are captured in the background after stashing; while the
-  // detail of a page without one is open, poll until the capture lands
+  // Page and chat screenshots are captured in the background after stashing;
+  // while the detail of one without a shot is open, poll until the capture lands
   useEffect(() => {
-    if (!detail || detail.store !== "pages" || detail.screenshotUrl) return;
+    if (!detail || !api.SHOT_STORES.has(detail.store) || detail.screenshotUrl) return;
     let cancelled = false;
     let tries = 0;
     const timer = setInterval(() => {

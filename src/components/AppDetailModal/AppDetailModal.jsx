@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, TextArea } from "@ui";
 import AppIcon from "@components/AppIcon";
+import { SHOT_STORES } from "@utils/api";
 import styles from "./detail.module.css";
 
 function videoEmbedUrl(url) {
@@ -90,7 +91,7 @@ export default function AppDetailModal({ app, isOwner, onClose, onSave, onDelete
               <img src={app.screenshotUrl} alt={t("app.screenshot")} className={styles.shot} loading="lazy" />
             </div>
           </div>
-        ) : app.store === "pages" ? (
+        ) : SHOT_STORES.has(app.store) ? (
           <div>
             <label className={styles.label}>{t("app.screenshot")}</label>
             <p className={styles.shotPending}>{t("app.screenshotPending")}</p>

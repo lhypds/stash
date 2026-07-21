@@ -28,9 +28,14 @@ const STORES = {
   posts: { type: "url" },
   videos: { type: "url" },
   channels: { type: "url" },
+  chats: { type: "url" },
   "ios-apps": { type: "search" },
   "android-apps": { type: "search" },
 };
+
+// Stores whose items get a background full-page screenshot after stashing.
+// A pasted share link is all we have; the screenshot is the real preview.
+const SHOT_STORES = new Set(["pages", "chats"]);
 
 const USERNAME_RE = /^[a-z0-9_-]{1,32}$/;
 const ITEM_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$/;
@@ -133,6 +138,24 @@ const VIDEO_PLATFORMS = [
 const videoPlatformFor = (host) =>
   VIDEO_PLATFORMS.find((p) => p.hosts.some((h) => host === h || host.endsWith(`.${h}`)));
 
+// Platforms the "chats" store understands — public "share" links to an AI
+// assistant conversation. Hosts match exactly or by subdomain; `label` is the
+// assistant name shown as the byline. These share pages carry OG tags (title,
+// preview image) for link unfurling, so analyzeChat reads them like any page;
+// the real content lands as the background screenshot.
+// `titleInTag`: the share page's og:title is generic assistant branding
+// ("ChatGPT"), but the conversation's own title is in the <title> tag — prefer
+// it there. Without the flag, analyzeChat keeps the usual og:title-first order.
+const CHAT_PLATFORMS = [
+  { label: "ChatGPT", hosts: ["chatgpt.com", "chat.openai.com"], titleInTag: true },
+  { label: "Gemini", hosts: ["gemini.google.com", "g.co"] },
+  { label: "Grok", hosts: ["grok.com", "x.ai"] },
+  { label: "Claude", hosts: ["claude.ai"] },
+];
+
+const chatPlatformFor = (host) =>
+  CHAT_PLATFORMS.find((p) => p.hosts.some((h) => host === h || host.endsWith(`.${h}`)));
+
 // Which store a pasted link belongs to, chosen by host. App-store links map to
 // the app stores (looked up via analyzeAppUrl); the video/channel split is
 // resolved later inside analyzeVideo. Anything unrecognized is a generic page.
@@ -145,6 +168,7 @@ function urlStoreFor(href) {
   }
   if (host === "apps.apple.com" || host === "itunes.apple.com") return "ios-apps";
   if (host === "play.google.com") return "android-apps";
+  if (chatPlatformFor(host)) return "chats";
   if (platformFor(host)) return "posts";
   if (videoPlatformFor(host)) return "videos";
   return "pages";
@@ -592,6 +616,40 @@ async function analyzePost(url) {
   };
 }
 
+// Drop the assistant's own name from a conversation title, whether it hangs off
+// the front ("ChatGPT - foo") or the back ("foo | Claude"), leaving just the
+// title. Returns the original if stripping would empty it (title is only the
+// brand), so a generic "ChatGPT" still yields something.
+function stripBrand(title, label) {
+  if (!label) return title;
+  const esc = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const sep = "\\s*[-–—|:·]\\s*";
+  const stripped = title
+    .replace(new RegExp(`^${esc}${sep}`, "i"), "")
+    .replace(new RegExp(`${sep}${esc}$`, "i"), "")
+    .trim();
+  return stripped || title;
+}
+
+async function analyzeChat(url) {
+  const host = new URL(url).hostname.replace(/^www\./, "");
+  const platform = chatPlatformFor(host);
+  // Share pages inline a lot of script before <head>, so read a larger slice
+  const { html, finalUrl } = await fetchHtml(url, platform?.ua || UA, 2000000);
+  const loc = new URL(finalUrl);
+  const ogTitle = metaContent(html, "og:title");
+  const docTitle = stripTags(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
+  const title = (platform?.titleInTag ? docTitle || ogTitle : ogTitle || docTitle) || finalUrl;
+  const image = metaContent(html, "og:image");
+  return {
+    kind: "chat",
+    name: stripBrand(title, platform?.label),
+    byline: platform?.label || metaContent(html, "og:site_name") || loc.hostname,
+    icon: image ? new URL(image, finalUrl).href : `${loc.origin}/favicon.ico`,
+    url: finalUrl,
+  };
+}
+
 /* ---------- app ---------- */
 
 const app = express();
@@ -714,7 +772,9 @@ app.get("/api/analyze", analyzeLimiter, async (req, res) => {
       ? await analyzeVideo(url.href, store)
       : store === "posts"
         ? await analyzePost(url.href)
-        : await analyzePage(url.href);
+        : store === "chats"
+          ? await analyzeChat(url.href)
+          : await analyzePage(url.href);
     // A video-platform URL lands in the store matching what it actually is,
     // regardless of which of the two stores it was analyzed from
     const finalStore = isVideoStore ? (analyzed.kind === "channel" ? "channels" : "videos") : store;
@@ -820,7 +880,7 @@ app.post("/api/users/:username/items", async (req, res) => {
     stashedAt: new Date().toISOString(),
   };
   await writeJson(jsonFile, record);
-  if (store === "pages" && record.url) captureInBackground(username, store, itemId, record.url);
+  if (SHOT_STORES.has(store) && record.url) captureInBackground(username, store, itemId, record.url);
   res.status(201).json({ item: withIconUrl(username, record) });
 });
 

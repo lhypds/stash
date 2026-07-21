@@ -32,6 +32,13 @@ const SOURCE_NAMES = {
   "nicovideo.jp": "niconico",
   "nico.ms": "niconico",
   "pornhub.com": "Pornhub",
+  "chatgpt.com": "ChatGPT",
+  "chat.openai.com": "ChatGPT",
+  "gemini.google.com": "Gemini",
+  "g.co": "Gemini",
+  "grok.com": "Grok",
+  "x.ai": "Grok",
+  "claude.ai": "Claude",
 };
 
 // Where the item came from, e.g. "Bilibili", "YouTube". Falls back to the bare

@@ -8,14 +8,16 @@
       "posts": "投稿",
       "pages": "ページ",
       "videos": "動画",
-      "channels": "チャンネル"
+      "channels": "チャンネル",
+      "chats": "チャット"
     },
     "allStores": "すべて",
     "kinds": {
       "post": "投稿",
       "page": "ページ",
       "video": "動画",
-      "channel": "チャンネル"
+      "channel": "チャンネル",
+      "chat": "チャット"
     },
     "storeSelect": "タイプ",
     "analyze": "分析",

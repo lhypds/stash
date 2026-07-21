@@ -8,14 +8,16 @@
       "posts": "帖子",
       "pages": "网页",
       "videos": "视频",
-      "channels": "频道"
+      "channels": "频道",
+      "chats": "对话"
     },
     "allStores": "全部",
     "kinds": {
       "post": "帖子",
       "page": "网页",
       "video": "视频",
-      "channel": "频道"
+      "channel": "频道",
+      "chat": "对话"
     },
     "storeSelect": "类型",
     "analyze": "分析",

@@ -8,14 +8,16 @@
       "posts": "Posts",
       "pages": "Pages",
       "videos": "Videos",
-      "channels": "Channels"
+      "channels": "Channels",
+      "chats": "Chats"
     },
     "allStores": "All",
     "kinds": {
       "post": "Post",
       "page": "Page",
       "video": "Video",
-      "channel": "Channel"
+      "channel": "Channel",
+      "chat": "Chat"
     },
     "storeSelect": "Store",
     "analyze": "Analyze",
