@@ -6,7 +6,12 @@ const CHAT_PLATFORMS = [
   { label: "Gemini", hosts: ["gemini.google.com", "g.co"] },
   { label: "Grok", hosts: ["grok.com", "x.ai"] },
   { label: "Claude", hosts: ["claude.ai"] },
-  { label: "Doubao", hosts: ["doubao.com"], renderedTitle: true },
+  {
+    label: "Doubao",
+    hosts: ["doubao.com"],
+    renderedTitle: true,
+    transientTitles: ["豆包 - 你的 AI 智能助手"],
+  },
 ];
 
 export const chatPlatformFor = (host) => CHAT_PLATFORMS.find((platform) => matchesHost(platform, host));
@@ -27,7 +32,7 @@ export async function analyzeChat(url) {
   const host = new URL(url).hostname.replace(/^www\./, "");
   const platform = chatPlatformFor(host);
   if (platform?.renderedTitle) {
-    const { title, finalUrl } = await readRenderedTitle(url);
+    const { title, finalUrl } = await readRenderedTitle(url, platform.transientTitles);
     const loc = new URL(finalUrl);
     return {
       kind: "chat",

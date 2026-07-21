@@ -42,7 +42,7 @@ function scheduleIdleClose() {
 // Some app-style share pages set their title only after client-side rendering.
 // Reuse the screenshot browser so analyzers can read that final document title
 // without launching a separate Chrome process.
-export async function readRenderedTitle(url) {
+export async function readRenderedTitle(url, transientTitles = []) {
   active++;
   clearTimeout(idleTimer);
   const browser = await getBrowser();
@@ -60,7 +60,7 @@ export async function readRenderedTitle(url) {
       await page.waitForFunction(() => document.title.trim().length > 0, { timeout: 10000 }).catch(() => {});
       initialTitle = (await page.title()).trim();
     }
-    if (initialTitle) {
+    if (initialTitle && transientTitles.includes(initialTitle)) {
       await page
         .waitForFunction((initial) => document.title.trim().length > 0 && document.title.trim() !== initial, { timeout: 10000 }, initialTitle)
         .catch(() => {});
