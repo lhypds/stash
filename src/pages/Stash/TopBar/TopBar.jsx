@@ -10,6 +10,11 @@ import { useUser } from "@contexts/UserContext";
 import { isIOS } from "@utils/mobile";
 import styles from "./topbar.module.css";
 
+// True when a keystroke lands in a text field, so global shortcuts like "/"
+// stay out of the way while the user is actually typing.
+const isEditable = (el) =>
+  el instanceof HTMLElement && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+
 // The universal analyser: one box that filters the stash as you type, and — on
 // submit — analyzes whatever's pasted (links become Pages/Posts/Videos/
 // Channels; plain text falls back to an app-store search).
@@ -26,6 +31,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
   const [confirmExport, setConfirmExport] = useState(false);
   const menuRef = useRef(null);
   const exportRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     function handleOutside(e) {
@@ -33,10 +39,19 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
       if (exportRef.current && !exportRef.current.contains(e.target)) setExportOpen(false);
     }
     function handleKey(e) {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
-      setMenuOpen(false);
-      setExportOpen(false);
-      onQueryChange?.("");
+      if (e.defaultPrevented) return;
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setExportOpen(false);
+        onQueryChange?.("");
+        return;
+      }
+      // "/" jumps to the search box — unless the user is already typing
+      // somewhere (the box itself, a note, a modal field), where "/" is literal.
+      if (e.key === "/" && !isEditable(e.target)) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
     }
     document.addEventListener("pointerdown", handleOutside);
     document.addEventListener("keydown", handleKey);
@@ -98,6 +113,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
 
       <form className={styles.search} onSubmit={submit} role="search">
         <input
+          ref={inputRef}
           className={styles.input}
           type="search"
           value={query}

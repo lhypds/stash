@@ -5,7 +5,8 @@ import { showToast } from "@ui";
 import { LoginModal, ItemCard, ItemDetailModal, ConfirmModal, FilterDropdown } from "@components";
 import TopBar from "./TopBar";
 import * as api from "@utils/api";
-import { extractUrls, sourceBucket, OTHER_SOURCE } from "@utils/url";
+import { extractUrls, sourceName, sourceBucket, OTHER_SOURCE } from "@utils/url";
+import { itemMeta } from "@utils/item";
 import { useUser } from "@contexts/UserContext";
 import styles from "./stash.module.css";
 
@@ -122,9 +123,15 @@ export default function Stash() {
     return items
       .filter((a) => !storeFilter || a.store === storeFilter)
       .filter((a) => !sourceFilter || sourceBucket(a.url) === sourceFilter)
-      .filter((a) => !q || [a.name, a.byline, a.note].some((f) => f?.toLowerCase().includes(q)))
+      .filter(
+        (a) =>
+          !q ||
+          [a.name, a.byline, a.note, sourceName(a.url), itemMeta(a, t)].some((f) =>
+            f?.toLowerCase().includes(q),
+          ),
+      )
       .sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || ""));
-  }, [items, storeFilter, sourceFilter, query]);
+  }, [items, storeFilter, sourceFilter, query, t]);
 
   // The brain: analyze whatever is in the box. Links are pulled out and each
   // is auto-typed by the server (Page/Post/Video/Channel). Plain text with no
