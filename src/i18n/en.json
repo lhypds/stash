@@ -39,7 +39,7 @@
     "usernamePlaceholder": "Your username",
     "usernameInvalid": "Use 1–32 lowercase letters, numbers, - or _",
     "loginHint": "No password — just a username.",
-    "passwordPlaceholder": "Password",
+    "passwordPlaceholder": "password",
     "passwordIncorrect": "Incorrect password.",
     "passwordEmpty": "Enter a password.",
     "lock": "Lock",
