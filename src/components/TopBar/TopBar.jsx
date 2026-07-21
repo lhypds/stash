@@ -5,7 +5,6 @@ import ConfirmModal from "@components/ConfirmModal";
 import LanguageSwitcher from "@components/LanguageSwitcher";
 import SettingsModal from "@components/SettingsModal";
 import { useUser } from "@contexts/UserContext";
-import brainIcon from "@assets/brain.svg";
 import styles from "./topbar.module.css";
 
 // iPadOS reports itself as Mac, hence the maxTouchPoints check
@@ -14,7 +13,7 @@ const isIOS =
   (navigator.userAgent.includes("Mac") && navigator.maxTouchPoints > 1);
 
 // The universal analyser: one box that filters the stash as you type, and — on
-// the brain — analyzes whatever's pasted (links become Pages/Posts/Videos/
+// submit — analyzes whatever's pasted (links become Pages/Posts/Videos/
 // Channels; plain text falls back to an app-store search).
 export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin }) {
   const { t } = useTranslation();
@@ -70,13 +69,10 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
           onBlur={isIOS ? () => window.scrollTo(0, 0) : undefined}
         />
         <button type="submit" className={styles.submit} aria-label={t("app.analyze")} title={t("app.analyze")}>
-          {/* Painted via CSS mask so it inherits currentColor (and inverts on
-              hover). The url() is double-quoted: Vite inlines the SVG as a data
-              URI containing single quotes, which an unquoted url() would reject. */}
-          <span
-            className={styles.brain}
-            style={{ maskImage: `url("${brainIcon}")`, WebkitMaskImage: `url("${brainIcon}")` }}
-          />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="9 10 4 15 9 20" />
+            <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+          </svg>
         </button>
       </form>
 

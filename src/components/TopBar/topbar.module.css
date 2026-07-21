@@ -43,21 +43,6 @@
   font-size: 14px;
 }
 
-/* The mask-image (the blur.svg) is set inline; painting with currentColor lets
-   it inherit the button's color and invert on hover, which an <img> can't */
-.brain {
-  display: block;
-  width: 20px;
-  height: 20px;
-  background-color: currentColor;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  -webkit-mask-size: contain;
-}
-
 .submit {
   width: 42px;
   border: none;
