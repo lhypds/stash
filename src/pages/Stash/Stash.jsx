@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { showToast } from "@ui";
 import { LoginModal, ItemCard, ItemDetailModal, ConfirmModal, FilterDropdown } from "@components";
@@ -27,9 +27,27 @@ export default function Stash() {
   const [detail, setDetail] = useState(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
-  const [storeFilter, setStoreFilter] = useState(null);
-  const [sourceFilter, setSourceFilter] = useState(null);
   const [query, setQuery] = useState("");
+
+  // The store/source filters live in the URL (?store=&source=) so a filtered
+  // view is shareable and survives a reload. A missing param means "All";
+  // an unknown store falls back to All rather than showing an empty grid.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const storeParam = searchParams.get("store");
+  const storeFilter = api.STORE_KEYS.includes(storeParam) ? storeParam : null;
+  const sourceFilter = searchParams.get("source");
+  const setFilters = (patch) =>
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        for (const [key, value] of Object.entries(patch)) {
+          if (value) next.set(key, value);
+          else next.delete(key);
+        }
+        return next;
+      },
+      { replace: true },
+    );
 
   useEffect(() => {
     let cancelled = false;
@@ -37,8 +55,6 @@ export default function Stash() {
     setLoadError(false);
     setSearch(null);
     setDetail(null);
-    setStoreFilter(null);
-    setSourceFilter(null);
     setQuery("");
     api
       .getStash(username)
@@ -271,10 +287,7 @@ export default function Stash() {
                 value={storeFilter}
                 options={api.STORE_KEYS}
                 getLabel={(s) => t(`app.storeNames.${s}`)}
-                onChange={(store) => {
-                  setStoreFilter(store);
-                  setSourceFilter(null);
-                }}
+                onChange={(store) => setFilters({ store, source: null })}
               />
               {sources.length > 0 && (
                 <FilterDropdown
@@ -283,7 +296,7 @@ export default function Stash() {
                   value={sourceFilter}
                   options={sources}
                   getLabel={(s) => (s === OTHER_SOURCE ? t("app.otherSource") : s)}
-                  onChange={setSourceFilter}
+                  onChange={(source) => setFilters({ source })}
                 />
               )}
             </div>
