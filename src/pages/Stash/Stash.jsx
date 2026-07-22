@@ -157,8 +157,8 @@ export default function Stash() {
     }
 
     // A share blurb can bury the link among emoji and captions, or carry a
-    // batch at once. Analyze each; anything we can't read (e.g. a 404) opens
-    // in a new tab so the user can still get to it.
+    // batch at once. Analyze each and report failures without unexpectedly
+    // navigating the user away from the stash.
     const cappedUrls = found.slice(0, MAX_URLS);
     const privateChatCount = cappedUrls.filter(isPrivateChatGPTUrl).length;
     const urls = cappedUrls.filter((url) => !isPrivateChatGPTUrl(url));
@@ -180,9 +180,8 @@ export default function Stash() {
       else failed.push(urls[i]);
     });
 
-    for (const u of failed) window.open(u, "_blank", "noopener,noreferrer");
     setSearch(results.length ? { term, mode: "analyze", loading: false, results } : null);
-    if (failed.length) showToast(t("app.openedFailed", { count: failed.length }));
+    if (failed.length) showToast(t("app.analyzeFailedLinks", { count: failed.length }), 6000);
   }
 
   async function handleStash(result) {
