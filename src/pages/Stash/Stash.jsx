@@ -111,6 +111,17 @@ export default function Stash() {
     if (locked) setConfirm(null);
   }, [locked]);
 
+  // Escape while viewing results does the same thing as "Back to stash".
+  useEffect(() => {
+    if (!search) return;
+    function handleKey(e) {
+      if (e.defaultPrevented || e.key !== "Escape") return;
+      setSearch(null);
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [search]);
+
   // Browsing someone else's stash: fetch the viewer's own items too, so their
   // already-stashed copies of these items can be greyed out.
   useEffect(() => {
