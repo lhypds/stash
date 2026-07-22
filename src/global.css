@@ -10,11 +10,16 @@
   --font-title: "Fira Code VF", monospace;
 }
 
+html {
+  overscroll-behavior-y: none; /* stop the top-of-page drag from bouncing/triggering a browser refresh */
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--bg);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
 }
 
 #root {
