@@ -13,6 +13,15 @@ const DEFAULT_SETTINGS = {
   password: "",
 };
 
+export async function userExists(username) {
+  try {
+    await fs.access(settingsFile(username));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Load a user's settings, normalized to the current shape: defaults filled in,
 // lock/password coerced to valid types, and the store map rebuilt from the
 // known stores so renamed/removed keys don't linger. Rewrites the file when

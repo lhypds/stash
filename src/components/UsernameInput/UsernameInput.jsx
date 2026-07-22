@@ -1,9 +1,18 @@
+import { useLayoutEffect, useRef } from "react";
+
 // A contenteditable stand-in for <input> so password managers (iCloud
 // Passwords etc.) never attach their autofill UI — they only target real
 // input elements. Uncontrolled: the parent receives text via onChange.
-export default function UsernameInput({ className, placeholder, ariaLabel, onChange, onSubmit }) {
+export default function UsernameInput({ className, initialValue = "", placeholder, ariaLabel, onChange, onSubmit }) {
+  const inputRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (initialValue && !inputRef.current.textContent) inputRef.current.textContent = initialValue;
+  }, [initialValue]);
+
   return (
     <div
+      ref={inputRef}
       className={className}
       contentEditable="plaintext-only"
       role="textbox"

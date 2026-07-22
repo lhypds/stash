@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher, UsernameInput } from "@components";
 import { useUser, isValidUsername } from "@contexts/UserContext";
@@ -8,12 +8,17 @@ import styles from "./home.module.css";
 export default function Home() {
   const { t } = useTranslation();
   const { user, ready, login } = useUser();
-  const [name, setName] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const requestedUsername = typeof location.state?.username === "string" ? location.state.username : "";
+  const [name, setName] = useState(requestedUsername);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   if (!ready) return null;
-  if (user) return <Navigate to={`/${encodeURIComponent(user)}`} replace />;
+  if (user && (!requestedUsername || user === requestedUsername)) {
+    return <Navigate to={`/${encodeURIComponent(user)}`} replace />;
+  }
 
   async function submit() {
     if (submitting) return;
@@ -28,6 +33,7 @@ export default function Home() {
       // Dismiss the iOS keyboard before the route swap; unmounting a focused
       // input can leave the viewport stuck where the keyboard pushed it
       document.activeElement?.blur();
+      navigate(`/${encodeURIComponent(username)}`, { replace: true });
     } catch {
       setError("login");
     } finally {
@@ -47,6 +53,7 @@ export default function Home() {
           <div className={styles.row}>
             <UsernameInput
               className={styles.input}
+              initialValue={requestedUsername}
               placeholder={t("app.usernamePlaceholder")}
               ariaLabel={t("app.usernamePlaceholder")}
               onChange={(v) => {

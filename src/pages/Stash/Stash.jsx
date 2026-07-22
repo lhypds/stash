@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { showToast } from "@ui";
 import { LoginModal, ItemCard, ItemDetailModal, ConfirmModal, FilterDropdown } from "@components";
@@ -17,6 +17,7 @@ const MAX_URLS = 10;
 
 export default function Stash() {
   const { username } = useParams();
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { user, locked, refreshLock } = useUser();
   const isOwner = user === username;
@@ -63,12 +64,19 @@ export default function Stash() {
         if (cancelled) return;
         setItems(data.items);
       })
-      .catch(() => !cancelled && setLoadError(true))
+      .catch((err) => {
+        if (cancelled) return;
+        if (err.status === 404) {
+          navigate("/", { replace: true, state: { username } });
+          return;
+        }
+        setLoadError(true);
+      })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [navigate, username]);
 
   // Page and chat screenshots are captured in the background after stashing;
   // while the detail of one without a shot is open, poll until the capture lands

@@ -15,7 +15,7 @@ import {
   searchSources,
   analyzeSource,
 } from "./sources/index.js";
-import { ensureSettings, writeSettings, passwordsMatch } from "./settings.js";
+import { ensureSettings, writeSettings, passwordsMatch, userExists } from "./settings.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -322,6 +322,7 @@ app.put("/api/users/:username/settings", requireUnlockedOwner, async (req, res) 
 
 app.get("/api/users/:username/stash", async (req, res) => {
   const { username } = req.params;
+  if (!(await userExists(username))) return res.status(404).json({ error: "user not found", code: "USER_NOT_FOUND" });
   const items = [];
   for (const store of Object.keys(STORES)) {
     let entries = [];
