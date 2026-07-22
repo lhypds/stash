@@ -22,7 +22,6 @@
 }
 
 .heading {
-  font-family: var(--font-title);
   font-size: 14px;
   font-weight: 700;
   min-width: 0;

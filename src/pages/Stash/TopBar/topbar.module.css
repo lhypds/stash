@@ -13,6 +13,7 @@
 
 .logo {
   justify-self: start;
+  font-family: var(--font-title);
   font-weight: 700;
   font-size: 22px;
   line-height: 1.2;
