@@ -91,7 +91,18 @@ export async function analyzeSource(href, store, country) {
         : "videos"
     : store;
   const itemId = crypto.createHash("sha1").update(href).digest("hex").slice(0, 16);
-  return { store: finalStore, itemId, ...analyzed };
+  const { related, ...rest } = analyzed;
+  const result = { store: finalStore, itemId, ...rest };
+  // A video's channel (see analyzeVideo's author_url handling) rides along as
+  // its own fully-formed, independently stashable item.
+  if (related) {
+    result.related = {
+      store: "channels",
+      itemId: crypto.createHash("sha1").update(related.url).digest("hex").slice(0, 16),
+      ...related,
+    };
+  }
+  return result;
 }
 
 // Keyword search across a store. Only the apps store supports it today.

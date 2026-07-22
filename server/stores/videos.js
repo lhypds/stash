@@ -144,13 +144,21 @@ export async function analyzeVideo(url, store) {
     const r = await fetch(platform.oembed(url), { headers: { "User-Agent": UA } });
     if (r.ok) {
       const json = await r.json();
-      return {
+      const video = {
         kind: "video",
         name: json.title || url,
         byline: json.author_name || platform.label,
         icon: platform.noThumbnail ? null : json.thumbnail_url || null,
         url,
       };
+      // oembed's author_url is the channel page; re-run it through the same
+      // analyzer (isChannelUrl will hold this time) so a video paste also
+      // surfaces its channel as a separate stashable result.
+      if (json.author_url) {
+        const channel = await analyzeVideo(json.author_url, "channels").catch(() => null);
+        if (channel?.kind === "channel") video.related = channel;
+      }
+      return video;
     }
   }
   const page = await analyzePage(url, 2000000, platform?.ua);

@@ -182,10 +182,20 @@ export default function Stash() {
     const country = countryForLang(i18n.language);
     const settled = await Promise.allSettled(urls.map((u) => api.analyzeUrl(u, country)));
     const results = [];
+    const seen = new Set();
     const failed = [];
+    // A video's result may carry its channel as `related` (see server
+    // analyzeSource) — surface both as separate, independently stashable
+    // cards, deduping the channel if several pasted videos share one.
     settled.forEach((outcome, i) => {
-      if (outcome.status === "fulfilled") results.push(outcome.value.result);
-      else failed.push(urls[i]);
+      if (outcome.status !== "fulfilled") return failed.push(urls[i]);
+      const { related, ...result } = outcome.value.result;
+      for (const item of related ? [result, related] : [result]) {
+        const key = itemKey(item);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        results.push(item);
+      }
     });
 
     setSearch(results.length ? { term, mode: "analyze", loading: false, results } : null);
@@ -204,7 +214,11 @@ export default function Stash() {
     try {
       const { item } = await api.stashItem(user, result);
       if (isOwner) setItems((prev) => [item, ...prev]);
-      setSearch(null);
+      // With a single result, stashing it is naturally "done" — back to the
+      // stash. With more than one (e.g. several pasted links, or a video
+      // plus its channel), stay put so the rest can still be stashed; the
+      // just-stashed card flips to its disabled "stashed" state instead.
+      if (search.results.length <= 1) setSearch(null);
       const name = item.name.length > 40 ? `${item.name.slice(0, 40)}…` : item.name;
       showToast(t("app.toastStashed", { name }));
     } catch (err) {
