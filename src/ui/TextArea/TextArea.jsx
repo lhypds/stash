@@ -12,10 +12,14 @@ const TextArea = forwardRef(function TextArea({ className, minHeight = 80, ...pr
 
   function onMouseDown(e) {
     e.preventDefault();
-    const startY = e.clientY;
-    const startHeight = localRef.current.offsetHeight;
     function onMouseMove(e) {
-      localRef.current.style.height = Math.max(minHeight, startHeight + e.clientY - startY) + "px";
+      // Measure the live top on every move rather than anchoring to the
+      // position at mousedown: growing the textarea can grow its container
+      // (e.g. a vertically-centered modal re-centers as it grows taller),
+      // shifting the textarea's top out from under a fixed anchor and
+      // decoupling the handle from the cursor.
+      const top = localRef.current.getBoundingClientRect().top;
+      localRef.current.style.height = Math.max(minHeight, e.clientY - top) + "px";
     }
     function onMouseUp() {
       document.removeEventListener("mousemove", onMouseMove);
