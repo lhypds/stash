@@ -33,6 +33,18 @@ export function extractUrls(text) {
   return urls;
 }
 
+// `/c/` is an account-private ChatGPT conversation. Its title and content are
+// unavailable to the analyzer; only `/share/` links expose a share snapshot.
+export function isPrivateChatGPTUrl(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    return (host === "chatgpt.com" || host === "chat.openai.com") && /^\/c\/[^/]+/.test(u.pathname);
+  } catch {
+    return false;
+  }
+}
+
 // Domain → how its platform's name is written. A host matches a key exactly or
 // as a subdomain (space.bilibili.com → Bilibili); unmapped hosts fall back to
 // the bare domain.

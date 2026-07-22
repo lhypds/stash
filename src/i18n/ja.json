@@ -30,6 +30,7 @@
     "analysisResults": "分析結果",
     "analyzing": "分析中…",
     "analyzeFailed": "URLを分析できませんでした。",
+    "chatgptShareRequired": "これはChatGPTの非公開会話です。ChatGPTで「共有」を選び、chatgpt.com/share/... のリンクを貼り付けてください。",
     "noUrlFound": "テキストにリンクが見つかりませんでした。",
     "urlsCapped": "リンクが多すぎます。最初の{{max}}件のみ分析しました。",
     "openedFailed_other": "{{count}}件のリンクを分析できず、新しいタブで開きました。",

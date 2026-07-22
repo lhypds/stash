@@ -5,7 +5,7 @@ import { showToast } from "@ui";
 import { LoginModal, ItemCard, ItemDetailModal, ConfirmModal, FilterDropdown } from "@components";
 import TopBar from "./TopBar";
 import * as api from "@utils/api";
-import { extractUrls, sourceName, sourceBucket, OTHER_SOURCE } from "@utils/url";
+import { extractUrls, isPrivateChatGPTUrl, sourceName, sourceBucket, OTHER_SOURCE } from "@utils/url";
 import { itemMeta } from "@utils/item";
 import { useUser } from "@contexts/UserContext";
 import styles from "./stash.module.css";
@@ -159,10 +159,17 @@ export default function Stash() {
     // A share blurb can bury the link among emoji and captions, or carry a
     // batch at once. Analyze each; anything we can't read (e.g. a 404) opens
     // in a new tab so the user can still get to it.
-    const urls = found.slice(0, MAX_URLS);
+    const cappedUrls = found.slice(0, MAX_URLS);
+    const privateChatCount = cappedUrls.filter(isPrivateChatGPTUrl).length;
+    const urls = cappedUrls.filter((url) => !isPrivateChatGPTUrl(url));
     if (found.length > MAX_URLS) showToast(t("app.urlsCapped", { max: MAX_URLS }));
 
     setQuery("");
+    if (privateChatCount) showToast(t("app.chatgptShareRequired"), 6000);
+    if (urls.length === 0) {
+      setSearch(null);
+      return;
+    }
     setSearch({ term, mode: "analyze", loading: true, results: [] });
     const country = countryForLang(i18n.language);
     const settled = await Promise.allSettled(urls.map((u) => api.analyzeUrl(u, country)));

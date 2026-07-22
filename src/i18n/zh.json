@@ -30,6 +30,7 @@
     "analysisResults": "分析结果",
     "analyzing": "分析中…",
     "analyzeFailed": "无法分析该链接。",
+    "chatgptShareRequired": "这是 ChatGPT 私有对话。请在 ChatGPT 中点击“分享”，然后粘贴 chatgpt.com/share/... 链接。",
     "noUrlFound": "没有在文本中找到链接。",
     "urlsCapped": "链接太多，仅分析了前 {{max}} 个。",
     "openedFailed_other": "有 {{count}} 个链接无法分析，已在新标签页打开。",

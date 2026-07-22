@@ -30,6 +30,7 @@
     "analysisResults": "Analysis results",
     "analyzing": "Analyzing…",
     "analyzeFailed": "Couldn't analyze that URL.",
+    "chatgptShareRequired": "This is a private ChatGPT conversation. Use Share in ChatGPT and paste the chatgpt.com/share/... link.",
     "noUrlFound": "No link found in that text.",
     "urlsCapped": "Too many links — only the first {{max}} were analyzed.",
     "openedFailed_one": "Couldn't analyze 1 link — opened it in a new tab.",
