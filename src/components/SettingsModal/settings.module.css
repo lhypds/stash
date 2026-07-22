@@ -5,6 +5,7 @@
 }
 
 .textarea {
+  font-family: var(--font-title);
   font-size: 13px;
   line-height: 1.5;
   min-height: 240px;

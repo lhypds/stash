@@ -37,12 +37,14 @@
 }
 
 .submit {
-  padding: 10px;
+  align-self: flex-end;
+  width: 100px;
+  padding: 6px 16px;
+  text-align: center;
   background: var(--ink);
   color: var(--bg);
   border: 1px solid var(--ink);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 12px;
 }
 
 .submit:disabled {
