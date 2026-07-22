@@ -72,11 +72,18 @@ export async function analyzePost(url) {
     icon = image ? new URL(image, finalUrl).href : null;
     const title = metaContent(html, "og:title");
     const desc = metaContent(html, "og:description");
-    if (!text) text = platform?.postInTitle ? title || desc : desc || title;
+    const siteName = metaContent(html, "og:site_name");
+    if (!text) {
+      text = platform?.postInTitle ? title || desc : desc || title;
+      // Some sites (e.g. RedNote) append " - <site name>" to og:title; that
+      // suffix belongs to the page chrome, not the post content.
+      const suffix = siteName && ` - ${siteName}`;
+      if (text && suffix && text.toLowerCase().endsWith(suffix.toLowerCase())) {
+        text = text.slice(0, -suffix.length).trim();
+      }
+    }
     if (!byline) {
-      byline = platform?.postInTitle
-        ? metaContent(html, "og:site_name") || platform?.label || host
-        : title?.split(/:\s*["“]/)[0].trim() || platform?.label || host;
+      byline = platform?.postInTitle ? siteName || platform?.label || host : title?.split(/:\s*["“]/)[0].trim() || platform?.label || host;
     }
   } catch (err) {
     console.error("post page fetch failed:", err.message);
