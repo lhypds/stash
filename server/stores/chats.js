@@ -1,5 +1,5 @@
-import { UA, matchesHost, fetchHtml, metaContent, stripTags } from "./html.js";
-import { readRenderedTitle } from "../screenshot.js";
+import { UA, matchesHost, fetchHtml, metaContent, stripTags } from "../utils/html.js";
+import { readRenderedTitle } from "../utils/screenshot.js";
 
 const CHAT_PLATFORMS = [
   { label: "ChatGPT", hosts: ["chatgpt.com", "chat.openai.com"], titleInTag: true },

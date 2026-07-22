@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { STORES } from "./sources/index.js";
+import { STORES } from "./stores.js";
 
 const DATA_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "data");
 const settingsFile = (username) => path.join(DATA_DIR, "users", username, "settings.json");

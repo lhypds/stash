@@ -1,18 +1,36 @@
 // Entry point for the source layer: URL→store routing, an SSRF guard, and the
-// analyze/search dispatchers. Per-store logic lives in the sibling modules
+// analyze/search dispatchers. Per-store logic lives in ./stores/
 // (apps.js, videos.js, posts.js, chats.js, pages.js); this file just wires
 // them together and re-exports what the server consumes.
 import crypto from "node:crypto";
-import { isAppHost, analyzeAppUrl, searchApps } from "./apps.js";
-import { postPlatformFor, analyzePost } from "./posts.js";
-import { videoPlatformFor, analyzeVideo } from "./videos.js";
-import { chatPlatformFor, analyzeChat } from "./chats.js";
-import { analyzePage } from "./pages.js";
+import { isAppHost, analyzeAppUrl, searchApps } from "./stores/apps.js";
+import { postPlatformFor, analyzePost } from "./stores/posts.js";
+import { videoPlatformFor, analyzeVideo } from "./stores/videos.js";
+import { chatPlatformFor, analyzeChat } from "./stores/chats.js";
+import { analyzePage } from "./stores/pages.js";
 
-export { STORES, SHOT_STORES, ITEM_ID_RE } from "./stores.js";
-export { UA } from "./html.js";
-export { appItemId } from "./apps.js";
-export { sourceDisallowsThumbnail } from "./videos.js";
+export { UA } from "./utils/html.js";
+export { appItemId } from "./stores/apps.js";
+export { sourceDisallowsThumbnail } from "./stores/videos.js";
+
+// Every content bucket the app understands, and how new items reach it: a
+// "url" store is filled by analyzing a pasted link; a "search" store by
+// keyword search.
+export const STORES = {
+  pages: { type: "url" },
+  posts: { type: "url" },
+  videos: { type: "url" },
+  channels: { type: "url" },
+  chats: { type: "url" },
+  apps: { type: "search" },
+};
+
+// Stores whose items get a background page screenshot after stashing.
+export const SHOT_STORES = new Set(["pages", "chats"]);
+
+// A stored itemId: a leading alphanumeric then up to 220 more of [A-Za-z0-9._-].
+// Guards against path traversal and keeps ids filesystem-safe.
+export const ITEM_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,220}$/;
 
 // Which store a pasted URL belongs to, by host. App stores and the recognized
 // chat / social / video platforms are matched explicitly; anything else is a

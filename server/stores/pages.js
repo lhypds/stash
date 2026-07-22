@@ -1,4 +1,4 @@
-import { UA, fetchHtml, metaContent, stripTags } from "./html.js";
+import { UA, fetchHtml, metaContent, stripTags } from "../utils/html.js";
 
 // Generic OpenGraph/favicon scrape — the fallback for any URL that no
 // specialized store analyzer claims.

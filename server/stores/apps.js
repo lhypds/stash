@@ -1,5 +1,5 @@
 import gplay from "google-play-scraper";
-import { ITEM_ID_RE } from "./stores.js";
+import { ITEM_ID_RE } from "../stores.js";
 
 // The App Store / Google Play hosts, used to route a pasted link to the apps
 // store and to pick the right lookup API.

@@ -4,7 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { ZipArchive } from "archiver";
-import { captureFullPage } from "./screenshot.js";
+import { captureFullPage } from "./utils/screenshot.js";
 import {
   STORES,
   SHOT_STORES,
@@ -14,7 +14,7 @@ import {
   isBlockedHost,
   searchSources,
   analyzeSource,
-} from "./sources/index.js";
+} from "./stores.js";
 import { ensureSettings, writeSettings, passwordsMatch, userExists } from "./settings.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

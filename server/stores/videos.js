@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { UA, BOT_UA, matchesHost } from "./html.js";
+import { UA, BOT_UA, matchesHost } from "../utils/html.js";
 import { analyzePage } from "./pages.js";
 
 const VIDEO_PLATFORMS = [

@@ -1,4 +1,4 @@
-import { UA, BOT_UA, META_UA, matchesHost, fetchHtml, metaContent, stripTags } from "./html.js";
+import { UA, BOT_UA, META_UA, matchesHost, fetchHtml, metaContent, stripTags } from "../utils/html.js";
 
 const POST_PLATFORMS = [
   { label: "X", hosts: ["x.com", "twitter.com"], ua: BOT_UA, oembed: true },
