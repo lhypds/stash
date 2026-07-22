@@ -23,6 +23,7 @@ export default function Stash() {
   const isOwner = user === username;
 
   const [items, setItems] = useState([]);
+  const [viewerItems, setViewerItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState(null);
@@ -110,7 +111,27 @@ export default function Stash() {
     if (locked) setConfirm(null);
   }, [locked]);
 
+  // Browsing someone else's stash: fetch the viewer's own items too, so their
+  // already-stashed copies of these items can be greyed out.
+  useEffect(() => {
+    if (isOwner || !user) {
+      setViewerItems([]);
+      return;
+    }
+    let cancelled = false;
+    api
+      .getStash(user)
+      .then((data) => {
+        if (!cancelled) setViewerItems(data.items);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isOwner, user]);
+
   const stashedKeys = useMemo(() => new Set(items.map(itemKey)), [items]);
+  const viewerStashedKeys = useMemo(() => new Set(viewerItems.map(itemKey)), [viewerItems]);
   // The platforms present in the selected store (YouTube, Bilibili, …),
   // derived from each item's URL. With All Stores selected, include every
   // source. Sorted so the source filter's options stay stable.
@@ -223,6 +244,32 @@ export default function Stash() {
       showToast(t("app.toastStashed", { name }));
     } catch (err) {
       showToast(err.status === 409 ? t("app.toastAlready") : t("app.toastError"));
+    }
+  }
+
+  // Copies an item from someone else's stash (this page) into the viewer's
+  // own, carrying over its note and any icon/screenshot files as-is.
+  async function handleCopyItem(item) {
+    if (!user) {
+      setLoginOpen(true);
+      return;
+    }
+    if (locked) {
+      showToast(t("app.unlockFirst"));
+      return;
+    }
+    try {
+      const { item: copied } = await api.copyItem(user, username, item.store, item.itemId);
+      setViewerItems((prev) => [copied, ...prev]);
+      const name = copied.name.length > 40 ? `${copied.name.slice(0, 40)}…` : copied.name;
+      showToast(t("app.toastStashed", { name }));
+    } catch (err) {
+      if (err.code === "STASH_LOCKED") {
+        await refreshLock().catch(() => {});
+        showToast(t("app.unlockFirst"));
+      } else {
+        showToast(err.status === 409 ? t("app.toastAlready") : t("app.toastError"));
+      }
     }
   }
 
@@ -352,7 +399,13 @@ export default function Stash() {
             ) : (
               <div className={styles.grid}>
                 {visibleItems.map((a) => (
-                  <ItemCard key={itemKey(a)} item={a} onClick={() => setDetail(a)} />
+                  <ItemCard
+                    key={itemKey(a)}
+                    item={a}
+                    onClick={() => setDetail(a)}
+                    onStash={!isOwner ? () => handleCopyItem(a) : undefined}
+                    stashed={!isOwner && viewerStashedKeys.has(itemKey(a))}
+                  />
                 ))}
               </div>
             )}
@@ -366,9 +419,11 @@ export default function Stash() {
           item={detail}
           isOwner={isOwner}
           locked={locked}
+          stashed={!isOwner && viewerStashedKeys.has(itemKey(detail))}
           onClose={() => setDetail(null)}
           onSave={handleSaveItem}
           onDelete={handleDeleteItem}
+          onStash={!isOwner ? () => handleCopyItem(detail) : undefined}
         />
       )}
       <ConfirmModal

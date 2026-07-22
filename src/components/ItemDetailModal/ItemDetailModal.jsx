@@ -7,7 +7,7 @@ import { sourceName, videoEmbedUrl } from "@utils/url";
 import { itemMeta } from "@utils/item";
 import styles from "./detail.module.css";
 
-export default function ItemDetailModal({ item, isOwner, locked = false, onClose, onSave, onDelete }) {
+export default function ItemDetailModal({ item, isOwner, locked = false, stashed, onClose, onSave, onDelete, onStash }) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(item.note || "");
   const videoEmbed = item.store === "videos" && item.kind === "video" ? videoEmbedUrl(item.url) : null;
@@ -101,7 +101,7 @@ export default function ItemDetailModal({ item, isOwner, locked = false, onClose
           />
         </div>
 
-        {isOwner && (
+        {isOwner ? (
           <div className={styles.actions}>
             <button className={styles.deleteBtn} disabled={locked} onClick={() => onDelete(item)}>
               {t("button.delete")}
@@ -110,6 +110,14 @@ export default function ItemDetailModal({ item, isOwner, locked = false, onClose
               {t("button.save")}
             </button>
           </div>
+        ) : (
+          onStash && (
+            <div className={styles.actions}>
+              <button className={styles.saveBtn} disabled={stashed} onClick={onStash}>
+                {stashed ? `✓ ${t("app.stashed")}` : t("app.stash")}
+              </button>
+            </div>
+          )
         )}
       </div>
     </Modal>

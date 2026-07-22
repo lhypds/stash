@@ -60,6 +60,12 @@ export const getStash = (username) => request(`/api/users/${userPath(username)}/
 
 export const stashItem = (username, item) => request(`/api/users/${userPath(username)}/items`, json("POST", item));
 
+export const copyItem = (username, fromUsername, store, itemId) =>
+  request(
+    `/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}/copy`,
+    json("POST", { from: fromUsername }),
+  );
+
 export const updateItem = (username, store, itemId, patch) =>
   request(`/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}`, json("PATCH", patch));
 

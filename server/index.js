@@ -401,6 +401,32 @@ app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) =>
   res.status(201).json({ item: withIconUrl(username, record) });
 });
 
+// Copies another user's item (item.json, note, and any icon/screenshot files)
+// into the caller's own stash. The itemId is a deterministic hash of the
+// content (see analyzeSource), so it lines up across users and the existing
+// "already stashed" 409 below doubles as dedup against a copy of a copy.
+app.post("/api/users/:username/items/:store/:itemId/copy", requireUnlockedOwner, async (req, res) => {
+  const { username, store, itemId } = req.params;
+  const from = String(req.body?.from || "");
+  if (!USERNAME_RE.test(from)) return res.status(400).json({ error: "invalid source username" });
+  if (from === username) return res.status(400).json({ error: "cannot copy your own item" });
+
+  const sourceDir = itemDir(from, store, itemId);
+  const sourceRecord = await readJson(path.join(sourceDir, "item.json"), null);
+  if (!sourceRecord) return res.status(404).json({ error: "not found" });
+
+  const destDir = itemDir(username, store, itemId);
+  const destFile = path.join(destDir, "item.json");
+  if (await readJson(destFile, null)) return res.status(409).json({ error: "already stashed" });
+
+  await ensureSettings(username);
+  await fs.cp(sourceDir, destDir, { recursive: true });
+
+  const record = { ...sourceRecord, stashedAt: new Date().toISOString() };
+  await writeJson(destFile, record);
+  res.status(201).json({ item: withIconUrl(username, record) });
+});
+
 app.patch("/api/users/:username/items/:store/:itemId", requireUnlockedOwner, async (req, res) => {
   const { username, store, itemId } = req.params;
   const jsonFile = path.join(itemDir(username, store, itemId), "item.json");

@@ -6,8 +6,9 @@ import styles from "./card.module.css";
 const THUMB_KINDS = new Set(["post", "video"]);
 
 // One tile for a stashed item, in two modes:
-//   "stash"  — the whole card is a button that opens the detail modal, with a
-//              note preview as the trailing line.
+//   "stash"  — opens the detail modal on click, with a note preview as the
+//              trailing line. When onStash is passed (a viewer looking at
+//              someone else's stash), a Stash button copies it into theirs.
 //   "result" — a not-yet-stashed search result, with its own Stash button.
 export default function ItemCard({ item, mode = "stash", onClick, stashed, onStash }) {
   const { t } = useTranslation();
@@ -23,6 +24,19 @@ export default function ItemCard({ item, mode = "stash", onClick, stashed, onSta
 
   const meta = <span className={styles.meta}>{itemMeta(item, t)}</span>;
 
+  const stashBtn = onStash && (
+    <button
+      className={styles.stashBtn}
+      disabled={stashed}
+      onClick={(e) => {
+        e.stopPropagation();
+        onStash();
+      }}
+    >
+      {stashed ? `✓ ${t("app.stashed")}` : t("app.stash")}
+    </button>
+  );
+
   // Result mode
   if (mode === "result") {
     return (
@@ -30,9 +44,7 @@ export default function ItemCard({ item, mode = "stash", onClick, stashed, onSta
         {thumbnail}
         <span className={styles.name}>{item.name}</span>
         {meta}
-        <button className={styles.stashBtn} disabled={stashed} onClick={onStash}>
-          {stashed ? `✓ ${t("app.stashed")}` : t("app.stash")}
-        </button>
+        {stashBtn}
       </div>
     );
   }
@@ -40,11 +52,14 @@ export default function ItemCard({ item, mode = "stash", onClick, stashed, onSta
   // Stash mode
   const noteLine = item.note?.split("\n").find((line) => line.trim());
   return (
-    <button className={`${styles.card} ${styles.stash}`} onClick={onClick}>
-      {thumbnail}
-      <span className={styles.name}>{item.name}</span>
-      {meta}
-      {noteLine && <span className={styles.note}>{noteLine}</span>}
-    </button>
+    <div className={`${styles.card} ${styles.stash}`}>
+      <button className={styles.cardBody} onClick={onClick}>
+        {thumbnail}
+        <span className={styles.name}>{item.name}</span>
+        {meta}
+        {noteLine && <span className={styles.note}>{noteLine}</span>}
+      </button>
+      {stashBtn}
+    </div>
   );
 }
