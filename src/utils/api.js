@@ -23,6 +23,8 @@ export const URL_STORES = new Set(["posts", "pages", "videos", "channels", "chat
 // the detail view polls for it to land. Mirrors SHOT_STORES on the server.
 export const SHOT_STORES = new Set(["pages", "chats"]);
 
+const userPath = (username) => encodeURIComponent(username);
+
 export const searchStore = (store, term, country = "us") =>
   request(`/api/search?store=${store}&country=${country}&term=${encodeURIComponent(term)}`);
 
@@ -31,35 +33,35 @@ export const searchStore = (store, term, country = "us") =>
 export const analyzeUrl = (url, country = "us") =>
   request(`/api/analyze?store=auto&country=${country}&url=${encodeURIComponent(url)}`);
 
-export const ensureUser = (username) => request(`/api/users/${username}`, { method: "POST" });
+export const ensureUser = (username) => request(`/api/users/${userPath(username)}`, { method: "POST" });
 
-export const login = (username) => request(`/api/users/${username}/login`, json("POST", {}));
+export const login = (username) => request(`/api/users/${userPath(username)}/login`, json("POST", {}));
 
 export const getSession = () => request("/api/session");
 
 export const logout = () => request("/api/session", { method: "DELETE" });
 
-export const getLock = (username) => request(`/api/users/${username}/lock`);
+export const getLock = (username) => request(`/api/users/${userPath(username)}/lock`);
 
 export const lockUser = (username, password) =>
-  request(`/api/users/${username}/lock`, json("PUT", { password }));
+  request(`/api/users/${userPath(username)}/lock`, json("PUT", { password }));
 
 export const unlockUser = (username, password) =>
-  request(`/api/users/${username}/unlock`, json("POST", { password }));
+  request(`/api/users/${userPath(username)}/unlock`, json("POST", { password }));
 
-export const relockUser = (username) => request(`/api/users/${username}/relock`, json("POST", {}));
+export const relockUser = (username) => request(`/api/users/${userPath(username)}/relock`, json("POST", {}));
 
-export const getSettings = (username) => request(`/api/users/${username}/settings`);
+export const getSettings = (username) => request(`/api/users/${userPath(username)}/settings`);
 
 export const saveSettings = (username, settings) =>
-  request(`/api/users/${username}/settings`, json("PUT", { settings }));
+  request(`/api/users/${userPath(username)}/settings`, json("PUT", { settings }));
 
-export const getStash = (username) => request(`/api/users/${username}/stash`);
+export const getStash = (username) => request(`/api/users/${userPath(username)}/stash`);
 
-export const stashItem = (username, item) => request(`/api/users/${username}/items`, json("POST", item));
+export const stashItem = (username, item) => request(`/api/users/${userPath(username)}/items`, json("POST", item));
 
 export const updateItem = (username, store, itemId, patch) =>
-  request(`/api/users/${username}/items/${store}/${encodeURIComponent(itemId)}`, json("PATCH", patch));
+  request(`/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}`, json("PATCH", patch));
 
 export const removeItem = (username, store, itemId) =>
-  request(`/api/users/${username}/items/${store}/${encodeURIComponent(itemId)}`, { method: "DELETE" });
+  request(`/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}`, { method: "DELETE" });

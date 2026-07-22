@@ -32,7 +32,8 @@ try {
 
 const PORT = process.env.PORT || 3001;
 
-const USERNAME_RE = /^[a-z0-9_-]{1,32}$/;
+const USERNAME_RE =
+  /^[a-z0-9_\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Hangul}-]{1,32}$/u;
 
 const userDir = (username) => path.join(DATA_DIR, "users", username);
 const storeDir = (username, store) => path.join(userDir(username), "stores", store);
@@ -52,7 +53,7 @@ async function writeJson(file, value) {
 }
 
 function withIconUrl(username, record) {
-  const base = `/data/users/${username}/stores/${record.store}/${record.itemId}`;
+  const base = `/data/users/${encodeURIComponent(username)}/stores/${record.store}/${record.itemId}`;
   return {
     ...record,
     iconUrl: record.iconFile ? `${base}/${record.iconFile}` : null,
@@ -435,7 +436,11 @@ app.get("/api/users/:username/export.zip", requireUnlockedOwner, async (req, res
     `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}` +
     `-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
   res.setHeader("Content-Type", "application/zip");
-  res.setHeader("Content-Disposition", `attachment; filename="stash-${username}-${stamp}.zip"`);
+  const filename = `stash-${username}-${stamp}.zip`;
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="stash-export-${stamp}.zip"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+  );
 
   const archive = new ZipArchive({ zlib: { level: 9 } });
   archive.on("error", (err) => {

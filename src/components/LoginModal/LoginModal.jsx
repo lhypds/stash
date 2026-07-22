@@ -16,7 +16,7 @@ export default function LoginModal({ isOpen, onClose }) {
 
   async function submit() {
     if (submitting) return;
-    const username = name.trim().toLowerCase();
+    const username = name.trim().normalize("NFKC").toLowerCase();
     if (!isValidUsername(username)) {
       setError("username");
       return;
@@ -30,7 +30,7 @@ export default function LoginModal({ isOpen, onClose }) {
       setName("");
       setError("");
       onClose();
-      navigate(`/${username}`);
+      navigate(`/${encodeURIComponent(username)}`);
     } catch {
       setError("login");
     } finally {

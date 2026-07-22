@@ -115,7 +115,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
 
   return (
     <header className={styles.bar}>
-      <Link to={user ? `/${user}` : "/"} className={styles.logo} onClick={onHome}>
+      <Link to={user ? `/${encodeURIComponent(user)}` : "/"} className={styles.logo} onClick={onHome}>
         stash
       </Link>
 
@@ -262,7 +262,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
         onCancel={() => setConfirmExport(false)}
         onConfirm={() => {
           setConfirmExport(false);
-          window.location.assign(`/api/users/${user}/export.zip`);
+          window.location.assign(`/api/users/${encodeURIComponent(user)}/export.zip`);
         }}
       />
       <LockModal

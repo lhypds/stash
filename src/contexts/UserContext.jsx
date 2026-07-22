@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import * as api from "@utils/api";
 
 const KEY = "stash:user";
-const USERNAME_RE = /^[a-z0-9_-]{1,32}$/;
+const USERNAME_RE =
+  /^[a-z0-9_\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Hangul}-]{1,32}$/u;
 const UserContext = createContext(null);
 
 export const isValidUsername = (username) => USERNAME_RE.test(username);

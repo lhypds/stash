@@ -13,11 +13,11 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
 
   if (!ready) return null;
-  if (user) return <Navigate to={`/${user}`} replace />;
+  if (user) return <Navigate to={`/${encodeURIComponent(user)}`} replace />;
 
   async function submit() {
     if (submitting) return;
-    const username = name.trim().toLowerCase();
+    const username = name.trim().normalize("NFKC").toLowerCase();
     if (!isValidUsername(username)) {
       setError("username");
       return;

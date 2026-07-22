@@ -37,7 +37,7 @@
     "login": "ログイン",
     "logout": "ログアウト",
     "usernamePlaceholder": "ユーザー名",
-    "usernameInvalid": "1〜32文字の小文字英数字、- または _ を使ってください",
+    "usernameInvalid": "1〜32文字の漢字・ひらがな・カタカナ・ハングル・小文字英数字・-・_を使ってください",
     "loginHint": "パスワード不要。ユーザー名だけでOK。",
     "passwordPlaceholder": "パスワード",
     "passwordIncorrect": "パスワードが正しくありません。",

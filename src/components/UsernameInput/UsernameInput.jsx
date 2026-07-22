@@ -13,7 +13,13 @@ export default function UsernameInput({ className, placeholder, ariaLabel, onCha
       autoCapitalize="none"
       autoCorrect="off"
       enterKeyHint="go"
-      onInput={(e) => onChange(e.currentTarget.textContent)}
+      onInput={(e) => {
+        const value = e.currentTarget.textContent || "";
+        // Browsers can leave a <br> behind after a contenteditable is cleared,
+        // preventing the :empty placeholder selector from matching again.
+        if (!value) e.currentTarget.replaceChildren();
+        onChange(value);
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           e.preventDefault();
