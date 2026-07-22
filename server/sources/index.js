@@ -65,7 +65,13 @@ export async function analyzeSource(href, store, country) {
       : store === "chats"
         ? await analyzeChat(href)
         : await analyzePage(href);
-  const finalStore = isVideoStore ? (analyzed.kind === "channel" ? "channels" : "videos") : store;
+  const finalStore = isVideoStore
+    ? analyzed.kind === "channel"
+      ? "channels"
+      : analyzed.kind === "page"
+        ? "pages"
+        : "videos"
+    : store;
   const itemId = crypto.createHash("sha1").update(href).digest("hex").slice(0, 16);
   return { store: finalStore, itemId, ...analyzed };
 }

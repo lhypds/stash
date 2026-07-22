@@ -154,7 +154,11 @@ export async function analyzeVideo(url, store) {
     }
   }
   const page = await analyzePage(url, 2000000, platform?.ua);
-  const kind = isChannelUrl || platform?.oembed ? "channel" : "video";
+  // We only get here once metadata extraction failed. A channel URL is still a
+  // channel; on an oembed platform a non-channel URL whose oembed failed is not
+  // a video either (e.g. the youtube.com homepage) so treat it as a plain page.
+  // Platforms without oembed keep video as their non-channel fallback.
+  const kind = isChannelUrl ? "channel" : platform?.oembed ? "page" : "video";
   const icon = platform?.noThumbnail
     ? null
     : page.icon && platform?.cleanIcon
