@@ -11,6 +11,11 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(item.note || "");
   const videoEmbed = item.store === "videos" && item.kind === "video" ? videoEmbedUrl(item.url) : null;
+  // A post (e.g. an X/Twitter post) can carry a direct video file instead of
+  // an embeddable player URL — play it back with a plain <video> tag, routed
+  // through our own server (see /api/video-proxy) since twimg.com 403s a
+  // direct browser fetch over its Referer.
+  const directVideo = !videoEmbed && item.video ? `/api/video-proxy?url=${encodeURIComponent(item.video)}` : null;
   const source = sourceName(item.url);
 
   const dirty = note !== (item.note || "");
@@ -58,7 +63,7 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
           </div>
         )}
 
-        {videoEmbed && (
+        {(videoEmbed || directVideo) && (
           <div>
             <div className={styles.labelRow}>
               <label className={styles.label}>{t("app.video")}</label>
@@ -67,13 +72,17 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
               </a>
             </div>
             <div className={styles.videoWrap}>
-              <iframe
-                src={videoEmbed}
-                title={item.name}
-                className={styles.video}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
+              {videoEmbed ? (
+                <iframe
+                  src={videoEmbed}
+                  title={item.name}
+                  className={styles.video}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              ) : (
+                <video src={directVideo} poster={item.iconUrl || undefined} className={styles.video} controls />
+              )}
             </div>
           </div>
         )}

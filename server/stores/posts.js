@@ -7,11 +7,14 @@ import {
   metaContent,
   stripTags,
   truncate,
+  truncateWords,
   PREVIEW_LENGTH,
 } from "../utils/html.js";
 
 const POST_PLATFORMS = [
-  { label: "X", hosts: ["x.com", "twitter.com"], ua: BOT_UA, oembed: true },
+  // X posts get their title capped much tighter than the rest (30 words, not
+  // 140 chars) — its full oembed blockquote text style tends to run long.
+  { label: "X", hosts: ["x.com", "twitter.com"], ua: BOT_UA, syndication: true, maxNameWords: 30 },
   { label: "Threads", hosts: ["threads.net", "threads.com"], ua: BOT_UA },
   { label: "Instagram", hosts: ["instagram.com", "instagr.am"], ua: META_UA },
   { label: "RedNote", hosts: ["xiaohongshu.com", "xhslink.com", "rednote.com"], ua: UA, postInTitle: true },
@@ -68,6 +71,63 @@ function textAfterMarker(html, marker, window = 20000) {
   return stripTags(chunk) || null;
 }
 
+// The public token X's own embed widget derives from a tweet id to call the
+// unauthenticated syndication endpoint below — no API key needed. Reverse
+// engineered (and widely relied on, e.g. by the react-tweet library).
+function syndicationToken(id) {
+  return ((Number(id) / 1e15) * Math.PI).toString(36).replace(/(0+|\.)/g, "");
+}
+
+// Picks the highest-resolution progressive mp4 among a tweet's video
+// variants (skipping the HLS .m3u8 entry) — a plain <video> tag can play it
+// directly, with no HLS support needed in the browser.
+function bestMp4(variants) {
+  let best = null;
+  let bestWidth = -1;
+  for (const v of variants) {
+    if (v.type !== "video/mp4") continue;
+    const width = Number(v.src.match(/\/(\d+)x\d+\//)?.[1] || 0);
+    if (width > bestWidth) {
+      best = v.src;
+      bestWidth = width;
+    }
+  }
+  return best;
+}
+
+// The oembed endpoint only hands back a rendered blockquote (byline and date
+// baked into the text, no media info). This is the same syndication endpoint
+// X's own embed widget calls: clean tweet text, plus a direct mp4 URL when
+// the tweet has an attached video.
+async function fetchTweetSyndication(url) {
+  const id = new URL(url).pathname.match(/\/status\/(\d+)/)?.[1];
+  if (!id) return null;
+  try {
+    const endpoint = `https://cdn.syndication.twimg.com/tweet-result?id=${id}&token=${syndicationToken(id)}`;
+    const r = await fetch(endpoint, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error(`fetch ${r.status}`);
+    const json = await r.json();
+    if (json.__typename !== "Tweet") throw new Error("not a tweet");
+    // A tweet's attached media rides along in `text` as a trailing t.co link
+    // (e.g. ".../video/1"); that's the media itself, already surfaced as the
+    // preview/video, so strip it. A real shared link uses the same t.co
+    // shape but isn't in `entities.media`, so it's left alone.
+    const mediaUrls = new Set((json.entities?.media || []).map((m) => m.url).filter(Boolean));
+    let text = typeof json.text === "string" ? json.text : null;
+    if (text) {
+      text = text.replace(/\s*(https:\/\/t\.co\/\w+)\s*$/, (full, link) => (mediaUrls.has(link) ? "" : full)).trim();
+    }
+    return {
+      text: text || null,
+      byline: typeof json.user?.name === "string" ? json.user.name : null,
+      video: bestMp4(json.video?.variants || []),
+    };
+  } catch (err) {
+    console.error("tweet syndication failed:", err.message);
+    return null;
+  }
+}
+
 // Zhihu blocks unauthenticated server-side page requests in some regions.
 // Microlink retains the page's public metadata, so use it only after the
 // direct request failed and only for platforms that explicitly opt in.
@@ -97,19 +157,13 @@ export async function analyzePost(url) {
   let text = null;
   let byline = null;
   let body = null;
-  if (platform?.oembed) {
-    try {
-      const normalized = url.replace(/^https?:\/\/(www\.)?x\.com/i, "https://twitter.com");
-      const r = await fetch(`https://publish.twitter.com/oembed?url=${encodeURIComponent(normalized)}&omit_script=1`, {
-        headers: { "User-Agent": UA },
-      });
-      if (r.ok) {
-        const json = await r.json();
-        text = stripTags(json.html || "") || null;
-        byline = json.author_name || null;
-      }
-    } catch (err) {
-      console.error("post oembed failed:", err.message);
+  let video = null;
+  if (platform?.syndication) {
+    const tweet = await fetchTweetSyndication(url);
+    if (tweet) {
+      text = tweet.text;
+      byline = tweet.byline;
+      video = tweet.video;
     }
   }
   let icon = null;
@@ -155,11 +209,16 @@ export async function analyzePost(url) {
   if (!text) throw new Error("no post content");
   return {
     kind: "post",
-    name: text.length > 140 ? `${text.slice(0, 140)}…` : text,
+    name: platform?.maxNameWords
+      ? truncateWords(text, platform.maxNameWords)
+      : text.length > 140
+        ? `${text.slice(0, 140)}…`
+        : text,
     byline: byline || platform?.label || host,
     icon,
     url,
     preview: truncate(body || text, PREVIEW_LENGTH),
     iconReferrerPolicy: platform?.iconReferrerPolicy,
+    video,
   };
 }

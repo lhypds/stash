@@ -37,6 +37,13 @@ export const stripTags = (s) =>
 // only when something was actually cut off.
 export const truncate = (s, len) => (s.length > len ? `${s.slice(0, len)} ...` : s);
 
+// Cuts text down to `maxWords` whitespace-separated words, appending an
+// ellipsis only when something was actually cut off.
+export const truncateWords = (s, maxWords) => {
+  const words = s.split(/\s+/).filter(Boolean);
+  return words.length > maxWords ? `${words.slice(0, maxWords).join(" ")}…` : s;
+};
+
 // How much of a post/app/page's body text a PREVIEW section shows.
 export const PREVIEW_LENGTH = 300;
 

@@ -2,6 +2,7 @@ import express from "express";
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
+import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { ZipArchive } from "archiver";
 import { captureFullPage } from "./utils/screenshot.js";
@@ -233,6 +234,43 @@ app.get("/api/analyze", analyzeLimiter, async (req, res) => {
   }
 });
 
+// The only host we currently ever hand back as a post's `video` (see
+// analyzePost's X handling) — kept as an allowlist so this can't turn into an
+// open fetch-anything proxy.
+const VIDEO_PROXY_HOSTS = new Set(["video.twimg.com"]);
+
+// video.twimg.com 403s a request whose Referer isn't twitter.com/x.com; a
+// <video> tag always sends the page's own Referer and (unlike <img>) has no
+// referrerpolicy attribute a browser will honor. Proxying through our own
+// origin sidesteps that — this server's fetch sends no Referer at all.
+app.get("/api/video-proxy", analyzeLimiter, async (req, res) => {
+  let target;
+  try {
+    target = new URL(String(req.query.url || ""));
+  } catch {
+    return res.status(400).end();
+  }
+  if (target.protocol !== "https:" || !VIDEO_PROXY_HOSTS.has(target.hostname)) {
+    return res.status(400).end();
+  }
+  try {
+    const headers = { "User-Agent": UA };
+    if (req.headers.range) headers.Range = req.headers.range;
+    const upstream = await fetch(target, { headers });
+    if (!upstream.ok && upstream.status !== 206) throw new Error(`fetch ${upstream.status}`);
+    res.status(upstream.status);
+    for (const h of ["content-type", "content-length", "content-range", "accept-ranges", "cache-control"]) {
+      const v = upstream.headers.get(h);
+      if (v) res.setHeader(h, v);
+    }
+    if (upstream.body) Readable.fromWeb(upstream.body).pipe(res);
+    else res.end();
+  } catch (err) {
+    console.error("video proxy failed:", err.message);
+    if (!res.headersSent) res.status(502).end();
+  }
+});
+
 app.post("/api/users/:username", async (req, res) => {
   await ensureSettings(req.params.username);
   res.json({ ok: true });
@@ -343,7 +381,7 @@ app.get("/api/users/:username/stash", async (req, res) => {
 
 app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) => {
   const { username } = req.params;
-  const { store, itemId, kind, name, byline, icon, url, preview } = req.body || {};
+  const { store, itemId, kind, name, byline, icon, url, preview, video } = req.body || {};
   if (!STORES[store]) return res.status(400).json({ error: "invalid store" });
   if (!ITEM_ID_RE.test(itemId || "")) return res.status(400).json({ error: "invalid itemId" });
 
@@ -394,6 +432,7 @@ app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) =>
     url: typeof url === "string" ? url : "",
     iconFile,
     preview: typeof preview === "string" ? preview : null,
+    video: typeof video === "string" && /^https:\/\//.test(video) ? video : null,
     note: "",
     stashedAt: new Date().toISOString(),
   };
