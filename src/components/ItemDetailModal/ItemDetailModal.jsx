@@ -1,11 +1,19 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, TextArea } from "@ui";
+import { Modal, TextArea, showToast } from "@ui";
 import ItemThumbnail from "@components/ItemThumbnail";
 import { SHOT_STORES } from "@utils/api";
 import { sourceName, videoEmbedUrl } from "@utils/url";
 import { itemMeta } from "@utils/item";
 import styles from "./detail.module.css";
+
+// yt-dlp-backed CLI commands offered from the Actions row — not available for
+// WeChat, whose videos aren't reachable by the yt tool.
+const VIDEO_ACTIONS = [
+  { flag: "d", label: "app.download" },
+  { flag: "s", label: "app.summaries" },
+  { flag: "t", label: "app.transcript" },
+];
 
 export default function ItemDetailModal({ item, isOwner, locked = false, stashed, onClose, onSave, onDelete, onStash }) {
   const { t, i18n } = useTranslation();
@@ -17,9 +25,20 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
   // direct browser fetch over its Referer.
   const directVideo = !videoEmbed && item.video ? `/api/video-proxy?url=${encodeURIComponent(item.video)}` : null;
   const source = sourceName(item.url);
+  const showVideoActions = item.store === "videos" && item.kind === "video" && source !== "WeChat";
 
   const dirty = note !== (item.note || "");
   const stashedDate = item.stashedAt ? new Date(item.stashedAt).toLocaleString(i18n.language) : "";
+
+  async function copyCommand(flag) {
+    const command = `yt -${flag}u "${item.url}"`;
+    try {
+      await navigator.clipboard.writeText(command);
+      showToast(t("app.commandCopied"));
+    } catch {
+      showToast(t("app.commandCopyFailed"));
+    }
+  }
 
   return (
     <Modal isOpen onClose={onClose} title={item.name} closeOnOverlay>
@@ -83,6 +102,19 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
               ) : (
                 <video src={directVideo} poster={item.iconUrl || undefined} className={styles.video} controls />
               )}
+            </div>
+          </div>
+        )}
+
+        {showVideoActions && (
+          <div>
+            <label className={styles.label}>{t("app.actions")}</label>
+            <div className={styles.videoActions}>
+              {VIDEO_ACTIONS.map(({ flag, label }) => (
+                <button key={flag} className={styles.actionBtn} onClick={() => copyCommand(flag)}>
+                  {t(label)}
+                </button>
+              ))}
             </div>
           </div>
         )}

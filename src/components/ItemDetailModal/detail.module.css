@@ -95,6 +95,24 @@
   width: 100%;
 }
 
+.videoActions {
+  margin-top: 4px;
+  display: flex;
+  gap: 8px;
+}
+
+.actionBtn {
+  padding: 2px 4px;
+  text-align: center;
+  background: none;
+  border: 1px solid var(--ink);
+  font-size: 12px;
+}
+
+.actionBtn:hover {
+  background: var(--soft);
+}
+
 .noteArea {
   margin-top: 4px;
   min-height: 120px;
