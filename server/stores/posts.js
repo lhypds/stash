@@ -18,6 +18,23 @@ const POST_PLATFORMS = [
     metadataFallback: "microlink",
     allowMetadataFallback: true,
   },
+  // mp.weixin.qq.com (WeChat official-account articles) is distinct from
+  // weixin.qq.com/channels.weixin.qq.com (WeChat Channels short videos,
+  // handled in videos.js) — keep its host list from overlapping that one.
+  // og:title/og:image are readable with a plain desktop UA; the account name
+  // isn't in any <meta> tag, so it's pulled from the byline link in the body.
+  {
+    label: "WeChat",
+    hosts: ["mp.weixin.qq.com"],
+    ua: UA,
+    postInTitle: true,
+    bylineFromHtml: (html) => stripTags(html.match(/id="js_name">([\s\S]*?)<\/a>/i)?.[1] || "") || null,
+    // mmbiz.qpic.cn rejects the cover-image request unless the Referer is
+    // mp.weixin.qq.com's own origin (which only the post-stash server-side
+    // download sends); suppress the browser's Referer for the pre-stash
+    // preview <img> so it doesn't get swapped for a placeholder.
+    iconReferrerPolicy: "no-referrer",
+  },
 ];
 
 export const postPlatformFor = (host) => POST_PLATFORMS.find((platform) => matchesHost(platform, host));
@@ -83,7 +100,11 @@ export async function analyzePost(url) {
       }
     }
     if (!byline) {
-      byline = platform?.postInTitle ? siteName || platform?.label || host : title?.split(/:\s*["“]/)[0].trim() || platform?.label || host;
+      byline =
+        platform?.bylineFromHtml?.(html) ||
+        (platform?.postInTitle
+          ? siteName || platform?.label || host
+          : title?.split(/:\s*["“]/)[0].trim() || platform?.label || host);
     }
   } catch (err) {
     console.error("post page fetch failed:", err.message);
@@ -107,5 +128,6 @@ export async function analyzePost(url) {
     byline: byline || platform?.label || host,
     icon,
     url,
+    iconReferrerPolicy: platform?.iconReferrerPolicy,
   };
 }
