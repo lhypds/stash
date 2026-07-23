@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, TextArea, showToast } from "@ui";
 import ItemThumbnail from "@components/ItemThumbnail";
@@ -18,6 +18,8 @@ const VIDEO_ACTIONS = [
 export default function ItemDetailModal({ item, isOwner, locked = false, stashed, onClose, onSave, onDelete, onStash }) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(item.note || "");
+  const [showActionsHelp, setShowActionsHelp] = useState(false);
+  const actionsHelpRef = useRef(null);
   const videoEmbed = item.store === "videos" && item.kind === "video" ? videoEmbedUrl(item.url) : null;
   // A post (e.g. an X/Twitter post) can carry a direct video file instead of
   // an embeddable player URL — play it back with a plain <video> tag, routed
@@ -29,6 +31,16 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
 
   const dirty = note !== (item.note || "");
   const stashedDate = item.stashedAt ? new Date(item.stashedAt).toLocaleString(i18n.language) : "";
+
+  useEffect(() => {
+    function handleOutside(e) {
+      if (actionsHelpRef.current && !actionsHelpRef.current.contains(e.target)) {
+        setShowActionsHelp(false);
+      }
+    }
+    document.addEventListener("pointerdown", handleOutside);
+    return () => document.removeEventListener("pointerdown", handleOutside);
+  }, []);
 
   async function copyCommand(flag) {
     const command = `yt -${flag}u "${item.url}"`;
@@ -108,7 +120,30 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
 
         {showVideoActions && (
           <div>
-            <label className={styles.label}>{t("app.actions")}</label>
+            <div className={styles.labelWithHelp}>
+              <label className={styles.label}>{t("app.actions")}</label>
+              <div ref={actionsHelpRef} className={styles.helpWrap} data-open={showActionsHelp}>
+                <button
+                  type="button"
+                  className={styles.helpBtn}
+                  onClick={() => setShowActionsHelp((v) => !v)}
+                  aria-label={t("app.actionsHelp")}
+                >
+                  ?
+                </button>
+                <div className={styles.helpPopover}>
+                  <p className={styles.helpText}>{t("app.actionsHelpText")}</p>
+                  <a
+                    href="https://github.com/lhypds/yt"
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.helpLink}
+                  >
+                    github.com/lhypds/yt ↗
+                  </a>
+                </div>
+              </div>
+            </div>
             <div className={styles.videoActions}>
               {VIDEO_ACTIONS.map(({ flag, label }) => (
                 <button key={flag} className={styles.actionBtn} onClick={() => copyCommand(flag)}>

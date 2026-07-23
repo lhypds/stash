@@ -70,6 +70,8 @@
     "video": "Video",
     "videoOpen": "Watch on site",
     "actions": "Actions",
+    "actionsHelp": "About these commands",
+    "actionsHelpText": "These commands use the yt CLI. See its README for setup and usage:",
     "download": "Download",
     "summaries": "Summaries",
     "transcript": "Transcript",
