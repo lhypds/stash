@@ -1,4 +1,14 @@
-import { UA, BOT_UA, META_UA, matchesHost, fetchHtml, metaContent, stripTags } from "../utils/html.js";
+import {
+  UA,
+  BOT_UA,
+  META_UA,
+  matchesHost,
+  fetchHtml,
+  metaContent,
+  stripTags,
+  truncate,
+  PREVIEW_LENGTH,
+} from "../utils/html.js";
 
 const POST_PLATFORMS = [
   { label: "X", hosts: ["x.com", "twitter.com"], ua: BOT_UA, oembed: true },
@@ -29,6 +39,10 @@ const POST_PLATFORMS = [
     ua: UA,
     postInTitle: true,
     bylineFromHtml: (html) => stripTags(html.match(/id="js_name">([\s\S]*?)<\/a>/i)?.[1] || "") || null,
+    // og:description is empty for these articles; the real body text lives
+    // in the js_content div, so the PREVIEW section reads from there instead
+    // of falling back to the (title-derived) `text` used for the item name.
+    bodyFromHtml: (html) => textAfterMarker(html, 'id="js_content"'),
     // mmbiz.qpic.cn rejects the cover-image request unless the Referer is
     // mp.weixin.qq.com's own origin (which only the post-stash server-side
     // download sends); suppress the browser's Referer for the pre-stash
@@ -38,6 +52,21 @@ const POST_PLATFORMS = [
 ];
 
 export const postPlatformFor = (host) => POST_PLATFORMS.find((platform) => matchesHost(platform, host));
+
+// Grabs the text right after `marker`'s own opening tag closes, capped to a
+// generous window and trimmed back to the last complete tag — a raw byte cut
+// can land mid-attribute (e.g. inside a huge base64 data-url) and leak that
+// binary-looking noise into the extracted text otherwise.
+function textAfterMarker(html, marker, window = 20000) {
+  const markerIdx = html.indexOf(marker);
+  if (markerIdx === -1) return null;
+  const start = html.indexOf(">", markerIdx) + 1;
+  if (start <= 0) return null;
+  let chunk = html.slice(start, start + window);
+  const lastClose = chunk.lastIndexOf(">");
+  if (lastClose !== -1) chunk = chunk.slice(0, lastClose + 1);
+  return stripTags(chunk) || null;
+}
 
 // Zhihu blocks unauthenticated server-side page requests in some regions.
 // Microlink retains the page's public metadata, so use it only after the
@@ -67,6 +96,7 @@ export async function analyzePost(url) {
   const platform = postPlatformFor(host);
   let text = null;
   let byline = null;
+  let body = null;
   if (platform?.oembed) {
     try {
       const normalized = url.replace(/^https?:\/\/(www\.)?x\.com/i, "https://twitter.com");
@@ -106,6 +136,7 @@ export async function analyzePost(url) {
           ? siteName || platform?.label || host
           : title?.split(/:\s*["“]/)[0].trim() || platform?.label || host);
     }
+    body = platform?.bodyFromHtml?.(html) || null;
   } catch (err) {
     console.error("post page fetch failed:", err.message);
   }
@@ -128,6 +159,7 @@ export async function analyzePost(url) {
     byline: byline || platform?.label || host,
     icon,
     url,
+    preview: truncate(body || text, PREVIEW_LENGTH),
     iconReferrerPolicy: platform?.iconReferrerPolicy,
   };
 }

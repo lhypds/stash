@@ -343,7 +343,7 @@ app.get("/api/users/:username/stash", async (req, res) => {
 
 app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) => {
   const { username } = req.params;
-  const { store, itemId, kind, name, byline, icon, url } = req.body || {};
+  const { store, itemId, kind, name, byline, icon, url, preview } = req.body || {};
   if (!STORES[store]) return res.status(400).json({ error: "invalid store" });
   if (!ITEM_ID_RE.test(itemId || "")) return res.status(400).json({ error: "invalid itemId" });
 
@@ -393,6 +393,7 @@ app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) =>
     byline: String(byline || ""),
     url: typeof url === "string" ? url : "",
     iconFile,
+    preview: typeof preview === "string" ? preview : null,
     note: "",
     stashedAt: new Date().toISOString(),
   };

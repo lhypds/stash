@@ -1,5 +1,10 @@
 import gplay from "google-play-scraper";
 import { ITEM_ID_RE } from "../stores.js";
+import { stripTags, truncate, PREVIEW_LENGTH } from "../utils/html.js";
+
+// Reduces a store description/summary (which may carry HTML entities and
+// multi-paragraph line breaks) to a flat preview snippet.
+const previewFrom = (text) => (text ? truncate(stripTags(text), PREVIEW_LENGTH) : null);
 
 // The App Store / Google Play hosts, used to route a pasted link to the apps
 // store and to pick the right lookup API.
@@ -28,6 +33,7 @@ export async function analyzeAppUrl(href, country) {
       byline: app.artistName,
       icon: app.artworkUrl512 || app.artworkUrl100,
       url: app.trackViewUrl || href,
+      preview: previewFrom(app.description),
     };
   }
   const appId = u.searchParams.get("id");
@@ -40,6 +46,7 @@ export async function analyzeAppUrl(href, country) {
     byline: app.developer,
     icon: app.icon,
     url: app.url || href,
+    preview: previewFrom(app.description),
   };
 }
 
@@ -64,6 +71,7 @@ export async function searchApps(term, country) {
           byline: app.artistName,
           icon: app.artworkUrl512 || app.artworkUrl100,
           url: app.trackViewUrl,
+          preview: previewFrom(app.description),
         }));
     })(),
     (async () => {
@@ -78,6 +86,7 @@ export async function searchApps(term, country) {
           byline: app.developer,
           icon: app.icon,
           url: app.url,
+          preview: previewFrom(app.summary),
         }));
     })(),
   ]);

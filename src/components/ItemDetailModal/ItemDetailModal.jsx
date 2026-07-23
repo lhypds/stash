@@ -51,6 +51,13 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
           </div>
         </div>
 
+        {item.preview && (
+          <div>
+            <label className={styles.label}>{t("app.preview")}</label>
+            <p className={styles.previewText}>{item.preview}</p>
+          </div>
+        )}
+
         {videoEmbed && (
           <div>
             <div className={styles.labelRow}>

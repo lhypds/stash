@@ -33,6 +33,13 @@ export const stripTags = (s) =>
     .replace(/\s+/g, " ")
     .trim();
 
+// Cuts already-cleaned text down to `len` characters, appending an ellipsis
+// only when something was actually cut off.
+export const truncate = (s, len) => (s.length > len ? `${s.slice(0, len)} ...` : s);
+
+// How much of a post/app/page's body text a PREVIEW section shows.
+export const PREVIEW_LENGTH = 300;
+
 export function metaContent(html, prop) {
   const tags = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]*>`, "gi")) || [];
   for (const tag of tags.reverse()) {
