@@ -95,6 +95,7 @@ const VIDEO_PLATFORMS = [
     label: "Pornhub",
     hosts: ["pornhub.com"],
     channel: (u) => /^\/(model|pornstar|channels|users)\//.test(u.pathname),
+    noPreview: true,
   },
 ];
 
@@ -177,6 +178,7 @@ export async function analyzeVideo(url, store) {
     kind,
     byline: platform?.label || page.byline,
     icon,
+    preview: platform?.noPreview ? null : page.preview,
     iconReferrerPolicy: platform?.iconReferrerPolicy,
   };
 }
