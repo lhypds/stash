@@ -182,6 +182,13 @@ export async function analyzePost(url) {
       if (text && suffix && text.toLowerCase().endsWith(suffix.toLowerCase())) {
         text = text.slice(0, -suffix.length).trim();
       }
+      // A post gated behind a login/age/sensitive-content wall (X does this
+      // for some tweets) renders only the platform's own generic placeholder
+      // — og:title === "X", no og:description — to an unauthenticated
+      // scrape. That's not real content; treat it as if nothing came back.
+      if (text && platform?.label && text.trim().toLowerCase() === platform.label.toLowerCase()) {
+        text = null;
+      }
     }
     if (!byline) {
       byline =
