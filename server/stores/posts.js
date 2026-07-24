@@ -42,10 +42,14 @@ const POST_PLATFORMS = [
     ua: UA,
     postInTitle: true,
     bylineFromHtml: (html) => stripTags(html.match(/id="js_name">([\s\S]*?)<\/a>/i)?.[1] || "") || null,
-    // og:description is empty for these articles; the real body text lives
-    // in the js_content div, so the PREVIEW section reads from there instead
-    // of falling back to the (title-derived) `text` used for the item name.
-    bodyFromHtml: (html) => textAfterMarker(html, 'id="js_content"'),
+    // og:description is usually empty for these articles; the real body text
+    // lives in the js_content div, so the PREVIEW section reads from there
+    // instead of falling back to the (title-derived) `text` used for the item
+    // name. Some posts (e.g. short "note"-style posts served straight off
+    // 微信公众平台 itself, with no js_name/js_content in the static HTML at
+    // all — content is rendered client-side) have no js_content div but do
+    // carry the real text in og:description, so fall back to that.
+    bodyFromHtml: (html, { desc }) => textAfterMarker(html, 'id="js_content"') || desc || null,
     // mmbiz.qpic.cn rejects the cover-image request unless the Referer is
     // mp.weixin.qq.com's own origin (which only the post-stash server-side
     // download sends); suppress the browser's Referer for the pre-stash
@@ -197,7 +201,7 @@ export async function analyzePost(url) {
           ? siteName || platform?.label || host
           : title?.split(/:\s*["“]/)[0].trim() || platform?.label || host);
     }
-    body = platform?.bodyFromHtml?.(html) || null;
+    body = platform?.bodyFromHtml?.(html, { desc }) || null;
   } catch (err) {
     console.error("post page fetch failed:", err.message);
   }

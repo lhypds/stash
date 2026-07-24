@@ -13,6 +13,12 @@ export const matchesHost = (platform, host) => platform.hosts.some((h) => host =
 
 const decodeEntities = (s) =>
   s
+    // Some WeChat "note"-style posts serialize their og:description with
+    // literal `\x0a` (backslash-x-0-a as four text characters, not a real
+    // newline) where a line break belongs — an escaping bug on their end.
+    // Collapse it to a space before entity decoding so it doesn't leak into
+    // the extracted text as visible backslash-x noise.
+    .replace(/\\x0[9ad]/gi, " ")
     .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
     .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
     .replace(/&amp;/g, "&")
