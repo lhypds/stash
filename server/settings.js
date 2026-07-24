@@ -9,6 +9,7 @@ const settingsFile = (username) => path.join(DATA_DIR, "users", username, "setti
 
 const DEFAULT_SETTINGS = {
   stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, true])),
+  nsfw: false,
   isLocked: false,
   password: "",
 };
@@ -39,6 +40,7 @@ export async function ensureSettings(username) {
     isLocked: existing?.isLocked === true,
     password: typeof existing?.password === "string" ? existing.password : "",
     stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, existing?.stores?.[s] ?? true])),
+    nsfw: typeof existing?.nsfw === "boolean" ? existing.nsfw : false,
   };
   if (JSON.stringify(merged) !== JSON.stringify(existing)) await writeSettings(username, merged);
   return merged;

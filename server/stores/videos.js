@@ -96,6 +96,7 @@ const VIDEO_PLATFORMS = [
     hosts: ["pornhub.com"],
     channel: (u) => /^\/(model|pornstar|channels|users)\//.test(u.pathname),
     noPreview: true,
+    nsfw: true,
   },
 ];
 
@@ -105,6 +106,17 @@ export function sourceDisallowsThumbnail(href) {
   try {
     const host = new URL(href).hostname.replace(/^www\.|^m\./, "");
     return videoPlatformFor(host)?.noThumbnail === true;
+  } catch {
+    return false;
+  }
+}
+
+// Whether an item's URL belongs to a platform flagged nsfw (currently just
+// Pornhub), used to hide such items when the viewer's settings.nsfw is off.
+export function isNsfwUrl(href) {
+  try {
+    const host = new URL(href).hostname.replace(/^www\.|^m\./, "");
+    return videoPlatformFor(host)?.nsfw === true;
   } catch {
     return false;
   }

@@ -13,6 +13,7 @@ import {
   UA,
   urlStoreFor,
   isBlockedHost,
+  isNsfwUrl,
   searchSources,
   analyzeSource,
 } from "./stores.js";
@@ -361,6 +362,7 @@ app.put("/api/users/:username/settings", requireUnlockedOwner, async (req, res) 
 app.get("/api/users/:username/stash", async (req, res) => {
   const { username } = req.params;
   if (!(await userExists(username))) return res.status(404).json({ error: "user not found", code: "USER_NOT_FOUND" });
+  const settings = await ensureSettings(username);
   const items = [];
   for (const store of Object.keys(STORES)) {
     let entries = [];
@@ -372,7 +374,9 @@ app.get("/api/users/:username/stash", async (req, res) => {
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       const record = await readJson(path.join(itemDir(username, store, entry.name), "item.json"), null);
-      if (record) items.push(withIconUrl(username, record));
+      // settings.nsfw === false hides nsfw items (e.g. Pornhub) from the listing
+      // without touching the underlying stash — they're still there if re-enabled.
+      if (record && (settings.nsfw || !isNsfwUrl(record.url))) items.push(withIconUrl(username, record));
     }
   }
   items.sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || ""));
