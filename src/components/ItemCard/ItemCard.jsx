@@ -41,8 +41,10 @@ export default function ItemCard({ item, mode = "stash", onClick, stashed, onSta
   if (mode === "result") {
     return (
       <div className={`${styles.card} ${styles.result}`}>
-        {thumbnail}
-        <span className={styles.name}>{item.name}</span>
+        <a className={styles.cardBody} href={item.url} target="_blank" rel="noreferrer">
+          {thumbnail}
+          <span className={styles.name}>{item.name}</span>
+        </a>
         {meta}
         {stashBtn}
       </div>
