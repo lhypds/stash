@@ -72,5 +72,11 @@ export const copyItem = (username, fromUsername, store, itemId) =>
 export const updateItem = (username, store, itemId, patch) =>
   request(`/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}`, json("PATCH", patch));
 
+export const refreshItem = (username, store, itemId, country = "us") =>
+  request(
+    `/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}/refresh?country=${country}`,
+    { method: "POST" },
+  );
+
 export const removeItem = (username, store, itemId) =>
   request(`/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}`, { method: "DELETE" });

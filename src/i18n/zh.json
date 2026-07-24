@@ -91,7 +91,7 @@
     "stashedAt": "收藏于",
     "confirmDelete": "从收藏中移除此应用？",
     "refresh": "刷新",
-    "confirmRefresh": "从服务器重新加载此项内容？",
+    "confirmRefresh": "从原始链接重新获取此项内容？",
     "toastStashed": "已收藏 {{name}}",
     "toastAlready": "已经收藏过了",
     "toastSaved": "已保存",

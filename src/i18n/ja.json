@@ -91,7 +91,7 @@
     "stashedAt": "ストック日",
     "confirmDelete": "このアプリをストックから削除しますか？",
     "refresh": "更新",
-    "confirmRefresh": "この項目の内容をサーバーから再読み込みしますか？",
+    "confirmRefresh": "この項目の元のURLから内容を再取得しますか？",
     "toastStashed": "{{name}} をストックしました",
     "toastAlready": "すでにストック済みです",
     "toastSaved": "保存しました",

@@ -317,28 +317,34 @@ export default function Stash() {
   }
 
   function handleRefreshItem(item) {
-    // Refreshing is a read-only reload, not a mutation, so it's exempt from
-    // the locked-stash gate the other confirm actions (delete) go through.
-    setConfirm({
-      message: t("app.confirmRefresh"),
-      confirmLabel: t("app.refresh"),
-      action: () => refreshItem(item),
-      skipLockGate: true,
-    });
+    if (locked) {
+      showToast(t("app.unlockFirst"));
+      return;
+    }
+    setConfirm({ message: t("app.confirmRefresh"), confirmLabel: t("app.refresh"), action: () => refreshItem(item) });
   }
 
   async function refreshItem(item) {
+    if (locked) {
+      showToast(t("app.unlockFirst"));
+      return;
+    }
     try {
-      const data = await api.getStash(username);
-      setItems(data.items);
-      // Keep whatever the note field currently shows — including an
-      // in-progress edit — by leaving ItemDetailModal mounted; it only
-      // syncs its note state from `item` on first render, not on updates.
-      const fresh = data.items.find((a) => itemKey(a) === itemKey(item));
-      setDetail(fresh || null);
+      const country = countryForLang(i18n.language);
+      const { item: updated } = await api.refreshItem(username, item.store, item.itemId, country);
+      setItems((prev) => prev.map((a) => (itemKey(a) === itemKey(updated) ? updated : a)));
+      // Leave ItemDetailModal mounted rather than remounting it, so its note
+      // state (which only syncs from `item` on first render) keeps whatever
+      // is currently in the field, including an in-progress edit.
+      setDetail(updated);
       showToast(t("app.toastRefreshed"));
-    } catch {
-      showToast(t("app.toastError"));
+    } catch (err) {
+      if (err.code === "STASH_LOCKED") {
+        await refreshLock().catch(() => {});
+        showToast(t("app.unlockFirst"));
+      } else {
+        showToast(t("app.toastError"));
+      }
     }
   }
 
@@ -473,17 +479,17 @@ export default function Stash() {
           onSave={handleSaveItem}
           onDelete={handleDeleteItem}
           onStash={!isOwner ? () => handleCopyItem(detail) : undefined}
-          onRefresh={() => handleRefreshItem(detail)}
+          onRefresh={isOwner ? () => handleRefreshItem(detail) : undefined}
         />
       )}
       <ConfirmModal
         isOpen={!!confirm}
         message={confirm?.message}
         confirmLabel={confirm?.confirmLabel}
-        confirmDisabled={!confirm?.skipLockGate && locked}
+        confirmDisabled={locked}
         onCancel={() => setConfirm(null)}
         onConfirm={() => {
-          if (!confirm.skipLockGate && locked) {
+          if (locked) {
             setConfirm(null);
             showToast(t("app.unlockFirst"));
             return;

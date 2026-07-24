@@ -92,7 +92,7 @@
     "stashedAt": "Stashed",
     "confirmDelete": "Remove this app from the stash?",
     "refresh": "Refresh",
-    "confirmRefresh": "Reload this item's content from the server?",
+    "confirmRefresh": "Re-fetch this item's content from its source URL?",
     "toastStashed": "Stashed {{name}}",
     "toastAlready": "Already stashed",
     "toastSaved": "Saved",

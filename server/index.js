@@ -64,6 +64,37 @@ function withIconUrl(username, record) {
   };
 }
 
+// Downloads a source-supplied icon/thumbnail URL into the item's own
+// directory, named by content-type. Some CDNs (e.g. one of Pornhub's two
+// image edges) 403 hotlinked fetches unless the Referer matches the site the
+// image belongs to, so it's sent when the source URL's origin is known.
+async function downloadIcon(dir, imageBase, iconUrl, sourceUrl) {
+  try {
+    const headers = { "User-Agent": UA };
+    if (typeof sourceUrl === "string" && /^https?:\/\//.test(sourceUrl)) headers.Referer = new URL(sourceUrl).origin + "/";
+    const r = await fetch(iconUrl, { headers });
+    if (!r.ok) return null;
+    const type = r.headers.get("content-type") || "";
+    const ext = type.includes("png")
+      ? "png"
+      : type.includes("webp")
+        ? "webp"
+        : type.includes("gif")
+          ? "gif"
+          : type.includes("svg")
+            ? "svg"
+            : type.includes("icon")
+              ? "ico"
+              : "jpg";
+    const file = `${imageBase}.${ext}`;
+    await fs.writeFile(path.join(dir, file), Buffer.from(await r.arrayBuffer()));
+    return file;
+  } catch (err) {
+    console.error("icon download failed:", err.message);
+    return null;
+  }
+}
+
 // Fire-and-forget: stashing responds immediately, the screenshot lands later
 function captureInBackground(username, store, itemId, url) {
   const dir = itemDir(username, store, itemId);
@@ -404,34 +435,7 @@ app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) =>
 
   const kindValue = String(kind || "app");
   const imageBase = kindValue === "app" ? "icon" : "thumbnail";
-  let iconFile = null;
-  if (typeof icon === "string" && /^https?:\/\//.test(icon)) {
-    try {
-      // Some CDNs (e.g. one of Pornhub's two image edges) 403 hotlinked
-      // fetches unless the Referer matches the site the image belongs to
-      const headers = { "User-Agent": UA };
-      if (typeof url === "string" && /^https?:\/\//.test(url)) headers.Referer = new URL(url).origin + "/";
-      const r = await fetch(icon, { headers });
-      if (r.ok) {
-        const type = r.headers.get("content-type") || "";
-        const ext = type.includes("png")
-          ? "png"
-          : type.includes("webp")
-            ? "webp"
-            : type.includes("gif")
-              ? "gif"
-              : type.includes("svg")
-                ? "svg"
-                : type.includes("icon")
-                  ? "ico"
-                  : "jpg";
-        iconFile = `${imageBase}.${ext}`;
-        await fs.writeFile(path.join(dir, iconFile), Buffer.from(await r.arrayBuffer()));
-      }
-    } catch (err) {
-      console.error("icon download failed:", err.message);
-    }
-  }
+  const iconFile = typeof icon === "string" && /^https?:\/\//.test(icon) ? await downloadIcon(dir, imageBase, icon, url) : null;
 
   const resolvedUrl = typeof url === "string" ? url : "";
   const hasPreview = typeof preview === "string";
@@ -492,6 +496,46 @@ app.patch("/api/users/:username/items/:store/:itemId", requireUnlockedOwner, asy
   if (typeof note === "string") record.note = note;
   await writeJson(jsonFile, record);
   res.json({ item: withIconUrl(username, record) });
+});
+
+// Re-runs analysis on the item's own stored URL and overwrites its metadata
+// with whatever comes back — a way to pick up a page that's changed since it
+// was first stashed. store/itemId/note/stashedAt are left untouched; the
+// store never gets re-routed even if the URL would now classify differently
+// (e.g. a video reclassified as a channel), since that would mean moving it
+// to a different store directory.
+app.post("/api/users/:username/items/:store/:itemId/refresh", analyzeLimiter, requireUnlockedOwner, async (req, res) => {
+  const { username, store, itemId } = req.params;
+  const country = /^[a-z]{2}$/.test(req.query.country || "") ? req.query.country : "us";
+  const dir = itemDir(username, store, itemId);
+  const jsonFile = path.join(dir, "item.json");
+  const record = await readJson(jsonFile, null);
+  if (!record) return res.status(404).json({ error: "not found" });
+  if (!record.url) return res.status(400).json({ error: "nothing to refresh from" });
+
+  let analyzed;
+  try {
+    analyzed = await analyzeSource(record.url, store, country);
+  } catch (err) {
+    console.error("refresh failed:", err.message);
+    return res.status(502).json({ error: "refresh failed" });
+  }
+
+  const imageBase = record.kind === "app" ? "icon" : "thumbnail";
+  const iconFile = analyzed.icon ? await downloadIcon(dir, imageBase, analyzed.icon, record.url) : record.iconFile;
+  const updated = {
+    ...record,
+    kind: analyzed.kind || record.kind,
+    name: analyzed.name || record.name,
+    byline: analyzed.byline ?? record.byline,
+    preview: analyzed.preview ?? record.preview,
+    installCommand: analyzed.installCommand ?? record.installCommand,
+    video: analyzed.video ?? record.video,
+    iconFile,
+  };
+  await writeJson(jsonFile, updated);
+  if (SHOT_STORES.has(store)) captureInBackground(username, store, itemId, record.url);
+  res.json({ item: withIconUrl(username, updated) });
 });
 
 app.delete("/api/users/:username/items/:store/:itemId", requireUnlockedOwner, async (req, res) => {

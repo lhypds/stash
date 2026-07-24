@@ -119,6 +119,7 @@ export default function ItemDetailModal({
           <button
             type="button"
             className={styles.refreshBtn}
+            disabled={locked}
             onClick={onRefresh}
             aria-label={t("app.refresh")}
             title={t("app.refresh")}

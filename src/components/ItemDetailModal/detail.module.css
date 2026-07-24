@@ -105,6 +105,11 @@
   color: var(--ink);
 }
 
+.refreshBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .shotLink {
   font-size: 12px;
   color: var(--ink);
