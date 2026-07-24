@@ -11,16 +11,16 @@ import styles from "./detail.module.css";
 // yt (github.com/lhypds/yt) drives the video row — not available for WeChat,
 // whose videos aren't reachable by the yt tool.
 const VIDEO_ACTIONS = [
-  { flag: "d", label: "app.download" },
-  { flag: "s", label: "app.summaries" },
-  { flag: "t", label: "app.transcript" },
+  { flag: "d", label: "app.videoDownload" },
+  { flag: "s", label: "app.videoSummaries" },
+  { flag: "t", label: "app.videoTranscript" },
 ];
 
 // ft (github.com/lhypds/ft) drives the preview row — it fetches/summarizes
 // page text and has no transcript command.
 const TEXT_ACTIONS = [
-  { flag: "d", label: "app.download" },
-  { flag: "s", label: "app.summaries" },
+  { flag: "d", label: "app.textDownload" },
+  { flag: "s", label: "app.textSummaries" },
 ];
 
 function ActionsRow({ tool, actions, url, repoUrl, t }) {
