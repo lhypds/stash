@@ -70,7 +70,7 @@
     "videoOpen": "サイトで視聴",
     "actions": "操作",
     "actionsHelp": "このコマンドについて",
-    "actionsHelpText": "これらのコマンドは yt CLI を使用します。セットアップと使い方は README をご覧ください：",
+    "actionsHelpText": "これらのコマンドは {{tool}} CLI を使用します。セットアップと使い方は README をご覧ください：",
     "download": "ダウンロード",
     "summaries": "要約",
     "transcript": "文字起こし",

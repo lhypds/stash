@@ -7,35 +7,30 @@ import { sourceName, videoEmbedUrl } from "@utils/url";
 import { itemMeta } from "@utils/item";
 import styles from "./detail.module.css";
 
-// yt-dlp-backed CLI commands offered from the Actions row — not available for
-// WeChat, whose videos aren't reachable by the yt tool.
+// CLI commands offered from the Actions rows.
+// yt (github.com/lhypds/yt) drives the video row — not available for WeChat,
+// whose videos aren't reachable by the yt tool.
 const VIDEO_ACTIONS = [
   { flag: "d", label: "app.download" },
   { flag: "s", label: "app.summaries" },
   { flag: "t", label: "app.transcript" },
 ];
 
-export default function ItemDetailModal({ item, isOwner, locked = false, stashed, onClose, onSave, onDelete, onStash }) {
-  const { t, i18n } = useTranslation();
-  const [note, setNote] = useState(item.note || "");
-  const [showActionsHelp, setShowActionsHelp] = useState(false);
-  const actionsHelpRef = useRef(null);
-  const videoEmbed = item.store === "videos" && item.kind === "video" ? videoEmbedUrl(item.url) : null;
-  // A post (e.g. an X/Twitter post) can carry a direct video file instead of
-  // an embeddable player URL — play it back with a plain <video> tag, routed
-  // through our own server (see /api/video-proxy) since twimg.com 403s a
-  // direct browser fetch over its Referer.
-  const directVideo = !videoEmbed && item.video ? `/api/video-proxy?url=${encodeURIComponent(item.video)}` : null;
-  const source = sourceName(item.url);
-  const showVideoActions = item.store === "videos" && item.kind === "video" && source !== "WeChat";
+// ft (github.com/lhypds/ft) drives the preview row — it fetches/summarizes
+// page text and has no transcript command.
+const TEXT_ACTIONS = [
+  { flag: "d", label: "app.download" },
+  { flag: "s", label: "app.summaries" },
+];
 
-  const dirty = note !== (item.note || "");
-  const stashedDate = item.stashedAt ? new Date(item.stashedAt).toLocaleString(i18n.language) : "";
+function ActionsRow({ tool, actions, url, repoUrl, t }) {
+  const [showHelp, setShowHelp] = useState(false);
+  const helpRef = useRef(null);
 
   useEffect(() => {
     function handleOutside(e) {
-      if (actionsHelpRef.current && !actionsHelpRef.current.contains(e.target)) {
-        setShowActionsHelp(false);
+      if (helpRef.current && !helpRef.current.contains(e.target)) {
+        setShowHelp(false);
       }
     }
     document.addEventListener("pointerdown", handleOutside);
@@ -43,7 +38,7 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
   }, []);
 
   async function copyCommand(flag) {
-    const command = `yt -${flag}u "${item.url}"`;
+    const command = `${tool} -${flag}u "${url}"`;
     try {
       await navigator.clipboard.writeText(command);
       showToast(t("app.commandCopied"));
@@ -51,6 +46,48 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
       showToast(t("app.commandCopyFailed"));
     }
   }
+
+  return (
+    <div className={styles.actionsRow}>
+      {actions.map(({ flag, label }) => (
+        <button key={flag} className={styles.actionBtn} onClick={() => copyCommand(flag)}>
+          {t(label)}
+        </button>
+      ))}
+      <div ref={helpRef} className={styles.helpWrap} data-open={showHelp}>
+        <button
+          type="button"
+          className={styles.helpBtn}
+          onClick={() => setShowHelp((v) => !v)}
+          aria-label={t("app.actionsHelp")}
+        >
+          ?
+        </button>
+        <div className={styles.helpPopover}>
+          <p className={styles.helpText}>{t("app.actionsHelpText", { tool })}</p>
+          <a href={repoUrl} target="_blank" rel="noreferrer" className={styles.helpLink}>
+            {repoUrl.replace("https://", "")} ↗
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function ItemDetailModal({ item, isOwner, locked = false, stashed, onClose, onSave, onDelete, onStash }) {
+  const { t, i18n } = useTranslation();
+  const [note, setNote] = useState(item.note || "");
+  const videoEmbed = item.store === "videos" && item.kind === "video" ? videoEmbedUrl(item.url) : null;
+  // A post (e.g. an X/Twitter post) can carry a direct video file instead of
+  // an embeddable player URL — play it back with a plain <video> tag, routed
+  // through our own server (see /api/video-proxy) since twimg.com 403s a
+  // direct browser fetch over its Referer.
+  const directVideo = !videoEmbed && item.video ? `/api/video-proxy?url=${encodeURIComponent(item.video)}` : null;
+  const source = sourceName(item.url);
+  const showVideoActions = (videoEmbed || directVideo) && source !== "WeChat";
+
+  const dirty = note !== (item.note || "");
+  const stashedDate = item.stashedAt ? new Date(item.stashedAt).toLocaleString(i18n.language) : "";
 
   return (
     <Modal isOpen onClose={onClose} title={item.name} closeOnOverlay>
@@ -91,6 +128,7 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
           <div>
             <label className={styles.label}>{t("app.preview")}</label>
             <p className={styles.previewText}>{item.preview}</p>
+            <ActionsRow tool="ft" actions={TEXT_ACTIONS} url={item.url} repoUrl="https://github.com/lhypds/ft" t={t} />
           </div>
         )}
 
@@ -115,42 +153,9 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
                 <video src={directVideo} poster={item.iconUrl || undefined} className={styles.video} controls />
               )}
             </div>
-          </div>
-        )}
-
-        {showVideoActions && (
-          <div>
-            <div className={styles.labelWithHelp}>
-              <label className={styles.label}>{t("app.actions")}</label>
-              <div ref={actionsHelpRef} className={styles.helpWrap} data-open={showActionsHelp}>
-                <button
-                  type="button"
-                  className={styles.helpBtn}
-                  onClick={() => setShowActionsHelp((v) => !v)}
-                  aria-label={t("app.actionsHelp")}
-                >
-                  ?
-                </button>
-                <div className={styles.helpPopover}>
-                  <p className={styles.helpText}>{t("app.actionsHelpText")}</p>
-                  <a
-                    href="https://github.com/lhypds/yt"
-                    target="_blank"
-                    rel="noreferrer"
-                    className={styles.helpLink}
-                  >
-                    github.com/lhypds/yt ↗
-                  </a>
-                </div>
-              </div>
-            </div>
-            <div className={styles.videoActions}>
-              {VIDEO_ACTIONS.map(({ flag, label }) => (
-                <button key={flag} className={styles.actionBtn} onClick={() => copyCommand(flag)}>
-                  {t(label)}
-                </button>
-              ))}
-            </div>
+            {showVideoActions && (
+              <ActionsRow tool="yt" actions={VIDEO_ACTIONS} url={item.url} repoUrl="https://github.com/lhypds/yt" t={t} />
+            )}
           </div>
         )}
 

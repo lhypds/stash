@@ -70,7 +70,7 @@
     "videoOpen": "去原网站观看",
     "actions": "操作",
     "actionsHelp": "关于这些命令",
-    "actionsHelpText": "这些命令使用 yt 命令行工具，安装和使用方法请见其 README：",
+    "actionsHelpText": "这些命令使用 {{tool}} 命令行工具，安装和使用方法请见其 README：",
     "download": "下载",
     "summaries": "摘要",
     "transcript": "文字稿",

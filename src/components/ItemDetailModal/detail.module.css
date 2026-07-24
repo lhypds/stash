@@ -95,15 +95,10 @@
   width: 100%;
 }
 
-.labelWithHelp {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .helpWrap {
   position: relative;
   display: inline-flex;
+  margin-left: auto;
 }
 
 .helpBtn {
@@ -132,7 +127,7 @@
   display: none;
   position: absolute;
   top: 100%;
-  left: 0;
+  right: 0;
   z-index: 999;
   margin-top: 6px;
   width: 220px;
@@ -158,9 +153,10 @@
   word-break: break-all;
 }
 
-.videoActions {
-  margin-top: 4px;
+.actionsRow {
+  margin-top: 6px;
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
