@@ -8,7 +8,7 @@ import { postPlatformFor, analyzePost } from "./stores/posts.js";
 import { videoPlatformFor, analyzeVideo } from "./stores/videos.js";
 import { chatPlatformFor, analyzeChat } from "./stores/chats.js";
 import { analyzePage } from "./stores/pages.js";
-import { isSkillHost, analyzeSkillUrl, searchSkills } from "./stores/skills.js";
+import { isSkillHost, analyzeSkillUrl, searchSkills, fetchSkillMeta } from "./stores/skills.js";
 
 export { UA } from "./utils/html.js";
 export { appItemId } from "./stores/apps.js";
@@ -78,7 +78,7 @@ export function isBlockedHost(hostname) {
 // store from what the page turns out to be; every other store is kept as-is.
 export async function analyzeSource(href, store, country) {
   if (store === "apps") return { store, ...(await analyzeAppUrl(href, country)) };
-  if (store === "skills") return { store, ...analyzeSkillUrl(href) };
+  if (store === "skills") return { store, ...(await analyzeSkillUrl(href)) };
   const isVideoStore = store === "videos" || store === "channels";
   const analyzed = isVideoStore
     ? await analyzeVideo(href, store)
@@ -115,4 +115,13 @@ export async function searchSources(store, term, country, searchSettings) {
   if (store === "apps") return searchApps(term, country, searchSettings);
   if (store === "skills") return searchSkills(term, searchSettings);
   throw new Error("unsupported search store");
+}
+
+// Best-effort description + install-command backfill for a skill reaching
+// the stash without them — e.g. one picked straight off a search result,
+// whose listing carries neither (unlike a directly pasted skill URL, which
+// already fetched both during analysis). A no-op for every other store.
+export async function backfillSkillMeta(store, url) {
+  if (store !== "skills" || !url) return null;
+  return fetchSkillMeta(url);
 }

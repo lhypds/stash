@@ -83,6 +83,8 @@
     "transcript": "文字起こし",
     "commandCopied": "コマンドをクリップボードにコピーしました。",
     "commandCopyFailed": "コマンドをコピーできませんでした。",
+    "install": "インストール",
+    "copy": "コピー",
     "viewInStore": "リンクを開く",
     "byline": "提供元",
     "meta": "種別",

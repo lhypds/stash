@@ -84,6 +84,8 @@
     "transcript": "Transcript",
     "commandCopied": "Command copied to clipboard.",
     "commandCopyFailed": "Couldn't copy the command.",
+    "install": "Install",
+    "copy": "Copy",
     "viewInStore": "Open link",
     "byline": "Byline",
     "meta": "Meta",

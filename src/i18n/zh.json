@@ -83,6 +83,8 @@
     "transcript": "文字稿",
     "commandCopied": "命令已复制到剪贴板。",
     "commandCopyFailed": "无法复制命令。",
+    "install": "安装",
+    "copy": "复制",
     "viewInStore": "打开链接",
     "byline": "来源",
     "meta": "类型",

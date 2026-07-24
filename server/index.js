@@ -16,6 +16,7 @@ import {
   isNsfwUrl,
   searchSources,
   analyzeSource,
+  backfillSkillMeta,
 } from "./stores.js";
 import { ensureSettings, writeSettings, passwordsMatch, userExists } from "./settings.js";
 
@@ -390,7 +391,7 @@ app.get("/api/users/:username/stash", async (req, res) => {
 
 app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) => {
   const { username } = req.params;
-  const { store, itemId, kind, name, byline, icon, url, preview, video } = req.body || {};
+  const { store, itemId, kind, name, byline, icon, url, preview, installCommand, video } = req.body || {};
   if (!STORES[store]) return res.status(400).json({ error: "invalid store" });
   if (!ITEM_ID_RE.test(itemId || "")) return res.status(400).json({ error: "invalid itemId" });
 
@@ -432,15 +433,20 @@ app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) =>
     }
   }
 
+  const resolvedUrl = typeof url === "string" ? url : "";
+  const hasPreview = typeof preview === "string";
+  const hasInstall = typeof installCommand === "string";
+  const backfilled = hasPreview && hasInstall ? null : await backfillSkillMeta(store, resolvedUrl);
   const record = {
     store,
     itemId,
     kind: kindValue,
     name: String(name || itemId),
     byline: String(byline || ""),
-    url: typeof url === "string" ? url : "",
+    url: resolvedUrl,
     iconFile,
-    preview: typeof preview === "string" ? preview : null,
+    preview: hasPreview ? preview : (backfilled?.preview ?? null),
+    installCommand: hasInstall ? installCommand : (backfilled?.installCommand ?? null),
     video: typeof video === "string" && /^https:\/\//.test(video) ? video : null,
     note: "",
     stashedAt: new Date().toISOString(),

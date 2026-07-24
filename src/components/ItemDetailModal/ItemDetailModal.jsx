@@ -89,6 +89,15 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
   const dirty = note !== (item.note || "");
   const stashedDate = item.stashedAt ? new Date(item.stashedAt).toLocaleString(i18n.language) : "";
 
+  async function copyInstallCommand() {
+    try {
+      await navigator.clipboard.writeText(item.installCommand);
+      showToast(t("app.commandCopied"));
+    } catch {
+      showToast(t("app.commandCopyFailed"));
+    }
+  }
+
   return (
     <Modal isOpen onClose={onClose} title={item.name} closeOnOverlay>
       <div className={styles.body}>
@@ -129,6 +138,27 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
             <label className={styles.label}>{t("app.preview")}</label>
             <p className={styles.previewText}>{item.preview}</p>
             <ActionsRow tool="ft" actions={TEXT_ACTIONS} url={item.url} repoUrl="https://github.com/lhypds/ft" t={t} />
+          </div>
+        )}
+
+        {item.installCommand && (
+          <div>
+            <label className={styles.label}>{t("app.install")}</label>
+            <div className={styles.installCommandWrap}>
+              <p className={styles.installCommand}>{item.installCommand}</p>
+              <button
+                type="button"
+                className={styles.copyIconBtn}
+                onClick={copyInstallCommand}
+                aria-label={t("app.copy")}
+                title={t("app.copy")}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
 
