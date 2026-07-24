@@ -90,6 +90,21 @@
   color: var(--ink);
 }
 
+.refreshBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.refreshBtn:hover {
+  color: var(--ink);
+}
+
 .shotLink {
   font-size: 12px;
   color: var(--ink);

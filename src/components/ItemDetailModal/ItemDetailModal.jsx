@@ -74,7 +74,17 @@ function ActionsRow({ tool, actions, url, repoUrl, t }) {
   );
 }
 
-export default function ItemDetailModal({ item, isOwner, locked = false, stashed, onClose, onSave, onDelete, onStash }) {
+export default function ItemDetailModal({
+  item,
+  isOwner,
+  locked = false,
+  stashed,
+  onClose,
+  onSave,
+  onDelete,
+  onStash,
+  onRefresh,
+}) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(item.note || "");
   const videoEmbed = item.store === "videos" && item.kind === "video" ? videoEmbedUrl(item.url) : null;
@@ -99,7 +109,28 @@ export default function ItemDetailModal({ item, isOwner, locked = false, stashed
   }
 
   return (
-    <Modal isOpen onClose={onClose} title={item.name} closeOnOverlay>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={item.name}
+      closeOnOverlay
+      headerActions={
+        onRefresh && (
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            onClick={onRefresh}
+            aria-label={t("app.refresh")}
+            title={t("app.refresh")}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+          </button>
+        )
+      }
+    >
       <div className={styles.body}>
         <div className={styles.top}>
           <ItemThumbnail

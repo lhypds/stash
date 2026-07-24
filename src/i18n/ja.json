@@ -90,9 +90,12 @@
     "meta": "種別",
     "stashedAt": "ストック日",
     "confirmDelete": "このアプリをストックから削除しますか？",
+    "refresh": "更新",
+    "confirmRefresh": "この項目の内容をサーバーから再読み込みしますか？",
     "toastStashed": "{{name}} をストックしました",
     "toastAlready": "すでにストック済みです",
     "toastSaved": "保存しました",
+    "toastRefreshed": "更新しました",
     "toastDeleted": "削除しました",
     "toastError": "エラーが発生しました",
     "userNotFound": "ユーザー名が無効です。"

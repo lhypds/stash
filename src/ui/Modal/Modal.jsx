@@ -5,7 +5,7 @@ import styles from "./modal.module.css";
 let lockCount = 0;
 const openModals = [];
 
-const Modal = ({ isOpen, onClose, title, children, closeOnOverlay = false, className }) => {
+const Modal = ({ isOpen, onClose, title, children, closeOnOverlay = false, className, headerActions }) => {
   // Whether the current press started on the overlay itself (a genuine
   // backdrop click) vs. a drag that began inside the modal
   const pressedOnOverlay = useRef(false);
@@ -95,9 +95,12 @@ const Modal = ({ isOpen, onClose, title, children, closeOnOverlay = false, class
       >
         <div className={styles.header}>
           {title && <span className={styles.title}>{title}</span>}
-          <button className={styles.closeButton} onClick={onClose} disabled={!onClose} aria-label="Close">
-            ✕
-          </button>
+          <div className={styles.headerRight}>
+            {headerActions}
+            <button className={styles.closeButton} onClick={onClose} disabled={!onClose} aria-label="Close">
+              ✕
+            </button>
+          </div>
         </div>
         <div className={styles.content}>{children}</div>
       </div>

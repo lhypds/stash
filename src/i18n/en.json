@@ -91,9 +91,12 @@
     "meta": "Meta",
     "stashedAt": "Stashed",
     "confirmDelete": "Remove this app from the stash?",
+    "refresh": "Refresh",
+    "confirmRefresh": "Reload this item's content from the server?",
     "toastStashed": "Stashed {{name}}",
     "toastAlready": "Already stashed",
     "toastSaved": "Saved",
+    "toastRefreshed": "Refreshed",
     "toastDeleted": "Removed",
     "toastError": "Something went wrong",
     "userNotFound": "Invalid username."

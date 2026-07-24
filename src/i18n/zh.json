@@ -90,9 +90,12 @@
     "meta": "类型",
     "stashedAt": "收藏于",
     "confirmDelete": "从收藏中移除此应用？",
+    "refresh": "刷新",
+    "confirmRefresh": "从服务器重新加载此项内容？",
     "toastStashed": "已收藏 {{name}}",
     "toastAlready": "已经收藏过了",
     "toastSaved": "已保存",
+    "toastRefreshed": "已刷新",
     "toastDeleted": "已移除",
     "toastError": "出错了",
     "userNotFound": "用户名无效。"
