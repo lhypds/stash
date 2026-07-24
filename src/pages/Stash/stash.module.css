@@ -1,16 +1,25 @@
 .page {
-  min-height: 100vh;
-  min-height: 100dvh; /* iOS Safari: 100vh extends behind the collapsed URL bar */
+  height: 100vh;
+  height: 100dvh; /* iOS Safari: 100vh extends behind the collapsed URL bar */
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .main {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   padding: 10px 16px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge */
+}
+
+.main::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .head {
