@@ -15,6 +15,15 @@ const itemKey = (a) => `${a.store}:${a.itemId}`;
 
 const MAX_URLS = 10;
 
+// A search can span several stores (Apps, Skills, …); within the merged list,
+// float items whose name exactly matches the query above everything else,
+// keeping each side's own relative order (a stable sort).
+function withExactMatchesFirst(results, term) {
+  const q = term.trim().toLowerCase();
+  const isExact = (item) => item.name?.trim().toLowerCase() === q;
+  return [...results].sort((a, b) => Number(isExact(b)) - Number(isExact(a)));
+}
+
 export default function Stash() {
   const { username } = useParams();
   const navigate = useNavigate();
@@ -195,7 +204,7 @@ export default function Stash() {
         showToast(t("app.searchFailed"));
         return;
       }
-      setSearch({ term, mode: "search", loading: false, results });
+      setSearch({ term, mode: "search", loading: false, results: withExactMatchesFirst(results, term) });
       return;
     }
 
