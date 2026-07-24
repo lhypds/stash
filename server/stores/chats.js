@@ -1,4 +1,4 @@
-import { UA, matchesHost, fetchHtml, metaContent, stripTags } from "../utils/html.js";
+import { UA, matchesHost, fetchHtml, metaContent, stripTags, truncate, PREVIEW_LENGTH } from "../utils/html.js";
 import { readRenderedTitle } from "../utils/screenshot.js";
 
 const CHAT_PLATFORMS = [
@@ -48,11 +48,13 @@ export async function analyzeChat(url) {
   const docTitle = stripTags(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
   const title = (platform?.titleInTag ? docTitle || ogTitle : ogTitle || docTitle) || platform?.label || finalUrl;
   const image = metaContent(html, "og:image");
+  const desc = metaContent(html, "og:description") || metaContent(html, "description");
   return {
     kind: "chat",
     name: stripBrand(title, platform?.label),
     byline: platform?.label || metaContent(html, "og:site_name") || loc.hostname,
     icon: image ? new URL(image, finalUrl).href : `${loc.origin}/favicon.ico`,
     url: finalUrl,
+    preview: desc ? truncate(desc, PREVIEW_LENGTH) : null,
   };
 }
