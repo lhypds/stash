@@ -75,6 +75,39 @@ export async function readRenderedTitle(url, transientTitles = []) {
   }
 }
 
+// App-style chat share pages (ChatGPT, etc.) hold the actual conversation in a
+// client-rendered, virtualized message list — nothing readable is present in
+// the initial HTML. Render the page, force the virtualizer to mount every
+// turn (same auto-scroll + expand used for full-page screenshots below), and
+// read the turns straight out of the DOM's data-message-author-role markup.
+export async function readRenderedConversation(url) {
+  active++;
+  clearTimeout(idleTimer);
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setViewport(VIEWPORT);
+    await page.setUserAgent(UA);
+    try {
+      await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
+    } catch (err) {
+      if (err.name !== "TimeoutError") throw err;
+    }
+    await autoScroll(page);
+    await expandNestedScrollRoot(page);
+    const turns = await page.evaluate(() =>
+      [...document.querySelectorAll("[data-message-author-role]")]
+        .map((el) => ({ role: el.getAttribute("data-message-author-role"), text: el.innerText.trim() }))
+        .filter((turn) => turn.text)
+    );
+    return { turns, finalUrl: page.url() || url };
+  } finally {
+    await page.close().catch(() => {});
+    active--;
+    if (active === 0) scheduleIdleClose();
+  }
+}
+
 // Scroll through the page to trigger lazy-loaded images before capturing.
 // App-style pages such as ChatGPT and Doubao keep the conversation inside
 // their own viewport-height scroll root, so window.scrollTo never reaches it.

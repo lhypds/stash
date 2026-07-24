@@ -1,8 +1,11 @@
 import { UA, matchesHost, fetchHtml, metaContent, stripTags, truncate, PREVIEW_LENGTH } from "../utils/html.js";
-import { readRenderedTitle } from "../utils/screenshot.js";
+import { readRenderedTitle, readRenderedConversation } from "../utils/screenshot.js";
 
 const CHAT_PLATFORMS = [
-  { label: "ChatGPT", hosts: ["chatgpt.com", "chat.openai.com"], titleInTag: true },
+  // ChatGPT's og:description is a static marketing blurb, not the shared
+  // conversation — renderedPreview reads the actual Q&A turns out of the
+  // client-rendered page instead (see readRenderedConversation).
+  { label: "ChatGPT", hosts: ["chatgpt.com", "chat.openai.com"], titleInTag: true, renderedPreview: true },
   { label: "Gemini", hosts: ["gemini.google.com", "g.co"] },
   { label: "Grok", hosts: ["grok.com", "x.ai"] },
   { label: "Claude", hosts: ["claude.ai"] },
@@ -49,12 +52,24 @@ export async function analyzeChat(url) {
   const title = (platform?.titleInTag ? docTitle || ogTitle : ogTitle || docTitle) || platform?.label || finalUrl;
   const image = metaContent(html, "og:image");
   const desc = metaContent(html, "og:description") || metaContent(html, "description");
+  let preview = desc ? truncate(desc, PREVIEW_LENGTH) : null;
+  if (platform?.renderedPreview) {
+    try {
+      const { turns } = await readRenderedConversation(finalUrl);
+      if (turns.length) {
+        const transcript = turns.map((turn) => `${turn.role === "user" ? "Q" : "A"}: ${turn.text}`).join("\n\n");
+        preview = truncate(transcript, PREVIEW_LENGTH);
+      }
+    } catch (err) {
+      console.error("chat conversation render failed:", err.message);
+    }
+  }
   return {
     kind: "chat",
     name: stripBrand(title, platform?.label),
     byline: platform?.label || metaContent(html, "og:site_name") || loc.hostname,
     icon: image ? new URL(image, finalUrl).href : `${loc.origin}/favicon.ico`,
     url: finalUrl,
-    preview: desc ? truncate(desc, PREVIEW_LENGTH) : null,
+    preview,
   };
 }
