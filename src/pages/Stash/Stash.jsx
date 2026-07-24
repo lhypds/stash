@@ -175,24 +175,27 @@ export default function Stash() {
 
   // The brain: analyze whatever is in the box. Links are pulled out and each
   // is auto-typed by the server (Page/Post/Video/Channel). Plain text with no
-  // link falls back to an app-store search, honoring the store filter when
-  // it names an app store and defaulting to iOS otherwise.
+  // link falls back to a keyword search — honoring the store filter when it
+  // names a search store (apps, skills), and querying every search store at
+  // once otherwise so e.g. a skill name still turns up with "All" selected.
   async function handleAnalyze(text) {
     const term = text.trim();
     if (!term) return;
 
     const found = extractUrls(term);
     if (found.length === 0) {
-      const store = "apps";
+      const stores = storeFilter && api.SEARCH_STORES.has(storeFilter) ? [storeFilter] : [...api.SEARCH_STORES];
       setQuery("");
       setSearch({ term, mode: "search", loading: true, results: [] });
-      try {
-        const { results } = await api.searchStore(store, term, countryForLang(i18n.language));
-        setSearch({ term, mode: "search", loading: false, results });
-      } catch {
+      const country = countryForLang(i18n.language);
+      const settled = await Promise.allSettled(stores.map((s) => api.searchStore(s, term, country)));
+      const results = settled.filter((r) => r.status === "fulfilled").flatMap((r) => r.value.results);
+      if (results.length === 0 && settled.every((r) => r.status === "rejected")) {
         setSearch(null);
         showToast(t("app.searchFailed"));
+        return;
       }
+      setSearch({ term, mode: "search", loading: false, results });
       return;
     }
 

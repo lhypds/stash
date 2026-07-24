@@ -51,6 +51,10 @@ const GROUPS = [
       { name: "Google Play", domain: "play.google.com" },
     ],
   },
+  {
+    store: "skills",
+    sites: [{ name: "skills.sh", domain: "skills.sh" }],
+  },
   { store: "pages", note: "app.supportedPagesNote" },
 ];
 

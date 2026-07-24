@@ -8,7 +8,8 @@
       "pages": "网页",
       "videos": "视频",
       "channels": "频道",
-      "chats": "对话"
+      "chats": "对话",
+      "skills": "技能"
     },
     "allStores": "全部",
     "allSources": "全部",
@@ -23,7 +24,8 @@
       "video": "视频",
       "channel": "频道",
       "chat": "对话",
-      "apps": "应用"
+      "apps": "应用",
+      "skill": "技能"
     },
     "storeSelect": "类型",
     "sourceSelect": "来源",

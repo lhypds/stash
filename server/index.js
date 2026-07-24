@@ -200,8 +200,13 @@ app.get("/api/search", analyzeLimiter, async (req, res) => {
   if (STORES[store]?.type !== "search") return res.status(400).json({ error: "invalid store" });
   if (!term) return res.json({ results: [] });
 
+  // Search is usable while logged out, so an anonymous caller just gets every
+  // engine on; a logged-in searcher's own settings.json trims theirs down.
+  const session = currentSession(req);
+  const searchSettings = session ? (await ensureSettings(session.username)).search : undefined;
+
   try {
-    res.json({ results: await searchSources(store, term, country) });
+    res.json({ results: await searchSources(store, term, country, searchSettings) });
   } catch (err) {
     console.error("search failed:", err.message);
     res.status(502).json({ error: "search failed" });

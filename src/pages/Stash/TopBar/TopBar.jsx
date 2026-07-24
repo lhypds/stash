@@ -19,7 +19,7 @@ const isEditable = (el) =>
 
 // The universal analyser: one box that filters the stash as you type, and — on
 // submit — analyzes whatever's pasted (links become Pages/Posts/Videos/
-// Channels; plain text falls back to an app-store search).
+// Channels; plain text falls back to a keyword search).
 export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin, onHome }) {
   const { t } = useTranslation();
   const { user, hasLock, locked, logout, unlock, setPasswordAndLock, relock, refreshLock } = useUser();

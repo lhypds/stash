@@ -7,8 +7,14 @@ import { STORES } from "./stores.js";
 const DATA_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "data");
 const settingsFile = (username) => path.join(DATA_DIR, "users", username, "settings.json");
 
+// Search engines behind the "apps" and "skills" stores, individually
+// toggleable so e.g. Google Play results can be turned off without hiding the
+// App Store too.
+const SEARCH_ENGINES = ["app_store", "google_play", "skills_dot_sh"];
+
 const DEFAULT_SETTINGS = {
   stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, true])),
+  search: Object.fromEntries(SEARCH_ENGINES.map((k) => [k, true])),
   nsfw: false,
   isLocked: false,
   password: "",
@@ -40,6 +46,7 @@ export async function ensureSettings(username) {
     isLocked: existing?.isLocked === true,
     password: typeof existing?.password === "string" ? existing.password : "",
     stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, existing?.stores?.[s] ?? true])),
+    search: Object.fromEntries(SEARCH_ENGINES.map((k) => [k, existing?.search?.[k] ?? true])),
     nsfw: typeof existing?.nsfw === "boolean" ? existing.nsfw : false,
   };
   if (JSON.stringify(merged) !== JSON.stringify(existing)) await writeSettings(username, merged);

@@ -8,7 +8,8 @@
       "pages": "ページ",
       "videos": "動画",
       "channels": "チャンネル",
-      "chats": "チャット"
+      "chats": "チャット",
+      "skills": "スキル"
     },
     "allStores": "すべて",
     "allSources": "すべて",
@@ -23,7 +24,8 @@
       "video": "動画",
       "channel": "チャンネル",
       "chat": "チャット",
-      "apps": "アプリ"
+      "apps": "アプリ",
+      "skill": "スキル"
     },
     "storeSelect": "タイプ",
     "sourceSelect": "提供元",

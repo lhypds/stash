@@ -50,46 +50,58 @@ export async function analyzeAppUrl(href, country) {
   };
 }
 
-// Keyword search across the App Store and Google Play in parallel. Fails only
-// if both stores error; a single store's failure just yields its half empty.
-export async function searchApps(term, country) {
+// Keyword search across the App Store and Google Play in parallel — either
+// can be switched off via settings.json's search.app_store/google_play. Fails
+// only if every enabled engine errors; a single one's failure just yields its
+// half empty.
+export async function searchApps(term, country, flags = {}) {
+  const { app_store = true, google_play = true } = flags;
   const searches = await Promise.allSettled([
-    (async () => {
-      const url =
-        `https://itunes.apple.com/search?media=software&limit=12` +
-        `&country=${country}&term=${encodeURIComponent(term)}`;
-      const r = await fetch(url);
-      if (!r.ok) throw new Error(`itunes ${r.status}`);
-      const json = await r.json();
-      return (json.results || [])
-        .filter((app) => app.bundleId && ITEM_ID_RE.test(appItemId("ios", app.bundleId)))
-        .map((app) => ({
-          store: "apps",
-          itemId: appItemId("ios", app.bundleId),
-          kind: "app",
-          name: app.trackName,
-          byline: app.artistName,
-          icon: app.artworkUrl512 || app.artworkUrl100,
-          url: app.trackViewUrl,
-          preview: previewFrom(app.description),
-        }));
-    })(),
-    (async () => {
-      const found = await gplay.search({ term, num: 12, country });
-      return found
-        .filter((app) => ITEM_ID_RE.test(appItemId("android", app.appId)))
-        .map((app) => ({
-          store: "apps",
-          itemId: appItemId("android", app.appId),
-          kind: "app",
-          name: app.title,
-          byline: app.developer,
-          icon: app.icon,
-          url: app.url,
-          preview: previewFrom(app.summary),
-        }));
-    })(),
+    ...(app_store
+      ? [
+          (async () => {
+            const url =
+              `https://itunes.apple.com/search?media=software&limit=12` +
+              `&country=${country}&term=${encodeURIComponent(term)}`;
+            const r = await fetch(url);
+            if (!r.ok) throw new Error(`itunes ${r.status}`);
+            const json = await r.json();
+            return (json.results || [])
+              .filter((app) => app.bundleId && ITEM_ID_RE.test(appItemId("ios", app.bundleId)))
+              .map((app) => ({
+                store: "apps",
+                itemId: appItemId("ios", app.bundleId),
+                kind: "app",
+                name: app.trackName,
+                byline: app.artistName,
+                icon: app.artworkUrl512 || app.artworkUrl100,
+                url: app.trackViewUrl,
+                preview: previewFrom(app.description),
+              }));
+          })(),
+        ]
+      : []),
+    ...(google_play
+      ? [
+          (async () => {
+            const found = await gplay.search({ term, num: 12, country });
+            return found
+              .filter((app) => ITEM_ID_RE.test(appItemId("android", app.appId)))
+              .map((app) => ({
+                store: "apps",
+                itemId: appItemId("android", app.appId),
+                kind: "app",
+                name: app.title,
+                byline: app.developer,
+                icon: app.icon,
+                url: app.url,
+                preview: previewFrom(app.summary),
+              }));
+          })(),
+        ]
+      : []),
   ]);
+  if (!searches.length) return [];
   const results = searches.flatMap((result) => (result.status === "fulfilled" ? result.value : []));
   if (!results.length && searches.every((result) => result.status === "rejected")) {
     throw new Error("app searches failed");

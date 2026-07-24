@@ -8,7 +8,8 @@
       "pages": "Pages",
       "videos": "Videos",
       "channels": "Channels",
-      "chats": "Chats"
+      "chats": "Chats",
+      "skills": "Skills"
     },
     "allStores": "All",
     "allSources": "All",
@@ -23,7 +24,8 @@
       "video": "Video",
       "channel": "Channel",
       "chat": "Chat",
-      "apps": "App"
+      "apps": "App",
+      "skill": "Skill"
     },
     "storeSelect": "Store",
     "sourceSelect": "Source",

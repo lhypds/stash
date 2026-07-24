@@ -1,13 +1,14 @@
 // Entry point for the source layer: URL→store routing, an SSRF guard, and the
 // analyze/search dispatchers. Per-store logic lives in ./stores/
-// (apps.js, videos.js, posts.js, chats.js, pages.js); this file just wires
-// them together and re-exports what the server consumes.
+// (apps.js, videos.js, posts.js, chats.js, pages.js, skills.js); this file
+// just wires them together and re-exports what the server consumes.
 import crypto from "node:crypto";
 import { isAppHost, analyzeAppUrl, searchApps } from "./stores/apps.js";
 import { postPlatformFor, analyzePost } from "./stores/posts.js";
 import { videoPlatformFor, analyzeVideo } from "./stores/videos.js";
 import { chatPlatformFor, analyzeChat } from "./stores/chats.js";
 import { analyzePage } from "./stores/pages.js";
+import { isSkillHost, analyzeSkillUrl, searchSkills } from "./stores/skills.js";
 
 export { UA } from "./utils/html.js";
 export { appItemId } from "./stores/apps.js";
@@ -23,6 +24,7 @@ export const STORES = {
   channels: { type: "url" },
   chats: { type: "url" },
   apps: { type: "search" },
+  skills: { type: "search" },
 };
 
 // Stores whose items get a background page screenshot after stashing.
@@ -43,6 +45,7 @@ export function urlStoreFor(href) {
     return "pages";
   }
   if (isAppHost(host)) return "apps";
+  if (isSkillHost(host)) return "skills";
   if (chatPlatformFor(host)) return "chats";
   if (postPlatformFor(host)) return "posts";
   if (videoPlatformFor(host)) return "videos";
@@ -75,6 +78,7 @@ export function isBlockedHost(hostname) {
 // store from what the page turns out to be; every other store is kept as-is.
 export async function analyzeSource(href, store, country) {
   if (store === "apps") return { store, ...(await analyzeAppUrl(href, country)) };
+  if (store === "skills") return { store, ...analyzeSkillUrl(href) };
   const isVideoStore = store === "videos" || store === "channels";
   const analyzed = isVideoStore
     ? await analyzeVideo(href, store)
@@ -105,8 +109,10 @@ export async function analyzeSource(href, store, country) {
   return result;
 }
 
-// Keyword search across a store. Only the apps store supports it today.
-export async function searchSources(store, term, country) {
-  if (store !== "apps") throw new Error("unsupported search store");
-  return searchApps(term, country);
+// Keyword search across a store. `searchSettings` is the caller's
+// settings.json `search` object, gating which engine(s) within the store run.
+export async function searchSources(store, term, country, searchSettings) {
+  if (store === "apps") return searchApps(term, country, searchSettings);
+  if (store === "skills") return searchSkills(term, searchSettings);
+  throw new Error("unsupported search store");
 }
