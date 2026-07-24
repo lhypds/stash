@@ -6,6 +6,7 @@ import ConfirmModal from "@components/ConfirmModal";
 import LanguageSwitcher from "@components/LanguageSwitcher";
 import LockModal from "@components/LockModal";
 import SettingsModal from "@components/SettingsModal";
+import SupportModal from "@components/SupportModal";
 import { useUser } from "@contexts/UserContext";
 import { isIOS } from "@utils/mobile";
 import styles from "./topbar.module.css";
@@ -26,6 +27,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
   const [menuOpen, setMenuOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [lockOpen, setLockOpen] = useState(false);
   const [lockMode, setLockMode] = useState("setup");
   const [afterUnlock, setAfterUnlock] = useState(null);
@@ -141,6 +143,19 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
       </form>
 
       <div className={styles.right}>
+        <button
+          type="button"
+          className={styles.help}
+          onClick={() => setHelpOpen(true)}
+          aria-label={t("app.supportedSites")}
+          title={t("app.supportedSites")}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.5 9a2.5 2.5 0 1 1 3.7 2.2c-.9.5-1.2 1-1.2 1.8" />
+            <circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none" />
+          </svg>
+        </button>
         <button
           type="button"
           className={styles.share}
@@ -277,6 +292,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
         onClose={() => setSettingsOpen(false)}
         onSaved={() => refreshLock().catch(() => {})}
       />
+      <SupportModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
     </header>
   );
 }

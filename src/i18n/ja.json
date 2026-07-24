@@ -12,6 +12,11 @@
     },
     "allStores": "すべて",
     "allSources": "すべて",
+    "supportedSites": "対応サイト",
+    "supportedSitesIntro": "これらのサイトはページからタイトル・画像・投稿者を直接取得し、詳細なプレビューを表示します。それ以外のリンクも一般的なページとしてストックできます。",
+    "supportedChannelsNote": "「動画」と同じプラットフォームのチャンネル／クリエイターページ。",
+    "supportedPagesNote": "任意のウェブサイト…",
+    "moreSites": "その他…",
     "kinds": {
       "post": "投稿",
       "page": "ページ",

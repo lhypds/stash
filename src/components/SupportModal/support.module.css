@@ -1,0 +1,64 @@
+.modal {
+  max-width: 440px;
+}
+
+.intro {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.groupTitle {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 3px 8px;
+  border: 1px solid var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-decoration: none;
+  color: inherit;
+}
+
+.chip[data-more="true"] {
+  border-color: transparent;
+  margin-left: -6px;
+  color: var(--muted);
+}
+
+@media (hover: hover) {
+  a.chip:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+}

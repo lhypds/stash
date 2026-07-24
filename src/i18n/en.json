@@ -12,6 +12,11 @@
     },
     "allStores": "All",
     "allSources": "All",
+    "supportedSites": "Supported sites",
+    "supportedSitesIntro": "These sites get rich previews — title, image, and author pulled straight from the page. Any other link can still be stashed as a general page.",
+    "supportedChannelsNote": "Creator/channel pages on the same platforms as Videos.",
+    "supportedPagesNote": "Any website…",
+    "moreSites": "more…",
     "kinds": {
       "post": "Post",
       "page": "Page",
