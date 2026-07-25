@@ -125,7 +125,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
         <input
           ref={inputRef}
           className={styles.input}
-          type="search"
+          type="text"
           value={query}
           onChange={(e) => onQueryChange?.(e.target.value)}
           placeholder={t("app.universalPlaceholder")}
@@ -134,6 +134,23 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
           // and can leave it stuck under the bar after the keyboard closes
           onBlur={isIOS ? () => window.scrollTo(0, 0) : undefined}
         />
+        {query && (
+          <button
+            type="button"
+            className={styles.clear}
+            onClick={() => {
+              onQueryChange?.("");
+              inputRef.current?.focus();
+            }}
+            aria-label={t("app.clear")}
+            title={t("app.clear")}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <line x1="5" y1="5" x2="19" y2="19" />
+              <line x1="19" y1="5" x2="5" y2="19" />
+            </svg>
+          </button>
+        )}
         <button type="submit" className={styles.submit} aria-label={t("app.analyze")} title={t("app.analyze")}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="9 10 4 15 9 20" />

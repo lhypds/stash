@@ -33,6 +33,7 @@
     "share": "リンクをコピー",
     "linkCopied": "リンクをクリップボードにコピーしました。",
     "copyFailed": "リンクをコピーできませんでした。",
+    "clear": "クリア",
     "analyze": "分析",
     "analysisResults": "分析結果",
     "analyzing": "分析中…",
