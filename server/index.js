@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { ZipArchive } from "archiver";
+import sharp from "sharp";
 import { captureFullPage } from "./utils/screenshot.js";
 import {
   STORES,
@@ -75,20 +76,26 @@ async function downloadIcon(dir, imageBase, iconUrl, sourceUrl) {
     const r = await fetch(iconUrl, { headers });
     if (!r.ok) return null;
     const type = r.headers.get("content-type") || "";
-    const ext = type.includes("png")
-      ? "png"
-      : type.includes("webp")
-        ? "webp"
-        : type.includes("gif")
-          ? "gif"
-          : type.includes("svg")
-            ? "svg"
-            : type.includes("icon")
-              ? "ico"
-              : "jpg";
-    const file = `${imageBase}.${ext}`;
-    await fs.writeFile(path.join(dir, file), Buffer.from(await r.arrayBuffer()));
-    return file;
+    const buf = Buffer.from(await r.arrayBuffer());
+
+    // Vector/favicon formats don't benefit from raster re-encoding; keep as-is
+    if (type.includes("svg") || type.includes("icon")) {
+      const file = `${imageBase}.${type.includes("svg") ? "svg" : "ico"}`;
+      await fs.writeFile(path.join(dir, file), buf);
+      return file;
+    }
+
+    try {
+      const file = `${imageBase}.webp`;
+      await sharp(buf, { animated: true }).webp({ quality: 80 }).toFile(path.join(dir, file));
+      return file;
+    } catch {
+      // Not a decodable raster image (or an unsupported format): keep the original bytes
+      const ext = type.includes("png") ? "png" : type.includes("gif") ? "gif" : "jpg";
+      const file = `${imageBase}.${ext}`;
+      await fs.writeFile(path.join(dir, file), buf);
+      return file;
+    }
   } catch (err) {
     console.error("icon download failed:", err.message);
     return null;
@@ -98,7 +105,7 @@ async function downloadIcon(dir, imageBase, iconUrl, sourceUrl) {
 // Fire-and-forget: stashing responds immediately, the screenshot lands later
 function captureInBackground(username, store, itemId, url) {
   const dir = itemDir(username, store, itemId);
-  const file = "screenshot.jpg";
+  const file = "screenshot.webp";
   captureFullPage(url, path.join(dir, file))
     .then(async () => {
       const jsonFile = path.join(dir, "item.json");

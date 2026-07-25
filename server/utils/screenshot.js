@@ -194,7 +194,7 @@ export async function captureFullPage(url, filePath) {
     await expandNestedScrollRoot(page);
 
     const height = await page.evaluate(() => Math.ceil(document.documentElement.scrollHeight));
-    const shot = { path: filePath, type: "jpeg", quality: 82 };
+    const shot = { path: filePath, type: "webp", quality: 80 };
     if (height > MAX_HEIGHT) {
       await page.screenshot({ ...shot, clip: { x: 0, y: 0, width: VIEWPORT.width, height: MAX_HEIGHT } });
     } else {
