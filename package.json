@@ -9,7 +9,7 @@
     ]
   },
   "scripts": {
-    "dev": "node --watch server/index.js",
+    "dev": "node --watch-path=server server/index.js",
     "server": "node server/index.js",
     "build": "vite build",
     "lint": "oxlint",

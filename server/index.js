@@ -280,10 +280,15 @@ app.get("/api/analyze", analyzeLimiter, async (req, res) => {
   }
 });
 
-// The only host we currently ever hand back as a post's `video` (see
-// analyzePost's X handling) — kept as an allowlist so this can't turn into an
-// open fetch-anything proxy.
+// The only hosts we currently ever hand back as a post's `video` (see
+// analyzePost's X and Instagram handling) — kept as an allowlist so this
+// can't turn into an open fetch-anything proxy. Instagram's CDN hostname
+// varies by edge node (e.g. scontent-itm1-1.cdninstagram.com), so it's
+// matched by domain suffix rather than an exact set like twimg.com's is.
 const VIDEO_PROXY_HOSTS = new Set(["video.twimg.com"]);
+const VIDEO_PROXY_HOST_SUFFIXES = [".cdninstagram.com", ".fbcdn.net"];
+const isAllowedVideoProxyHost = (hostname) =>
+  VIDEO_PROXY_HOSTS.has(hostname) || VIDEO_PROXY_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix));
 
 // video.twimg.com 403s a request whose Referer isn't twitter.com/x.com; a
 // <video> tag always sends the page's own Referer and (unlike <img>) has no
@@ -296,7 +301,7 @@ app.get("/api/video-proxy", analyzeLimiter, async (req, res) => {
   } catch {
     return res.status(400).end();
   }
-  if (target.protocol !== "https:" || !VIDEO_PROXY_HOSTS.has(target.hostname)) {
+  if (target.protocol !== "https:" || !isAllowedVideoProxyHost(target.hostname)) {
     return res.status(400).end();
   }
   try {

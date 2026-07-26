@@ -16,7 +16,11 @@ const POST_PLATFORMS = [
   // 140 chars) — its full oembed blockquote text style tends to run long.
   { label: "X", hosts: ["x.com", "twitter.com"], ua: BOT_UA, syndication: true, maxNameWords: 30 },
   { label: "Threads", hosts: ["threads.net", "threads.com"], ua: BOT_UA },
-  { label: "Instagram", hosts: ["instagram.com", "instagr.am"], ua: META_UA },
+  // Instagram's web app no longer renders og:title/og:image/og:video into the
+  // page HTML server-side (even under the Facebook-bot UA below) — the real
+  // data loads client-side now. `embed` routes it through its public embed
+  // page instead (see fetchInstagramEmbed), which still carries it.
+  { label: "Instagram", hosts: ["instagram.com", "instagr.am"], ua: META_UA, embed: true },
   { label: "RedNote", hosts: ["xiaohongshu.com", "xhslink.com", "rednote.com"], ua: UA, postInTitle: true },
   { label: "Facebook", hosts: ["facebook.com", "fb.com", "fb.watch"], ua: META_UA },
   { label: "Bluesky", hosts: ["bsky.app"], ua: BOT_UA },
@@ -132,6 +136,39 @@ async function fetchTweetSyndication(url) {
   }
 }
 
+// Instagram's public embed page — the one third-party sites use to embed a
+// post — still carries the real caption, cover image, owner, and (for
+// reels/videos) a direct mp4 URL in a `contextJSON` script variable, even
+// though the regular page no longer exposes any of that via <meta> tags.
+// Works uniformly at the /p/ path regardless of the original url's own
+// p/reel/reels/tv segment.
+async function fetchInstagramEmbed(url) {
+  const shortcode = new URL(url).pathname.match(/\/(?:p|reel|reels|tv)\/([^/]+)/)?.[1];
+  if (!shortcode) return null;
+  try {
+    const endpoint = `https://www.instagram.com/p/${shortcode}/embed/captioned/`;
+    const r = await fetch(endpoint, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(10000) });
+    if (!r.ok) throw new Error(`fetch ${r.status}`);
+    const html = await r.text();
+    // contextJSON's value is itself JSON-encoded (escaped) inside the outer
+    // JSON string literal; unescape it once to get the real JSON text, then
+    // parse that.
+    const raw = html.match(/"contextJSON":"((?:\\.|[^"\\])*)"/)?.[1];
+    if (!raw) throw new Error("no contextJSON");
+    const media = JSON.parse(JSON.parse(`"${raw}"`))?.gql_data?.shortcode_media;
+    if (!media) throw new Error("no shortcode_media");
+    return {
+      text: media.edge_media_to_caption?.edges?.[0]?.node?.text || null,
+      byline: media.owner?.username || null,
+      icon: media.display_url || media.thumbnail_src || null,
+      video: media.is_video ? media.video_url || null : null,
+    };
+  } catch (err) {
+    console.error("instagram embed failed:", err.message);
+    return null;
+  }
+}
+
 // Zhihu blocks unauthenticated server-side page requests in some regions.
 // Microlink retains the page's public metadata, so use it only after the
 // direct request failed and only for platforms that explicitly opt in.
@@ -162,6 +199,7 @@ export async function analyzePost(url) {
   let byline = null;
   let body = null;
   let video = null;
+  let icon = null;
   if (platform?.syndication) {
     const tweet = await fetchTweetSyndication(url);
     if (tweet) {
@@ -170,11 +208,19 @@ export async function analyzePost(url) {
       video = tweet.video;
     }
   }
-  let icon = null;
+  if (platform?.embed) {
+    const ig = await fetchInstagramEmbed(url);
+    if (ig) {
+      text = ig.text;
+      byline = ig.byline;
+      video = ig.video;
+      icon = ig.icon;
+    }
+  }
   try {
     const { html, finalUrl } = await fetchHtml(url, platform?.ua || BOT_UA, 2000000);
     const image = metaContent(html, "og:image");
-    icon = image ? new URL(image, finalUrl).href : null;
+    if (!icon) icon = image ? new URL(image, finalUrl).href : null;
     const title = metaContent(html, "og:title");
     const desc = metaContent(html, "og:description");
     const siteName = metaContent(html, "og:site_name");
