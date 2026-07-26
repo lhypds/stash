@@ -35,6 +35,7 @@ try {
 } catch { }
 
 const PORT = process.env.PORT || 3001;
+const DEV = process.env.NODE_ENV !== "production";
 
 const USERNAME_RE =
   /^[a-z0-9_\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Hangul}-]{1,32}$/u;
@@ -587,13 +588,31 @@ app.get("/api/users/:username/export.zip", requireUnlockedOwner, async (req, res
 
 app.use("/data", express.static(DATA_DIR, { fallthrough: false }));
 
-app.use(express.static(DIST_DIR));
-app.use((req, res, next) => {
-  if (req.method !== "GET" || req.path.startsWith("/api/")) return next();
-  res.sendFile(path.join(DIST_DIR, "index.html"), (err) => {
-    if (err) next();
+// Dev: Vite runs as middleware in this same process, so the app and API
+// share one port. Prod: the frontend is a prebuilt dist/ served as static files.
+if (DEV) {
+  const { createServer } = await import("vite");
+  const vite = await createServer({ root: ROOT, server: { middlewareMode: true }, appType: "custom" });
+  app.use(vite.middlewares);
+  app.use(async (req, res, next) => {
+    if (req.method !== "GET" || req.path.startsWith("/api/")) return next();
+    try {
+      const template = await fs.readFile(path.join(ROOT, "index.html"), "utf-8");
+      res.status(200).set({ "Content-Type": "text/html" }).end(await vite.transformIndexHtml(req.originalUrl, template));
+    } catch (err) {
+      vite.ssrFixStacktrace(err);
+      next(err);
+    }
   });
-});
+} else {
+  app.use(express.static(DIST_DIR));
+  app.use((req, res, next) => {
+    if (req.method !== "GET" || req.path.startsWith("/api/")) return next();
+    res.sendFile(path.join(DIST_DIR, "index.html"), (err) => {
+      if (err) next();
+    });
+  });
+}
 
 app.listen(PORT, (err) => {
   if (err) {
