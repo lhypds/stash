@@ -9,7 +9,8 @@
       "videos": "视频",
       "channels": "频道",
       "chats": "对话",
-      "skills": "技能"
+      "skills": "技能",
+      "notes": "笔记"
     },
     "allStores": "全部",
     "allSources": "全部",
@@ -25,7 +26,8 @@
       "channel": "频道",
       "chat": "对话",
       "apps": "应用",
-      "skill": "技能"
+      "skill": "技能",
+      "note": "笔记"
     },
     "storeSelect": "类型",
     "sourceSelect": "来源",
@@ -71,6 +73,17 @@
     "emptyStash": "还没有收藏。",
     "preview": "预览",
     "note": "笔记",
+    "addNote": "添加笔记",
+    "newNote": "新建笔记",
+    "noteEmpty": "请先写点内容。",
+    "attachImage": "+ 图片",
+    "removeImage": "移除图片",
+    "invalidImage": "该文件不是可用的图片。",
+    "invalidFile": "只能添加图片或文本文件。",
+    "imageTooLarge": "图片太大了（最大 {{max}} MB）。",
+    "textTooLarge": "文本文件太大了（最大 {{max}} MB）。",
+    "image": "图片",
+    "imageOpen": "查看完整图片",
     "screenshot": "网页截图",
     "screenshotOpen": "查看完整截图",
     "screenshotPending": "正在截图…",

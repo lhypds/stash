@@ -16,7 +16,9 @@ const json = (method, body) => ({
   body: JSON.stringify(body),
 });
 
-export const STORE_KEYS = ["pages", "posts", "videos", "channels", "chats", "apps", "skills"];
+// Also the order the store filter lists them in — notes first, being the one
+// store you write into rather than collect from somewhere else.
+export const STORE_KEYS = ["notes", "pages", "posts", "videos", "channels", "chats", "apps", "skills"];
 export const URL_STORES = new Set(["posts", "pages", "videos", "channels", "chats"]);
 
 // Stores filled by a keyword search rather than a pasted link.
@@ -25,6 +27,10 @@ export const SEARCH_STORES = new Set(["apps", "skills"]);
 // Stores whose items get a background screenshot instead of arriving with one;
 // the detail view polls for it to land. Mirrors SHOT_STORES on the server.
 export const SHOT_STORES = new Set(["pages", "chats"]);
+
+// Largest image attachable to a note. Mirrors MAX_NOTE_IMAGE_BYTES on the
+// server, so an oversized pick is caught before it's read and base64-inflated.
+export const MAX_NOTE_IMAGE_MB = 8;
 
 const userPath = (username) => encodeURIComponent(username);
 
@@ -62,6 +68,11 @@ export const saveSettings = (username, settings) =>
 export const getStash = (username) => request(`/api/users/${userPath(username)}/stash`);
 
 export const stashItem = (username, item) => request(`/api/users/${userPath(username)}/items`, json("POST", item));
+
+// Writes a new note into the Notes store. `image` is an optional data: URL of
+// one attached image; the server re-encodes it into the note's thumbnail.
+export const createNote = (username, { text, image }) =>
+  request(`/api/users/${userPath(username)}/notes`, json("POST", { text, image: image || null }));
 
 export const copyItem = (username, fromUsername, store, itemId) =>
   request(

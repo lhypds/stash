@@ -18,6 +18,8 @@ import {
   searchSources,
   analyzeSource,
   backfillSkillMeta,
+  noteTitle,
+  saveNoteImage,
 } from "./stores.js";
 import { ensureSettings, writeSettings, passwordsMatch, userExists } from "./settings.js";
 
@@ -120,6 +122,15 @@ function captureInBackground(username, store, itemId, url) {
 /* ---------- app ---------- */
 
 const app = express();
+// A written note can carry an inlined image (a data: URL, since there's no
+// multipart parser here), so its own route gets a much larger body limit.
+// Registered first: the general parser below skips a body already parsed.
+app.use("/api/users/:username/notes", express.json({ limit: "12mb" }), (err, req, res, next) => {
+  // Keep a rejected body an API-shaped error rather than express's HTML page,
+  // so the client can tell the user what actually went wrong.
+  if (err?.type === "entity.too.large") return res.status(413).json({ error: "image too large", code: "IMAGE_TOO_LARGE" });
+  next(err);
+});
 app.use(express.json());
 app.set("trust proxy", true);
 
@@ -437,6 +448,9 @@ app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) =>
   const { username } = req.params;
   const { store, itemId, kind, name, byline, icon, url, preview, installCommand, video } = req.body || {};
   if (!STORES[store]) return res.status(400).json({ error: "invalid store" });
+  // A "write" store's items are authored, not analyzed — they have their own
+  // endpoint (see POST .../notes) so their byline can't be spoofed here.
+  if (STORES[store].type === "write") return res.status(400).json({ error: "invalid store" });
   if (!ITEM_ID_RE.test(itemId || "")) return res.status(400).json({ error: "invalid itemId" });
 
   const dir = itemDir(username, store, itemId);
@@ -473,6 +487,50 @@ app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) =>
   res.status(201).json({ item: withIconUrl(username, record) });
 });
 
+// A note is written rather than analyzed: its text is the item's body, the
+// first line doubles as its name (see noteTitle), and its byline is the author.
+// Two notes can legitimately hold the same text, so the itemId is random
+// instead of a content hash like the analyzed stores use.
+app.post("/api/users/:username/notes", requireUnlockedOwner, async (req, res) => {
+  const { username } = req.params;
+  const text = typeof req.body?.text === "string" ? req.body.text : "";
+  const hasImage = typeof req.body?.image === "string" && req.body.image !== "";
+  // An image on its own is a whole note. It has no first line to name it, so it
+  // is stored nameless and the client labels it (see itemTitle) — only a note
+  // with neither text nor image is nothing at all.
+  const name = noteTitle(text);
+  if (!name && !hasImage) return res.status(400).json({ error: "note is empty", code: "NOTE_EMPTY" });
+
+  const store = "notes";
+  const itemId = crypto.randomBytes(8).toString("hex");
+  const dir = itemDir(username, store, itemId);
+  await fs.mkdir(dir, { recursive: true });
+  await ensureSettings(username);
+
+  const iconFile = hasImage ? await saveNoteImage(dir, req.body.image) : null;
+  if (hasImage && !iconFile) {
+    await fs.rm(dir, { recursive: true, force: true });
+    return res.status(400).json({ error: "invalid image", code: "INVALID_IMAGE" });
+  }
+
+  const record = {
+    store,
+    itemId,
+    kind: "note",
+    name,
+    byline: `@${username}`,
+    url: "",
+    iconFile,
+    preview: null,
+    installCommand: null,
+    video: null,
+    note: text,
+    stashedAt: new Date().toISOString(),
+  };
+  await writeJson(path.join(dir, "item.json"), record);
+  res.status(201).json({ item: withIconUrl(username, record) });
+});
+
 // Copies another user's item (item.json, note, and any icon/screenshot files)
 // into the caller's own stash. The itemId is a deterministic hash of the
 // content (see analyzeSource), so it lines up across users and the existing
@@ -506,7 +564,15 @@ app.patch("/api/users/:username/items/:store/:itemId", requireUnlockedOwner, asy
   if (!record) return res.status(404).json({ error: "not found" });
 
   const { note } = req.body || {};
-  if (typeof note === "string") record.note = note;
+  if (typeof note === "string") {
+    record.note = note;
+    // A note's text *is* the item, so editing it re-derives the title the card
+    // shows. Emptying the text of one with an image drops it back to nameless —
+    // the same state it would have been stashed in as an image on its own. With
+    // no image to fall back on, the previous name is kept instead of leaving
+    // the item with nothing to show.
+    if (record.kind === "note") record.name = noteTitle(note) || (record.iconFile ? "" : record.name);
+  }
   await writeJson(jsonFile, record);
   res.json({ item: withIconUrl(username, record) });
 });

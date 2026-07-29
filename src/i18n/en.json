@@ -9,7 +9,8 @@
       "videos": "Videos",
       "channels": "Channels",
       "chats": "Chats",
-      "skills": "Skills"
+      "skills": "Skills",
+      "notes": "Notes"
     },
     "allStores": "All",
     "allSources": "All",
@@ -25,7 +26,8 @@
       "channel": "Channel",
       "chat": "Chat",
       "apps": "App",
-      "skill": "Skill"
+      "skill": "Skill",
+      "note": "Note"
     },
     "storeSelect": "Store",
     "sourceSelect": "Source",
@@ -72,6 +74,17 @@
     "emptyStash": "Nothing stashed yet.",
     "preview": "Preview",
     "note": "Note",
+    "addNote": "Add note",
+    "newNote": "New note",
+    "noteEmpty": "Write something first.",
+    "attachImage": "+ Image",
+    "removeImage": "Remove image",
+    "invalidImage": "That file isn't a usable image.",
+    "invalidFile": "Only images and text files can be added.",
+    "imageTooLarge": "That image is too large (max {{max}} MB).",
+    "textTooLarge": "That text file is too large (max {{max}} MB).",
+    "image": "Image",
+    "imageOpen": "Open full image",
     "screenshot": "Screenshot",
     "screenshotOpen": "Open full screenshot",
     "screenshotPending": "Capturing the page…",

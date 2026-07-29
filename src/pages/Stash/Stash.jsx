@@ -1,17 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { showToast } from "@ui";
-import { LoginModal, ItemCard, ItemDetailModal, ConfirmModal, FilterDropdown } from "@components";
+import { LoginModal, ItemCard, ItemDetailModal, ConfirmModal, FilterDropdown, NoteModal } from "@components";
 import TopBar from "./TopBar";
 import * as api from "@utils/api";
 import { extractUrls, isPrivateChatGPTUrl, sourceName, sourceBucket, OTHER_SOURCE } from "@utils/url";
-import { itemMeta } from "@utils/item";
+import { itemMeta, itemTitle } from "@utils/item";
+import { isNoteFile } from "@utils/file";
 import { useUser } from "@contexts/UserContext";
 import styles from "./stash.module.css";
 
 const countryForLang = (lang) => (lang === "ja" ? "jp" : lang === "zh" ? "cn" : "us");
 const itemKey = (a) => `${a.store}:${a.itemId}`;
+// Item names run long (a note's whole first line, a page's full title) — keep a
+// toast to one readable line.
+const toastName = (name) => (name.length > 40 ? `${name.slice(0, 40)}…` : name);
 
 const MAX_URLS = 10;
 
@@ -40,6 +44,8 @@ export default function Stash() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [query, setQuery] = useState("");
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteFile, setNoteFile] = useState(null);
 
   // The store/source filters live in the URL (?store=&source=) so a filtered
   // view is shareable and survives a reload. A missing param means "All";
@@ -175,7 +181,7 @@ export default function Stash() {
       .filter(
         (a) =>
           !q ||
-          [a.name, a.byline, a.note, sourceName(a.url), itemMeta(a, t)].some((f) =>
+          [itemTitle(a, t), a.byline, a.note, sourceName(a.url), itemMeta(a, t)].some((f) =>
             f?.toLowerCase().includes(q),
           ),
       )
@@ -263,10 +269,86 @@ export default function Stash() {
       // plus its channel), stay put so the rest can still be stashed; the
       // just-stashed card flips to its disabled "stashed" state instead.
       if (search.results.length <= 1) setSearch(null);
-      const name = item.name.length > 40 ? `${item.name.slice(0, 40)}…` : item.name;
-      showToast(t("app.toastStashed", { name }));
+      showToast(t("app.toastStashed", { name: toastName(itemTitle(item, t)) }));
     } catch (err) {
       showToast(err.status === 409 ? t("app.toastAlready") : t("app.toastError"));
+    }
+  }
+
+  // Starting a note — from the + button beside the search box, or from an image
+  // dropped on the page, which arrives here as `file` and opens the modal with
+  // it already attached. A note is written rather than analyzed, and lands in
+  // the viewer's own Notes store behind the same login/lock gates as stashing.
+  const startNote = useCallback(
+    (file = null) => {
+      if (!user) {
+        setLoginOpen(true);
+        return;
+      }
+      if (locked) {
+        showToast(t("app.unlockFirst"));
+        return;
+      }
+      setNoteFile(file);
+      setNoteOpen(true);
+    },
+    [user, locked, t],
+  );
+
+  // An image dropped anywhere on the page starts a note with it attached. The
+  // listeners are on the window so that a file dropped outside any drop target
+  // still can't be handled by the browser, which would navigate away from the
+  // app. dragover has to be prevented for a drop to fire at all.
+  useEffect(() => {
+    const onDragOver = (e) => {
+      if (e.dataTransfer?.types?.includes("Files")) e.preventDefault();
+    };
+    const onDrop = (e) => {
+      // An open modal handles its own drops (see NoteModal) and marks them done
+      if (e.defaultPrevented) return;
+      const file = e.dataTransfer?.files?.[0];
+      if (!file) return;
+      e.preventDefault();
+      // Leave a drop over some other dialog to that dialog, rather than stacking
+      // a new note on top of it
+      if (document.querySelector('[aria-modal="true"]')) return;
+      // An image or a text file starts a note (attached / loaded in); anything
+      // else is swallowed rather than popping a modal the user can't use
+      if (isNoteFile(file)) startNote(file);
+    };
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, [startNote]);
+
+  function closeNote() {
+    setNoteOpen(false);
+    setNoteFile(null);
+  }
+
+  async function handleSaveNote({ text, image }) {
+    if (!user) return;
+    try {
+      const { item } = await api.createNote(user, { text, image });
+      if (isOwner) setItems((prev) => [item, ...prev]);
+      closeNote();
+      showToast(t("app.toastStashed", { name: toastName(itemTitle(item, t)) }));
+    } catch (err) {
+      if (err.code === "STASH_LOCKED") {
+        await refreshLock().catch(() => {});
+        showToast(t("app.unlockFirst"));
+      } else if (err.code === "NOTE_EMPTY") {
+        showToast(t("app.noteEmpty"));
+      } else if (err.code === "INVALID_IMAGE") {
+        showToast(t("app.invalidImage"));
+      } else if (err.code === "IMAGE_TOO_LARGE") {
+        showToast(t("app.imageTooLarge", { max: api.MAX_NOTE_IMAGE_MB }));
+      } else {
+        showToast(t("app.toastError"));
+      }
     }
   }
 
@@ -284,8 +366,7 @@ export default function Stash() {
     try {
       const { item: copied } = await api.copyItem(user, username, item.store, item.itemId);
       setViewerItems((prev) => [copied, ...prev]);
-      const name = copied.name.length > 40 ? `${copied.name.slice(0, 40)}…` : copied.name;
-      showToast(t("app.toastStashed", { name }));
+      showToast(t("app.toastStashed", { name: toastName(itemTitle(copied, t)) }));
     } catch (err) {
       if (err.code === "STASH_LOCKED") {
         await refreshLock().catch(() => {});
@@ -382,6 +463,7 @@ export default function Stash() {
         query={query}
         onQueryChange={setQuery}
         onAnalyze={handleAnalyze}
+        onAddNote={() => startNote()}
         onRequestLogin={() => setLoginOpen(true)}
         onHome={() => {
           setSearch(null);
@@ -469,6 +551,7 @@ export default function Stash() {
       </main>
 
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
+      <NoteModal isOpen={noteOpen} initialFile={noteFile} onClose={closeNote} onSave={handleSaveNote} />
       {detail && (
         <ItemDetailModal
           item={detail}
@@ -479,7 +562,9 @@ export default function Stash() {
           onSave={handleSaveItem}
           onDelete={handleDeleteItem}
           onStash={!isOwner ? () => handleCopyItem(detail) : undefined}
-          onRefresh={isOwner ? () => handleRefreshItem(detail) : undefined}
+          // Refresh re-analyzes the item's source URL, so it's meaningless for
+          // a written note (which has none).
+          onRefresh={isOwner && detail.url ? () => handleRefreshItem(detail) : undefined}
         />
       )}
       <ConfirmModal

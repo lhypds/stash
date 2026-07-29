@@ -21,12 +21,32 @@
   white-space: nowrap;
 }
 
+/* The search box plus the detached add button share the bar's middle column */
+.center {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
 .search {
   position: relative;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: stretch;
   border: 1px solid var(--ink);
   background: var(--bg);
+}
+
+.add {
+  flex: none;
+  width: 38px;
+  border: 1px solid var(--ink);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input {
@@ -180,6 +200,11 @@
     color: var(--bg);
   }
 
+  .add:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
   .export:hover {
     background: var(--ink);
     color: var(--bg);
@@ -216,7 +241,7 @@
     grid-template-columns: 1fr auto;
   }
 
-  .search {
+  .center {
     grid-column: 1 / -1;
     grid-row: 2;
   }

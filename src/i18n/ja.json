@@ -9,7 +9,8 @@
       "videos": "動画",
       "channels": "チャンネル",
       "chats": "チャット",
-      "skills": "スキル"
+      "skills": "スキル",
+      "notes": "メモ"
     },
     "allStores": "すべて",
     "allSources": "すべて",
@@ -25,7 +26,8 @@
       "channel": "チャンネル",
       "chat": "チャット",
       "apps": "アプリ",
-      "skill": "スキル"
+      "skill": "スキル",
+      "note": "メモ"
     },
     "storeSelect": "タイプ",
     "sourceSelect": "提供元",
@@ -71,6 +73,17 @@
     "emptyStash": "まだ何もありません。",
     "preview": "プレビュー",
     "note": "メモ",
+    "addNote": "メモを追加",
+    "newNote": "新しいメモ",
+    "noteEmpty": "先に内容を入力してください。",
+    "attachImage": "+ 画像",
+    "removeImage": "画像を削除",
+    "invalidImage": "このファイルは使用できる画像ではありません。",
+    "invalidFile": "追加できるのは画像とテキストファイルのみです。",
+    "imageTooLarge": "画像が大きすぎます（最大 {{max}} MB）。",
+    "textTooLarge": "テキストファイルが大きすぎます（最大 {{max}} MB）。",
+    "image": "画像",
+    "imageOpen": "画像を開く",
     "screenshot": "スクリーンショット",
     "screenshotOpen": "全体のスクリーンショットを開く",
     "screenshotPending": "スクリーンショットを撮影中…",

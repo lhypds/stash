@@ -4,7 +4,7 @@ import { Modal, TextArea, showToast } from "@ui";
 import ItemThumbnail from "@components/ItemThumbnail";
 import { SHOT_STORES } from "@utils/api";
 import { sourceName, videoEmbedUrl } from "@utils/url";
-import { itemMeta } from "@utils/item";
+import { itemMeta, itemTitle } from "@utils/item";
 import styles from "./detail.module.css";
 
 // CLI commands offered from the Actions rows.
@@ -87,6 +87,7 @@ export default function ItemDetailModal({
 }) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(item.note || "");
+  const title = itemTitle(item, t);
   const videoEmbed = item.store === "videos" && item.kind === "video" ? videoEmbedUrl(item.url) : null;
   // A post (e.g. an X/Twitter post) can carry a direct video file instead of
   // an embeddable player URL — play it back with a plain <video> tag, routed
@@ -112,7 +113,7 @@ export default function ItemDetailModal({
     <Modal
       isOpen
       onClose={onClose}
-      title={item.name}
+      title={title}
       closeOnOverlay
       headerActions={
         onRefresh && (
@@ -134,12 +135,16 @@ export default function ItemDetailModal({
     >
       <div className={styles.body}>
         <div className={styles.top}>
-          <ItemThumbnail
-            src={item.iconUrl}
-            name={item.name}
-            fallback={item.kind === "page" ? item.byline : undefined}
-            className={styles.bigIcon}
-          />
+          {/* A note's image is its content, not an icon — it gets its own
+              full-width block below instead of a thumbnail up here. */}
+          {item.kind !== "note" && (
+            <ItemThumbnail
+              src={item.iconUrl}
+              name={title}
+              fallback={item.kind === "page" ? item.byline : undefined}
+              className={styles.bigIcon}
+            />
+          )}
           <div className={styles.info}>
             {item.byline && (
               <span>
@@ -164,6 +169,20 @@ export default function ItemDetailModal({
             )}
           </div>
         </div>
+
+        {item.kind === "note" && item.iconUrl && (
+          <div>
+            <div className={styles.labelRow}>
+              <label className={styles.label}>{t("app.image")}</label>
+              <a href={item.iconUrl} target="_blank" rel="noreferrer" className={styles.shotLink}>
+                {t("app.imageOpen")} ↗
+              </a>
+            </div>
+            <div className={styles.shotWrap}>
+              <img src={item.iconUrl} alt={title} className={styles.shot} loading="lazy" />
+            </div>
+          </div>
+        )}
 
         {item.preview && (
           <div>
@@ -206,7 +225,7 @@ export default function ItemDetailModal({
               {videoEmbed ? (
                 <iframe
                   src={videoEmbed}
-                  title={item.name}
+                  title={title}
                   className={styles.video}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen

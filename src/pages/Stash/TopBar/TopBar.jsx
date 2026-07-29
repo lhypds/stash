@@ -20,7 +20,7 @@ const isEditable = (el) =>
 // The universal analyser: one box that filters the stash as you type, and — on
 // submit — analyzes whatever's pasted (links become Pages/Posts/Videos/
 // Channels; plain text falls back to a keyword search).
-export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin, onHome }) {
+export default function TopBar({ query, onQueryChange, onAnalyze, onAddNote, onRequestLogin, onHome }) {
   const { t } = useTranslation();
   const { user, hasLock, locked, logout, unlock, setPasswordAndLock, relock, refreshLock } = useUser();
   const navigate = useNavigate();
@@ -121,43 +121,60 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onRequestLogin
         stash
       </Link>
 
-      <form className={styles.search} onSubmit={submit} role="search">
-        <input
-          ref={inputRef}
-          className={styles.input}
-          type="text"
-          value={query}
-          onChange={(e) => onQueryChange?.(e.target.value)}
-          placeholder={t("app.universalPlaceholder")}
-          enterKeyHint="search"
-          // iOS scrolls the page to "reveal" inputs inside the sticky bar
-          // and can leave it stuck under the bar after the keyboard closes
-          onBlur={isIOS ? () => window.scrollTo(0, 0) : undefined}
-        />
-        {query && (
-          <button
-            type="button"
-            className={styles.clear}
-            onClick={() => {
-              onQueryChange?.("");
-              inputRef.current?.focus();
-            }}
-            aria-label={t("app.clear")}
-            title={t("app.clear")}
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <line x1="5" y1="5" x2="19" y2="19" />
-              <line x1="19" y1="5" x2="5" y2="19" />
+      <div className={styles.center}>
+        <form className={styles.search} onSubmit={submit} role="search">
+          <input
+            ref={inputRef}
+            className={styles.input}
+            type="text"
+            value={query}
+            onChange={(e) => onQueryChange?.(e.target.value)}
+            placeholder={t("app.universalPlaceholder")}
+            enterKeyHint="search"
+            // iOS scrolls the page to "reveal" inputs inside the sticky bar
+            // and can leave it stuck under the bar after the keyboard closes
+            onBlur={isIOS ? () => window.scrollTo(0, 0) : undefined}
+          />
+          {query && (
+            <button
+              type="button"
+              className={styles.clear}
+              onClick={() => {
+                onQueryChange?.("");
+                inputRef.current?.focus();
+              }}
+              aria-label={t("app.clear")}
+              title={t("app.clear")}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <line x1="5" y1="5" x2="19" y2="19" />
+                <line x1="19" y1="5" x2="5" y2="19" />
+              </svg>
+            </button>
+          )}
+          <button type="submit" className={styles.submit} aria-label={t("app.analyze")} title={t("app.analyze")}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="9 10 4 15 9 20" />
+              <path d="M20 4v7a4 4 0 0 1-4 4H4" />
             </svg>
           </button>
-        )}
-        <button type="submit" className={styles.submit} aria-label={t("app.analyze")} title={t("app.analyze")}>
+        </form>
+
+        {/* Sits just outside the search box (hence the gap): writing a note is
+            its own action, not another way to submit the box. */}
+        <button
+          type="button"
+          className={styles.add}
+          onClick={() => onAddNote?.()}
+          aria-label={t("app.addNote")}
+          title={t("app.addNote")}
+        >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="9 10 4 15 9 20" />
-            <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
           </svg>
         </button>
-      </form>
+      </div>
 
       <div className={styles.right}>
         <button
