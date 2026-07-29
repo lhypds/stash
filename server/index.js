@@ -63,8 +63,11 @@ function withIconUrl(username, record) {
   const base = `/data/users/${encodeURIComponent(username)}/stores/${record.store}/${record.itemId}`;
   return {
     ...record,
-    iconUrl: record.iconFile ? `${base}/${record.iconFile}` : null,
-    screenshotUrl: record.screenshotFile ? `${base}/${record.screenshotFile}` : null,
+    // A note's image keeps the name it was attached with (see noteImageName),
+    // which can hold spaces or non-ASCII; every other store's is generated and
+    // encodes to itself.
+    iconUrl: record.iconFile ? `${base}/${encodeURIComponent(record.iconFile)}` : null,
+    screenshotUrl: record.screenshotFile ? `${base}/${encodeURIComponent(record.screenshotFile)}` : null,
   };
 }
 
@@ -507,7 +510,7 @@ app.post("/api/users/:username/notes", requireUnlockedOwner, async (req, res) =>
   await fs.mkdir(dir, { recursive: true });
   await ensureSettings(username);
 
-  const iconFile = hasImage ? await saveNoteImage(dir, req.body.image) : null;
+  const iconFile = hasImage ? await saveNoteImage(dir, req.body.image, req.body.imageName) : null;
   if (hasImage && !iconFile) {
     await fs.rm(dir, { recursive: true, force: true });
     return res.status(400).json({ error: "invalid image", code: "INVALID_IMAGE" });

@@ -329,10 +329,10 @@ export default function Stash() {
     setNoteFile(null);
   }
 
-  async function handleSaveNote({ text, image }) {
+  async function handleSaveNote({ text, image, imageName }) {
     if (!user) return;
     try {
-      const { item } = await api.createNote(user, { text, image });
+      const { item } = await api.createNote(user, { text, image, imageName });
       if (isOwner) setItems((prev) => [item, ...prev]);
       closeNote();
       showToast(t("app.toastStashed", { name: toastName(itemTitle(item, t)) }));

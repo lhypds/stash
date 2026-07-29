@@ -13,7 +13,7 @@ import { isSkillHost, analyzeSkillUrl, searchSkills, fetchSkillMeta } from "./st
 export { UA } from "./utils/html.js";
 export { appItemId } from "./stores/apps.js";
 export { sourceDisallowsThumbnail, isNsfwUrl } from "./stores/videos.js";
-export { noteTitle, saveNoteImage } from "./stores/notes.js";
+export { noteTitle, noteImageName, saveNoteImage } from "./stores/notes.js";
 
 // Every content bucket the app understands, and how new items reach it: a
 // "url" store is filled by analyzing a pasted link; a "search" store by

@@ -17,9 +17,10 @@ const MAX_TEXT_BYTES = MAX_TEXT_MB * 1024 * 1024;
 const NOTE_HEIGHT = 260;
 
 // Writes a new note: free text whose first line becomes the card title, plus
-// one optional attached image. `initialFile` is an image the note is opening
-// with — one dropped on the page rather than picked in here. `onSave` gets
-// { text, image }, image being a data: URL, which is how the server takes it.
+// one optional attached image. `initialFile` is a file the note is opening with
+// — one dropped on the page rather than picked in here. `onSave` gets
+// { text, image, imageName }; image is a data: URL, which is how the server
+// takes it, and imageName the file it came from.
 export default function NoteModal({ isOpen, initialFile = null, onClose, onSave }) {
   const { t } = useTranslation();
   const [text, setText] = useState("");
@@ -142,7 +143,7 @@ export default function NoteModal({ isOpen, initialFile = null, onClose, onSave 
     }
     setSaving(true);
     try {
-      await onSave({ text, image });
+      await onSave({ text, image, imageName });
     } finally {
       setSaving(false);
     }
