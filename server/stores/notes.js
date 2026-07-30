@@ -79,7 +79,12 @@ export async function saveNoteImage(dir, dataUrl, name) {
   if (!buf) return null;
   const file = noteImageName(name);
   try {
-    await sharp(buf, { animated: true }).webp({ quality: 80 }).toFile(path.join(dir, file));
+    // Phone cameras leave the sensor's landscape pixels alone and record which
+    // way was up as an EXIF Orientation tag. Browsers honor that tag, which is
+    // why the attach preview looks upright, but the webp encode below drops it
+    // — leaving the un-rotated pixels and no hint to rotate them. autoOrient
+    // bakes the rotation in first, so the stored image needs no tag to be right.
+    await sharp(buf, { animated: true }).autoOrient().webp({ quality: 80 }).toFile(path.join(dir, file));
     return file;
   } catch (err) {
     console.error("note image save failed:", err.message);

@@ -93,7 +93,9 @@ async function downloadIcon(dir, imageBase, iconUrl, sourceUrl) {
 
     try {
       const file = `${imageBase}.webp`;
-      await sharp(buf, { animated: true }).webp({ quality: 80 }).toFile(path.join(dir, file));
+      // autoOrient before encoding: webp carries no EXIF Orientation tag, so a
+      // source image that only *asks* to be rotated has to be rotated for real.
+      await sharp(buf, { animated: true }).autoOrient().webp({ quality: 80 }).toFile(path.join(dir, file));
       return file;
     } catch {
       // Not a decodable raster image (or an unsupported format): keep the original bytes
