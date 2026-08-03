@@ -298,9 +298,17 @@ async function analyzePublisher(url, platform, host) {
   const rawTitle =
     metaContent(html, "og:title") || stripTags(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
   const desc = metaContent(html, "og:description");
+  const name = cleanProfileName(rawTitle, platform) || rawTitle || null;
+  // A logged-out scrape of a gated platform can get served its generic
+  // login-wall page instead of the real profile — its title is just the
+  // platform's own name, with no bio. That's not a real publisher; treat it
+  // as a failed analysis instead of stashing the login page.
+  if (!name || (platform?.label && name.toLowerCase() === platform.label.toLowerCase())) {
+    throw new Error("no publisher content");
+  }
   return {
     kind: "publisher",
-    name: cleanProfileName(rawTitle, platform) || rawTitle || url,
+    name,
     byline: platform?.label || host,
     icon: image ? new URL(image, finalUrl).href : null,
     url: finalUrl,
