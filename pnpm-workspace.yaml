@@ -1,0 +1,3 @@
+onlyBuiltDependencies:
+  - puppeteer
+  - es5-ext
