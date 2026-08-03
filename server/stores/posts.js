@@ -288,6 +288,20 @@ function cleanProfileName(text, platform) {
   return name.trim() || null;
 }
 
+// A logged-out request to a gated platform (a data-center IP is far more
+// likely to be gated than a residential one) tends to get served its own
+// generic sign-in interstitial instead of the real page — titled just the
+// platform's own name ("Instagram"), or that name prefixed with "Log in" /
+// "Sign up" ("Login • Instagram", "Log in to Instagram"). Neither is real
+// post/profile content, so callers treat a match as a failed analysis rather
+// than stash the interstitial itself.
+function looksLikeLoginWall(text, platform) {
+  if (!text) return true;
+  const trimmed = text.trim();
+  if (/^(log\s*in|sign\s*up|login|signup)\b/i.test(trimmed)) return true;
+  return !!platform?.label && trimmed.toLowerCase() === platform.label.toLowerCase();
+}
+
 // A platform account/profile page — the publisher behind the posts, not a
 // post itself. Every profile page carries the same og:* pair a plain page
 // does (avatar as og:image, bio as og:description), so this is really just
@@ -299,13 +313,7 @@ async function analyzePublisher(url, platform, host) {
     metaContent(html, "og:title") || stripTags(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
   const desc = metaContent(html, "og:description");
   const name = cleanProfileName(rawTitle, platform) || rawTitle || null;
-  // A logged-out scrape of a gated platform can get served its generic
-  // login-wall page instead of the real profile — its title is just the
-  // platform's own name, with no bio. That's not a real publisher; treat it
-  // as a failed analysis instead of stashing the login page.
-  if (!name || (platform?.label && name.toLowerCase() === platform.label.toLowerCase())) {
-    throw new Error("no publisher content");
-  }
+  if (looksLikeLoginWall(name, platform)) throw new Error("no publisher content");
   return {
     kind: "publisher",
     name,
@@ -363,13 +371,11 @@ export async function analyzePost(url, store) {
       if (text && suffix && text.toLowerCase().endsWith(suffix.toLowerCase())) {
         text = text.slice(0, -suffix.length).trim();
       }
-      // A post gated behind a login/age/sensitive-content wall (X does this
-      // for some tweets) renders only the platform's own generic placeholder
-      // — og:title === "X", no og:description — to an unauthenticated
-      // scrape. That's not real content; treat it as if nothing came back.
-      if (text && platform?.label && text.trim().toLowerCase() === platform.label.toLowerCase()) {
-        text = null;
-      }
+      // A post gated behind a login/age/sensitive-content wall renders only
+      // the platform's own generic placeholder (see looksLikeLoginWall) to
+      // an unauthenticated scrape. That's not real content; treat it as if
+      // nothing came back.
+      if (text && looksLikeLoginWall(text, platform)) text = null;
     }
     if (!byline) {
       byline =
