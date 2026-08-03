@@ -11,20 +11,99 @@ import {
   PREVIEW_LENGTH,
 } from "../utils/html.js";
 
+// Path segments that look like a lone-username profile URL but aren't one —
+// site chrome (home, search, settings, ...) that happens to sit at the same
+// `/segment` depth as a real profile.
+const X_RESERVED = new Set([
+  "home",
+  "explore",
+  "notifications",
+  "messages",
+  "i",
+  "settings",
+  "search",
+  "compose",
+  "login",
+  "logout",
+  "signup",
+  "tos",
+  "privacy",
+  "about",
+]);
+const INSTAGRAM_RESERVED = new Set([
+  "p",
+  "reel",
+  "reels",
+  "tv",
+  "stories",
+  "explore",
+  "accounts",
+  "direct",
+  "developer",
+  "about",
+  "legal",
+  "api",
+  "graphql",
+]);
+
 const POST_PLATFORMS = [
   // X posts get their title capped much tighter than the rest (30 words, not
   // 140 chars) — its full oembed blockquote text style tends to run long.
-  { label: "X", hosts: ["x.com", "twitter.com"], ua: BOT_UA, syndication: true, maxNameWords: 30 },
-  { label: "Threads", hosts: ["threads.net", "threads.com"], ua: BOT_UA },
+  {
+    label: "X",
+    hosts: ["x.com", "twitter.com"],
+    ua: BOT_UA,
+    syndication: true,
+    maxNameWords: 30,
+    profile: (u) => {
+      const seg = u.pathname.replace(/^\/|\/$/g, "");
+      return /^[A-Za-z0-9_]{1,15}$/.test(seg) && !X_RESERVED.has(seg.toLowerCase());
+    },
+  },
+  {
+    label: "Threads",
+    hosts: ["threads.net", "threads.com"],
+    ua: BOT_UA,
+    profile: (u) => /^\/@[^/]+\/?$/.test(u.pathname),
+  },
   // Instagram's web app no longer renders og:title/og:image/og:video into the
   // page HTML server-side (even under the Facebook-bot UA below) — the real
   // data loads client-side now. `embed` routes it through its public embed
   // page instead (see fetchInstagramEmbed), which still carries it.
-  { label: "Instagram", hosts: ["instagram.com", "instagr.am"], ua: META_UA, embed: true },
-  { label: "RedNote", hosts: ["xiaohongshu.com", "xhslink.com", "rednote.com"], ua: UA, postInTitle: true },
-  { label: "Facebook", hosts: ["facebook.com", "fb.com", "fb.watch"], ua: META_UA },
-  { label: "Bluesky", hosts: ["bsky.app"], ua: BOT_UA },
-  { label: "Mastodon", hosts: ["mastodon.social"], ua: BOT_UA },
+  {
+    label: "Instagram",
+    hosts: ["instagram.com", "instagr.am"],
+    ua: META_UA,
+    embed: true,
+    profile: (u) => {
+      const seg = u.pathname.replace(/^\/|\/$/g, "").split("/")[0];
+      return /^[A-Za-z0-9_.]{1,30}$/.test(seg) && !INSTAGRAM_RESERVED.has(seg.toLowerCase());
+    },
+  },
+  {
+    label: "RedNote",
+    hosts: ["xiaohongshu.com", "xhslink.com", "rednote.com"],
+    ua: UA,
+    postInTitle: true,
+    profile: (u) => /^\/user\/profile\/[^/]+/i.test(u.pathname),
+  },
+  {
+    label: "Facebook",
+    hosts: ["facebook.com", "fb.com", "fb.watch"],
+    ua: META_UA,
+    profile: (u) =>
+      /^\/[A-Za-z0-9.]{5,}\/?$/.test(u.pathname) &&
+      !/^\/(posts|photos|videos|watch|permalink\.php|groups|events|marketplace|pages|profile\.php)(\/|$)/i.test(
+        u.pathname,
+      ),
+  },
+  { label: "Bluesky", hosts: ["bsky.app"], ua: BOT_UA, profile: (u) => /^\/profile\/[^/]+\/?$/.test(u.pathname) },
+  {
+    label: "Mastodon",
+    hosts: ["mastodon.social"],
+    ua: BOT_UA,
+    profile: (u) => /^\/@[^/]+\/?$/.test(u.pathname),
+  },
   // Zhihu may return 403 to server-side metadata requests. Keep it stashable
   // as a Post even when its title/cover cannot be read from the public page.
   {
@@ -34,6 +113,7 @@ const POST_PLATFORMS = [
     postInTitle: true,
     metadataFallback: "microlink",
     allowMetadataFallback: true,
+    profile: (u) => /^\/people\/[^/]+\/?$/.test(u.pathname),
   },
   // mp.weixin.qq.com (WeChat official-account articles) is distinct from
   // weixin.qq.com/channels.weixin.qq.com (WeChat Channels short videos,
@@ -129,6 +209,7 @@ async function fetchTweetSyndication(url) {
       text: text || null,
       byline: typeof json.user?.name === "string" ? json.user.name : null,
       video: bestMp4(json.video?.variants || []),
+      handle: typeof json.user?.screen_name === "string" ? json.user.screen_name : null,
     };
   } catch (err) {
     console.error("tweet syndication failed:", err.message);
@@ -162,6 +243,7 @@ async function fetchInstagramEmbed(url) {
       byline: media.owner?.username || null,
       icon: media.display_url || media.thumbnail_src || null,
       video: media.is_video ? media.video_url || null : null,
+      handle: media.owner?.username || null,
     };
   } catch (err) {
     console.error("instagram embed failed:", err.message);
@@ -192,20 +274,60 @@ async function fetchFallbackMetadata(url, provider) {
   }
 }
 
-export async function analyzePost(url) {
-  const host = new URL(url).hostname.replace(/^www\./, "");
+// Strips a profile page's own boilerplate off its <title>/og:title (e.g.
+// Instagram's " (@handle) • Instagram photos and videos", X's " (@handle) on
+// X") down to just the display name.
+function cleanProfileName(text, platform) {
+  if (!text) return null;
+  let name = text;
+  if (platform?.label === "Instagram") {
+    name = name.replace(/\s*\(@[^)]+\)\s*•\s*Instagram photos and videos\s*$/i, "");
+  }
+  if (platform?.label === "X") name = name.replace(/\s*\(@[^)]+\)\s*on X\s*$/i, "");
+  if (platform?.label === "Threads") name = name.replace(/\s*\(@[^)]+\)\s*(?:•|\|).*$/i, "");
+  return name.trim() || null;
+}
+
+// A platform account/profile page — the publisher behind the posts, not a
+// post itself. Every profile page carries the same og:* pair a plain page
+// does (avatar as og:image, bio as og:description), so this is really just
+// analyzePage with platform-aware title cleanup and a "publisher" kind.
+async function analyzePublisher(url, platform, host) {
+  const { html, finalUrl } = await fetchHtml(url, platform?.ua || BOT_UA, 500000);
+  const image = metaContent(html, "og:image");
+  const rawTitle =
+    metaContent(html, "og:title") || stripTags(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "");
+  const desc = metaContent(html, "og:description");
+  return {
+    kind: "publisher",
+    name: cleanProfileName(rawTitle, platform) || rawTitle || url,
+    byline: platform?.label || host,
+    icon: image ? new URL(image, finalUrl).href : null,
+    url: finalUrl,
+    preview: desc ? truncate(desc, PREVIEW_LENGTH) : null,
+    iconReferrerPolicy: platform?.iconReferrerPolicy,
+  };
+}
+
+export async function analyzePost(url, store) {
+  const u = new URL(url);
+  const host = u.hostname.replace(/^www\./, "");
   const platform = postPlatformFor(host);
+  const isProfileUrl = platform ? !!platform.profile?.(u) : store === "publishers";
+  if (isProfileUrl) return analyzePublisher(url, platform, host);
   let text = null;
   let byline = null;
   let body = null;
   let video = null;
   let icon = null;
+  let handle = null;
   if (platform?.syndication) {
     const tweet = await fetchTweetSyndication(url);
     if (tweet) {
       text = tweet.text;
       byline = tweet.byline;
       video = tweet.video;
+      handle = tweet.handle;
     }
   }
   if (platform?.embed) {
@@ -215,6 +337,7 @@ export async function analyzePost(url) {
       byline = ig.byline;
       video = ig.video;
       icon = ig.icon;
+      handle = ig.handle;
     }
   }
   try {
@@ -264,7 +387,7 @@ export async function analyzePost(url) {
     icon = new URL("/favicon.ico", url).href;
   }
   if (!text) throw new Error("no post content");
-  return {
+  const post = {
     kind: "post",
     name: platform?.maxNameWords
       ? truncateWords(text, platform.maxNameWords)
@@ -278,4 +401,13 @@ export async function analyzePost(url) {
     iconReferrerPolicy: platform?.iconReferrerPolicy,
     video,
   };
+  // The account behind the post (currently only resolvable for X/Instagram,
+  // whose syndication/embed responses carry the poster's handle) rides along
+  // as its own fully-formed, independently stashable Publisher item.
+  if (handle && (platform?.label === "X" || platform?.label === "Instagram")) {
+    const profileUrl = platform.label === "X" ? `https://x.com/${handle}` : `https://www.instagram.com/${handle}/`;
+    const publisher = await analyzePublisher(profileUrl, platform, host).catch(() => null);
+    if (publisher) post.related = publisher;
+  }
+  return post;
 }

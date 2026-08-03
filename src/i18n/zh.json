@@ -5,6 +5,7 @@
     "storeNames": {
       "apps": "应用",
       "posts": "帖子",
+      "publishers": "发布者",
       "pages": "网页",
       "videos": "视频",
       "channels": "频道",
@@ -16,11 +17,13 @@
     "allSources": "全部",
     "supportedSites": "支持的网站",
     "supportedSitesIntro": "以下网站可以获取更丰富的预览——标题、图片和作者信息都能直接从页面读取。其他链接依然可以作为普通网页收藏。",
+    "supportedPublishersNote": "与「帖子」相同平台的个人资料/账号主页。",
     "supportedChannelsNote": "与「视频」相同平台的创作者/频道主页。",
     "supportedPagesNote": "任意网站…",
     "moreSites": "更多…",
     "kinds": {
       "post": "帖子",
+      "publisher": "发布者",
       "page": "网页",
       "video": "视频",
       "channel": "频道",

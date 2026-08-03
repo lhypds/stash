@@ -5,6 +5,7 @@
     "storeNames": {
       "apps": "アプリ",
       "posts": "投稿",
+      "publishers": "発信者",
       "pages": "ページ",
       "videos": "動画",
       "channels": "チャンネル",
@@ -16,11 +17,13 @@
     "allSources": "すべて",
     "supportedSites": "対応サイト",
     "supportedSitesIntro": "これらのサイトはページからタイトル・画像・投稿者を直接取得し、詳細なプレビューを表示します。それ以外のリンクも一般的なページとしてストックできます。",
+    "supportedPublishersNote": "「投稿」と同じプラットフォームのプロフィール／アカウントページ。",
     "supportedChannelsNote": "「動画」と同じプラットフォームのチャンネル／クリエイターページ。",
     "supportedPagesNote": "任意のウェブサイト…",
     "moreSites": "その他…",
     "kinds": {
       "post": "投稿",
+      "publisher": "発信者",
       "page": "ページ",
       "video": "動画",
       "channel": "チャンネル",

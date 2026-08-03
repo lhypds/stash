@@ -22,6 +22,7 @@ export const STORES = {
   notes: { type: "write" },
   pages: { type: "url" },
   posts: { type: "url" },
+  publishers: { type: "url" },
   videos: { type: "url" },
   channels: { type: "url" },
   chats: { type: "url" },
@@ -82,10 +83,11 @@ export async function analyzeSource(href, store, country) {
   if (store === "apps") return { store, ...(await analyzeAppUrl(href, country)) };
   if (store === "skills") return { store, ...(await analyzeSkillUrl(href)) };
   const isVideoStore = store === "videos" || store === "channels";
+  const isPostStore = store === "posts" || store === "publishers";
   const analyzed = isVideoStore
     ? await analyzeVideo(href, store)
-    : store === "posts"
-      ? await analyzePost(href)
+    : isPostStore
+      ? await analyzePost(href, store)
       : store === "chats"
         ? await analyzeChat(href)
         : await analyzePage(href);
@@ -95,15 +97,21 @@ export async function analyzeSource(href, store, country) {
       : analyzed.kind === "page"
         ? "pages"
         : "videos"
-    : store;
+    : isPostStore
+      ? analyzed.kind === "publisher"
+        ? "publishers"
+        : "posts"
+      : store;
   const itemId = crypto.createHash("sha1").update(href).digest("hex").slice(0, 16);
   const { related, ...rest } = analyzed;
   const result = { store: finalStore, itemId, ...rest };
-  // A video's channel (see analyzeVideo's author_url handling) rides along as
-  // its own fully-formed, independently stashable item.
+  // A video's channel or a post's publisher (see analyzeVideo's author_url
+  // handling and analyzePost's profile surfacing) rides along as its own
+  // fully-formed, independently stashable item.
   if (related) {
+    const relatedStore = related.kind === "channel" ? "channels" : related.kind === "publisher" ? "publishers" : finalStore;
     result.related = {
-      store: "channels",
+      store: relatedStore,
       itemId: crypto.createHash("sha1").update(related.url).digest("hex").slice(0, 16),
       ...related,
     };

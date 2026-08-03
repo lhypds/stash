@@ -20,6 +20,7 @@ const GROUPS = [
       { name: "WeChat", domain: "wechat.com" },
     ],
   },
+  { store: "publishers", note: "app.supportedPublishersNote" },
   {
     store: "videos",
     sites: [
