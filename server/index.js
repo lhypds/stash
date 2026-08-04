@@ -6,6 +6,7 @@ import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { ZipArchive } from "archiver";
 import sharp from "sharp";
+import { ProxyAgent, setGlobalDispatcher } from "undici";
 import { captureFullPage } from "./utils/screenshot.js";
 import {
   STORES,
@@ -38,6 +39,12 @@ try {
 
 const PORT = process.env.PORT || 3001;
 const DEV = process.env.NODE_ENV !== "production";
+
+// Route every outbound fetch (source analysis, icon downloads, ...) through a
+// proxy — e.g. a residential one — when the host's own IP gets bot-gated by
+// sites like Instagram/X (data-center IPs are far more likely to hit their
+// login-wall than a residential IP). Unset by default: no proxy.
+if (process.env.PROXY_URL) setGlobalDispatcher(new ProxyAgent(process.env.PROXY_URL));
 
 const USERNAME_RE =
   /^[a-z0-9_\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Hangul}-]{1,32}$/u;
