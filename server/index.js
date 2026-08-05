@@ -484,7 +484,10 @@ app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) =>
     store,
     itemId,
     kind: kindValue,
-    name: String(name || itemId),
+    // An analyzed item can legitimately arrive nameless — a social clip whose
+    // author wrote no caption (see analyzePost) — and is stored that way rather
+    // than labelled here, so the client can label it in the viewer's language.
+    name: String(name || ""),
     byline: String(byline || ""),
     url: resolvedUrl,
     iconFile,

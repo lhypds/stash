@@ -1,10 +1,11 @@
 import { sourceName } from "./url";
 
-// The name to show for an item. Everything analyzed from a source carries its
-// own name; only a note can be nameless — one stashed as an image with no text
-// at all — and that falls back to a plain "Image". It's resolved here rather
-// than stored so the label follows the viewer's language, the way every other
-// generated label in the app does.
+// The name to show for an item. Two kinds can be nameless: a note stashed as an
+// image with no text at all, which falls back to a plain "Image"; and a video
+// whose author gave it no caption, which shows no title at all — its thumbnail
+// and type line already say what it is, so a stand-in would only add noise.
+// Resolved here rather than stored so the label follows the viewer's language,
+// the way every other generated label in the app does.
 export function itemTitle(item, t) {
   return item.name || (item.kind === "note" ? t("app.image") : "");
 }

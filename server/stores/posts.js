@@ -75,6 +75,12 @@ const POST_PLATFORMS = [
     hosts: ["instagram.com", "instagr.am"],
     ua: META_UA,
     embed: true,
+    // og:title/og:description are assembled from engagement stats and the
+    // author, with the caption — when there is one — appended as a quoted tail:
+    // `45K likes, 147 comments - oopp47236 on July 24, 2026: "…"`. Only that
+    // tail is the post's own words. A caption-less post has no tail at all, and
+    // the bare stats line is not content.
+    textFromMeta: (text) => text.match(/:\s*["“]([\s\S]*)["”]\.?\s*$/)?.[1].trim() || null,
     profile: (u) => {
       const seg = u.pathname.replace(/^\/|\/$/g, "").split("/")[0];
       return /^[A-Za-z0-9_.]{1,30}$/.test(seg) && !INSTAGRAM_RESERVED.has(seg.toLowerCase());
@@ -364,7 +370,10 @@ export async function analyzePost(url, store) {
     const desc = metaContent(html, "og:description");
     const siteName = metaContent(html, "og:site_name");
     if (!text) {
-      text = platform?.postInTitle ? title || desc : desc || title;
+      const metaText = platform?.postInTitle ? title || desc : desc || title;
+      // Some platforms bury the post's own words inside boilerplate they build
+      // the og tags out of (see Instagram's textFromMeta); take only that part.
+      text = metaText && platform?.textFromMeta ? platform.textFromMeta(metaText) : metaText;
       // Some sites (e.g. RedNote) append " - <site name>" to og:title; that
       // suffix belongs to the page chrome, not the post content.
       const suffix = siteName && ` - ${siteName}`;
@@ -400,18 +409,31 @@ export async function analyzePost(url, store) {
     text = platform.label;
     icon = new URL("/favicon.ico", url).href;
   }
-  if (!text) throw new Error("no post content");
+  // Nothing but media is still something: an author can post a reel and write
+  // no caption at all, and the embed hands back the clip regardless. With no
+  // words for it to be a post *about*, what's left is just the video, so that's
+  // what it's typed as — kind "video" settles it into the videos store (see
+  // analyzeSource). Only `video` counts as media here, since it comes solely
+  // from the embed/syndication payload; og:image is just as likely to be a
+  // login wall's own logo. Neither text nor media is a failed analysis.
+  if (!text && !video) throw new Error("no post content");
+  const previewText = body || text;
   const post = {
-    kind: "post",
-    name: platform?.maxNameWords
-      ? truncateWords(text, platform.maxNameWords)
-      : text.length > 140
-        ? `${text.slice(0, 140)}…`
-        : text,
+    kind: text ? "post" : "video",
+    // A caption-less clip has no name of its own and doesn't get an invented
+    // one — it's stashed nameless, the way an image-only note is, and shows as
+    // just its thumbnail (see itemTitle).
+    name: text
+      ? platform?.maxNameWords
+        ? truncateWords(text, platform.maxNameWords)
+        : text.length > 140
+          ? `${text.slice(0, 140)}…`
+          : text
+      : null,
     byline: byline || platform?.label || host,
     icon,
     url,
-    preview: truncate(body || text, PREVIEW_LENGTH),
+    preview: previewText ? truncate(previewText, PREVIEW_LENGTH) : null,
     iconReferrerPolicy: platform?.iconReferrerPolicy,
     video,
   };

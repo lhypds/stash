@@ -77,18 +77,28 @@ export function isBlockedHost(hostname) {
   );
 }
 
-// Analyze one URL into a stashable item. Video/channel URLs settle their final
-// store from what the page turns out to be; every other store is kept as-is.
+// Analyze one URL into a stashable item. Video/channel and post/publisher URLs
+// settle their final store from what the page turns out to be (a social post
+// that carries a clip and no caption of its own is a video, not a post); every
+// other store is kept as-is.
 export async function analyzeSource(href, store, country) {
   if (store === "apps") return { store, ...(await analyzeAppUrl(href, country)) };
   if (store === "skills") return { store, ...(await analyzeSkillUrl(href)) };
-  const isVideoStore = store === "videos" || store === "channels";
-  const isPostStore = store === "posts" || store === "publishers";
+  // Which analyzer runs follows the host's own family rather than the store the
+  // caller named, because the two don't always agree: a caption-less clip is
+  // filed under videos even though Instagram is a post platform (see finalStore
+  // below), and a refresh passes that stored store straight back in. Within a
+  // family the caller's store still decides — on a host no platform claims it's
+  // the only thing that tells a publisher from a post, or a channel from a video.
+  const hostStore = urlStoreFor(href);
+  const unclaimed = hostStore === "pages";
+  const isVideoStore = hostStore === "videos" || (unclaimed && (store === "videos" || store === "channels"));
+  const isPostStore = hostStore === "posts" || (unclaimed && (store === "posts" || store === "publishers"));
   const analyzed = isVideoStore
     ? await analyzeVideo(href, store)
     : isPostStore
       ? await analyzePost(href, store)
-      : store === "chats"
+      : hostStore === "chats" || store === "chats"
         ? await analyzeChat(href)
         : await analyzePage(href);
   const finalStore = isVideoStore
@@ -100,7 +110,9 @@ export async function analyzeSource(href, store, country) {
     : isPostStore
       ? analyzed.kind === "publisher"
         ? "publishers"
-        : "posts"
+        : analyzed.kind === "video"
+          ? "videos"
+          : "posts"
       : store;
   const itemId = crypto.createHash("sha1").update(href).digest("hex").slice(0, 16);
   const { related, ...rest } = analyzed;

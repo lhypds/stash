@@ -13,9 +13,14 @@ import styles from "./stash.module.css";
 
 const countryForLang = (lang) => (lang === "ja" ? "jp" : lang === "zh" ? "cn" : "us");
 const itemKey = (a) => `${a.store}:${a.itemId}`;
-// Item names run long (a note's whole first line, a page's full title) — keep a
-// toast to one readable line.
-const toastName = (name) => (name.length > 40 ? `${name.slice(0, 40)}…` : name);
+// What to call an item in a toast. Names run long (a note's whole first line, a
+// page's full title), so keep it to one readable line; a nameless item (a
+// caption-less clip) borrows its type label, since the toast is a sentence and
+// needs a subject where a card can simply show none.
+const toastName = (item, t) => {
+  const name = itemTitle(item, t) || t(`app.kinds.${item.kind}`);
+  return name.length > 40 ? `${name.slice(0, 40)}…` : name;
+};
 
 const MAX_URLS = 10;
 
@@ -269,7 +274,7 @@ export default function Stash() {
       // plus its channel), stay put so the rest can still be stashed; the
       // just-stashed card flips to its disabled "stashed" state instead.
       if (search.results.length <= 1) setSearch(null);
-      showToast(t("app.toastStashed", { name: toastName(itemTitle(item, t)) }));
+      showToast(t("app.toastStashed", { name: toastName(item, t) }));
     } catch (err) {
       showToast(err.status === 409 ? t("app.toastAlready") : t("app.toastError"));
     }
@@ -335,7 +340,7 @@ export default function Stash() {
       const { item } = await api.createNote(user, { text, image, imageName });
       if (isOwner) setItems((prev) => [item, ...prev]);
       closeNote();
-      showToast(t("app.toastStashed", { name: toastName(itemTitle(item, t)) }));
+      showToast(t("app.toastStashed", { name: toastName(item, t) }));
     } catch (err) {
       if (err.code === "STASH_LOCKED") {
         await refreshLock().catch(() => {});
@@ -366,7 +371,7 @@ export default function Stash() {
     try {
       const { item: copied } = await api.copyItem(user, username, item.store, item.itemId);
       setViewerItems((prev) => [copied, ...prev]);
-      showToast(t("app.toastStashed", { name: toastName(itemTitle(copied, t)) }));
+      showToast(t("app.toastStashed", { name: toastName(copied, t) }));
     } catch (err) {
       if (err.code === "STASH_LOCKED") {
         await refreshLock().catch(() => {});
