@@ -1,13 +1,15 @@
 // Entry point for the source layer: URL→store routing, an SSRF guard, and the
 // analyze/search dispatchers. Per-store logic lives in ./stores/
-// (apps.js, videos.js, posts.js, chats.js, pages.js, skills.js); this file
-// just wires them together and re-exports what the server consumes.
+// (apps.js, videos.js, posts.js, chats.js, pages.js, repositories.js,
+// skills.js); this file just wires them together and re-exports what the
+// server consumes.
 import crypto from "node:crypto";
 import { isAppHost, analyzeAppUrl, searchApps } from "./stores/apps.js";
 import { postPlatformFor, analyzePost } from "./stores/posts.js";
 import { videoPlatformFor, analyzeVideo } from "./stores/videos.js";
 import { chatPlatformFor, analyzeChat } from "./stores/chats.js";
 import { analyzePage } from "./stores/pages.js";
+import { isRepoUrl, analyzeRepository } from "./stores/repositories.js";
 import { isSkillHost, analyzeSkillUrl, searchSkills, fetchSkillMeta } from "./stores/skills.js";
 
 export { UA } from "./utils/html.js";
@@ -26,6 +28,7 @@ export const STORES = {
   videos: { type: "url" },
   channels: { type: "url" },
   chats: { type: "url" },
+  repositories: { type: "url" },
   apps: { type: "search" },
   skills: { type: "search" },
 };
@@ -41,14 +44,19 @@ export const ITEM_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,220}$/;
 // chat / social / video platforms are matched explicitly; anything else is a
 // page. An unparseable URL also falls back to a page.
 export function urlStoreFor(href) {
-  let host;
+  let u;
   try {
-    host = new URL(href).hostname.replace(/^www\.|^m\./, "");
+    u = new URL(href);
   } catch {
     return "pages";
   }
+  const host = u.hostname.replace(/^www\.|^m\./, "");
   if (isAppHost(host)) return "apps";
   if (isSkillHost(host)) return "skills";
+  // The only store matched on the whole URL rather than the host alone: a code
+  // forge also serves its own pages (github.com/pricing) and bare owner pages
+  // (github.com/anthropics), neither of which is a repository.
+  if (isRepoUrl(u)) return "repositories";
   if (chatPlatformFor(host)) return "chats";
   if (postPlatformFor(host)) return "posts";
   if (videoPlatformFor(host)) return "videos";
@@ -77,6 +85,10 @@ export function isBlockedHost(hostname) {
   );
 }
 
+// An analyzed item's id: a short hash of its URL, so the same source stashes to
+// the same id for every user (which is what lets a copy dedup against it).
+const urlItemId = (url) => crypto.createHash("sha1").update(url).digest("hex").slice(0, 16);
+
 // Analyze one URL into a stashable item. Video/channel and post/publisher URLs
 // settle their final store from what the page turns out to be (a social post
 // that carries a clip and no caption of its own is a video, not a post); every
@@ -91,6 +103,15 @@ export async function analyzeSource(href, store, country) {
   // family the caller's store still decides — on a host no platform claims it's
   // the only thing that tells a publisher from a post, or a channel from a video.
   const hostStore = urlStoreFor(href);
+  // A repository is settled by the URL alone (see isRepoUrl) — there's no
+  // second kind of thing living on those paths for the caller's `store` to
+  // disambiguate, the way a profile page has to be told apart from a post. Its
+  // id hashes the canonical repo URL rather than the pasted href, so a deep
+  // link, a clone URL, and the repo page itself all land on the one item.
+  if (hostStore === "repositories") {
+    const repo = await analyzeRepository(href);
+    return { store: "repositories", itemId: urlItemId(repo.url), ...repo };
+  }
   const unclaimed = hostStore === "pages";
   const isVideoStore = hostStore === "videos" || (unclaimed && (store === "videos" || store === "channels"));
   const isPostStore = hostStore === "posts" || (unclaimed && (store === "posts" || store === "publishers"));
@@ -114,7 +135,7 @@ export async function analyzeSource(href, store, country) {
           ? "videos"
           : "posts"
       : store;
-  const itemId = crypto.createHash("sha1").update(href).digest("hex").slice(0, 16);
+  const itemId = urlItemId(href);
   const { related, ...rest } = analyzed;
   const result = { store: finalStore, itemId, ...rest };
   // A video's channel or a post's publisher (see analyzeVideo's author_url
@@ -124,7 +145,7 @@ export async function analyzeSource(href, store, country) {
     const relatedStore = related.kind === "channel" ? "channels" : related.kind === "publisher" ? "publishers" : finalStore;
     result.related = {
       store: relatedStore,
-      itemId: crypto.createHash("sha1").update(related.url).digest("hex").slice(0, 16),
+      itemId: urlItemId(related.url),
       ...related,
     };
   }

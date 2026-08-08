@@ -88,6 +88,11 @@ const SOURCE_NAMES = {
   "x.ai": "Grok",
   "claude.ai": "Claude",
   "doubao.com": "Doubao",
+  "github.com": "GitHub",
+  "gitlab.com": "GitLab",
+  "bitbucket.org": "Bitbucket",
+  "codeberg.org": "Codeberg",
+  "gitee.com": "Gitee",
 };
 
 // Where the item came from, e.g. "Bilibili", "YouTube". Falls back to the bare

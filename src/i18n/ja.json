@@ -10,6 +10,7 @@
       "videos": "動画",
       "channels": "チャンネル",
       "chats": "チャット",
+      "repositories": "リポジトリ",
       "skills": "スキル",
       "notes": "メモ"
     },
@@ -28,6 +29,7 @@
       "video": "動画",
       "channel": "チャンネル",
       "chat": "チャット",
+      "repository": "リポジトリ",
       "apps": "アプリ",
       "skill": "スキル",
       "note": "メモ"

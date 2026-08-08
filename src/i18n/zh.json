@@ -10,6 +10,7 @@
       "videos": "视频",
       "channels": "频道",
       "chats": "对话",
+      "repositories": "仓库",
       "skills": "技能",
       "notes": "笔记"
     },
@@ -28,6 +29,7 @@
       "video": "视频",
       "channel": "频道",
       "chat": "对话",
+      "repository": "仓库",
       "apps": "应用",
       "skill": "技能",
       "note": "笔记"

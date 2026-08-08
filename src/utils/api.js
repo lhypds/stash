@@ -18,8 +18,19 @@ const json = (method, body) => ({
 
 // Also the order the store filter lists them in — notes first, being the one
 // store you write into rather than collect from somewhere else.
-export const STORE_KEYS = ["notes", "pages", "posts", "publishers", "videos", "channels", "chats", "apps", "skills"];
-export const URL_STORES = new Set(["posts", "publishers", "pages", "videos", "channels", "chats"]);
+export const STORE_KEYS = [
+  "notes",
+  "pages",
+  "posts",
+  "publishers",
+  "videos",
+  "channels",
+  "chats",
+  "repositories",
+  "apps",
+  "skills",
+];
+export const URL_STORES = new Set(["posts", "publishers", "pages", "videos", "channels", "chats", "repositories"]);
 
 // Stores filled by a keyword search rather than a pasted link.
 export const SEARCH_STORES = new Set(["apps", "skills"]);

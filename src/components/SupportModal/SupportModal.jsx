@@ -46,6 +46,16 @@ const GROUPS = [
     ],
   },
   {
+    store: "repositories",
+    sites: [
+      { name: "GitHub", domain: "github.com" },
+      { name: "GitLab", domain: "gitlab.com" },
+      { name: "Bitbucket", domain: "bitbucket.org" },
+      { name: "Codeberg", domain: "codeberg.org" },
+      { name: "Gitee", domain: "gitee.com" },
+    ],
+  },
+  {
     store: "apps",
     sites: [
       { name: "App Store", domain: "apps.apple.com" },

@@ -10,6 +10,7 @@
       "videos": "Videos",
       "channels": "Channels",
       "chats": "Chats",
+      "repositories": "Repositories",
       "skills": "Skills",
       "notes": "Notes"
     },
@@ -28,6 +29,7 @@
       "video": "Video",
       "channel": "Channel",
       "chat": "Chat",
+      "repository": "Repository",
       "apps": "App",
       "skill": "Skill",
       "note": "Note"
