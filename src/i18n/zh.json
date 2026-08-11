@@ -68,7 +68,7 @@
     "export": "导出",
     "confirmExport": "要将收藏下载为 ZIP 文件吗？",
     "invalidJson": "JSON 格式无效",
-    "stash": "收藏",
+    "stash": "收下",
     "stashed": "已收藏",
     "resultsFor": "“{{term}}”的搜索结果",
     "backToStash": "返回收藏",
