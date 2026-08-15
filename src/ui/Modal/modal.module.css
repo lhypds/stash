@@ -31,9 +31,15 @@
   padding: 10px 12px 10px 16px;
 }
 
+/* A title is sometimes a bare URL, whose only break opportunities are after
+   `/`, `?` and `&` — a long path segment between them is one unbreakable token
+   that would hold the flex item open past the modal edge. min-width lets the
+   item shrink to the header; overflow-wrap breaks the token to fit it. */
 .title {
   font-size: 16px;
   font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .headerRight {
@@ -41,6 +47,7 @@
   align-items: center;
   gap: 4px;
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 .closeButton {
