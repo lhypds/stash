@@ -49,6 +49,7 @@
     "noUrlFound": "テキストにリンクが見つかりませんでした。",
     "urlsCapped": "リンクが多すぎます。最初の{{max}}件のみ分析しました。",
     "analyzeFailedLinks_other": "{{count}}件のリンクを分析できませんでした。リンクを確認してもう一度お試しください。",
+    "analyzeBareLinks_other": "{{count}}件のリンクは内容を読み取れませんでした。リンクのまま保存して、後で更新できます。",
     "login": "ログイン",
     "logout": "ログアウト",
     "usernamePlaceholder": "ユーザー名",

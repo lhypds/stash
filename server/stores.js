@@ -152,6 +152,33 @@ export async function analyzeSource(href, store, country) {
   return result;
 }
 
+// The stand-in for a link whose analysis failed — the site is down, bot-gated,
+// or serves nothing we can read. Rather than losing the link, it becomes a bare
+// Page whose name *is* the URL (the same shape analyzePage falls back to for a
+// title-less page), so it can still be stashed and a later Refresh can fill in
+// the real metadata once the source cooperates.
+export function unanalyzedItem(href) {
+  let loc = null;
+  try {
+    loc = new URL(href);
+  } catch {
+    // Keep the link as-is; without an origin there's no favicon to guess at
+  }
+  return {
+    store: "pages",
+    itemId: urlItemId(href),
+    kind: "page",
+    name: href,
+    byline: loc?.hostname || "",
+    icon: loc ? `${loc.origin}/favicon.ico` : null,
+    url: href,
+    preview: null,
+    // Lets the client say the card is a plain link rather than a read page.
+    // Not stored: the stash accepts only the fields above (see POST /items).
+    unanalyzed: true,
+  };
+}
+
 // Keyword search across a store. `searchSettings` is the caller's
 // settings.json `search` object, gating which engine(s) within the store run.
 export async function searchSources(store, term, country, searchSettings) {

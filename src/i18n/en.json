@@ -50,6 +50,8 @@
     "urlsCapped": "Too many links — only the first {{max}} were analyzed.",
     "analyzeFailedLinks_one": "Couldn't analyze 1 link. Check the link and try again.",
     "analyzeFailedLinks_other": "Couldn't analyze {{count}} links. Check the links and try again.",
+    "analyzeBareLinks_one": "Couldn't read 1 link — stash it as a plain link, then refresh it later.",
+    "analyzeBareLinks_other": "Couldn't read {{count}} links — stash them as plain links, then refresh them later.",
     "login": "Login",
     "logout": "Logout",
     "usernamePlaceholder": "Your username",

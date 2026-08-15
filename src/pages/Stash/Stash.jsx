@@ -254,7 +254,12 @@ export default function Stash() {
     });
 
     setSearch(results.length ? { term, mode: "analyze", loading: false, results } : null);
+    // A link the server couldn't read still comes back as a card — a bare Page
+    // holding the URL (see unanalyzedItem) — so it's worth saying why those
+    // cards look empty. Only links whose request never landed are outright lost.
+    const bare = results.filter((r) => r.unanalyzed).length;
     if (failed.length) showToast(t("app.analyzeFailedLinks", { count: failed.length }), 6000);
+    else if (bare) showToast(t("app.analyzeBareLinks", { count: bare }), 6000);
   }
 
   async function handleStash(result) {
