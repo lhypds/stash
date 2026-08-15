@@ -18,6 +18,7 @@ import {
   isNsfwUrl,
   searchSources,
   analyzeSource,
+  unanalyzedItem,
   backfillSkillMeta,
   noteTitle,
   saveNoteImage,
@@ -298,8 +299,11 @@ app.get("/api/analyze", analyzeLimiter, async (req, res) => {
   try {
     res.json({ result: await analyzeSource(url.href, store, country) });
   } catch (err) {
+    // A link we can't read is still a link worth keeping: hand back a bare
+    // Page carrying the URL itself, so the paste ends in a stashable card
+    // instead of an error (see unanalyzedItem).
     console.error("analyze failed:", err.message);
-    res.status(502).json({ error: "analyze failed" });
+    res.json({ result: unanalyzedItem(url.href) });
   }
 });
 
