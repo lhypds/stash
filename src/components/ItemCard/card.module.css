@@ -46,7 +46,11 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  word-break: break-word;
+  /* The card body centers on flex-start, so the name sizes to its content
+     unless pinned to the card width — and a title with no break opportunity
+     (a bare URL, a long hashtag) would otherwise push past the border. */
+  width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .stash .name {
@@ -54,12 +58,9 @@
 }
 
 .meta {
+  width: 100%;
   font-size: 11px;
   color: var(--muted);
-}
-
-.result .meta {
-  width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
