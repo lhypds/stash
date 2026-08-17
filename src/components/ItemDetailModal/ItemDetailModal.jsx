@@ -55,12 +55,7 @@ function ActionsRow({ tool, actions, url, repoUrl, t }) {
         </button>
       ))}
       <div ref={helpRef} className={styles.helpWrap} data-open={showHelp}>
-        <button
-          type="button"
-          className={styles.helpBtn}
-          onClick={() => setShowHelp((v) => !v)}
-          aria-label={t("app.actionsHelp")}
-        >
+        <button type="button" className={styles.helpBtn} onClick={() => setShowHelp((v) => !v)} aria-label={t("app.actionsHelp")}>
           ?
         </button>
         <div className={styles.helpPopover}>
@@ -88,14 +83,18 @@ export default function ItemDetailModal({
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(item.note || "");
   const title = itemTitle(item, t);
-  const videoEmbed = item.store === "videos" && item.kind === "video" ? videoEmbedUrl(item.url) : null;
+  const isVideoItem = item.store === "videos" && item.kind === "video";
+  const videoEmbed = isVideoItem ? videoEmbedUrl(item.url) : null;
   // A post (e.g. an X/Twitter post) can carry a direct video file instead of
   // an embeddable player URL — play it back with a plain <video> tag, routed
   // through our own server (see /api/video-proxy) since twimg.com 403s a
   // direct browser fetch over its Referer.
   const directVideo = !videoEmbed && item.video ? `/api/video-proxy?url=${encodeURIComponent(item.video)}` : null;
   const source = sourceName(item.url);
-  const showVideoActions = (videoEmbed || directVideo) && source !== "WeChat";
+  const hasVideoPlayer = Boolean(videoEmbed || directVideo);
+  // yt can download from any recognized video platform except WeChat, even
+  // when the platform offers no embeddable preview (e.g. Pornhub).
+  const showVideoActions = (hasVideoPlayer || isVideoItem) && source !== "WeChat";
 
   const dirty = note !== (item.note || "");
   const stashedDate = item.stashedAt ? new Date(item.stashedAt).toLocaleString(i18n.language) : "";
@@ -213,7 +212,7 @@ export default function ItemDetailModal({
           </div>
         )}
 
-        {(videoEmbed || directVideo) && (
+        {(hasVideoPlayer || showVideoActions) && (
           <div>
             <div className={styles.labelRow}>
               <label className={styles.label}>{t("app.video")}</label>
@@ -221,19 +220,21 @@ export default function ItemDetailModal({
                 {t("app.videoOpen")} ↗
               </a>
             </div>
-            <div className={styles.videoWrap}>
-              {videoEmbed ? (
-                <iframe
-                  src={videoEmbed}
-                  title={title}
-                  className={styles.video}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              ) : (
-                <video src={directVideo} poster={item.iconUrl || undefined} className={styles.video} controls />
-              )}
-            </div>
+            {hasVideoPlayer && (
+              <div className={styles.videoWrap}>
+                {videoEmbed ? (
+                  <iframe
+                    src={videoEmbed}
+                    title={title}
+                    className={styles.video}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                ) : (
+                  <video src={directVideo} poster={item.iconUrl || undefined} className={styles.video} controls />
+                )}
+              </div>
+            )}
             {showVideoActions && (
               <ActionsRow tool="yt" actions={VIDEO_ACTIONS} url={item.url} repoUrl="https://github.com/lhypds/yt" t={t} />
             )}
