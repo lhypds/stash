@@ -46,6 +46,7 @@ export default function SettingsModal({ isOpen, onClose, onSaved }) {
       showToast(t("app.toastSaved"));
       onSaved?.();
       onClose();
+      window.location.reload();
     } catch {
       showToast(t("app.toastError"));
     }
