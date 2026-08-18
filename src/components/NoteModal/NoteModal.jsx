@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Modal, TextArea, showToast } from "@ui";
 import { MAX_NOTE_IMAGE_MB } from "@utils/api";
-import { isImageFile, isTextFile } from "@utils/file";
+import { clipboardFile, isImageFile, isTextFile } from "@utils/file";
 import styles from "./note.module.css";
 
 const MAX_IMAGE_BYTES = MAX_NOTE_IMAGE_MB * 1024 * 1024;
@@ -129,6 +129,23 @@ export default function NoteModal({ isOpen, initialFile = null, onClose, onSave 
       dialog.removeEventListener("dragleave", onDragLeave);
       dialog.removeEventListener("drop", onDrop);
     };
+  }, [isOpen, acceptFile]);
+
+  // Pasting takes an image off the clipboard — a screenshot, or one copied from
+  // a page — the same way dropping one does. The listener is on the document so
+  // a paste lands wherever focus sits, not only in the writing area, and the
+  // default paste is only prevented for a file the note takes: a text paste,
+  // which carries no file, is left to the textarea.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onPaste = (e) => {
+      const file = clipboardFile(e.clipboardData);
+      if (!file) return;
+      e.preventDefault();
+      acceptFile(file);
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
   }, [isOpen, acceptFile]);
 
   // An image on its own is enough; only a blank note with no image is nothing.

@@ -18,3 +18,24 @@ export const isTextFile = (file) =>
 
 // Anything a note can take in — used to decide whether a drop is ours at all.
 export const isNoteFile = (file) => isImageFile(file) || isTextFile(file);
+
+// A pasted screenshot can arrive nameless, so one is made up: the note lists
+// the name beside its attach button, and the stored file is named after it.
+function named(file) {
+  if (file.name) return file;
+  const ext = file.type.split("/")[1]?.replace(/[^a-z0-9]/gi, "") || "png";
+  return new File([file], `pasted-image.${ext}`, { type: file.type });
+}
+
+// The first file on a clipboard a note can take, images first — a copied image
+// often rides along with the HTML it came from. Older browsers only expose the
+// files through `items`, hence the fallback. Returns null for a paste that
+// carries no file at all, which is every ordinary text paste.
+export function clipboardFile(clipboardData) {
+  const carried = clipboardData?.files?.length
+    ? [...clipboardData.files]
+    : [...(clipboardData?.items || [])].filter((i) => i.kind === "file").map((i) => i.getAsFile());
+  const files = carried.filter(isNoteFile);
+  const file = files.find(isImageFile) || files[0];
+  return file ? named(file) : null;
+}
