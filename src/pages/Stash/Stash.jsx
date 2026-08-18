@@ -299,15 +299,28 @@ export default function Stash() {
     await stashResult(result);
   }
 
-  async function stashResult(result) {
+  // `store` files the result somewhere other than the store analysis put it in
+  // (see handleStashAs); without one it lands in its own.
+  async function stashResult(result, store = null) {
     try {
-      const { item } = await api.stashItem(user, result);
+      const { item } = await api.stashItem(user, store ? { ...result, store } : result);
       if (isOwner) setItems((prev) => [item, ...prev]);
       // With a single result, stashing it is naturally "done" — back to the
       // stash. With more than one (e.g. several pasted links, or a video
       // plus its channel), stay put so the rest can still be stashed; the
-      // just-stashed card flips to its disabled "stashed" state instead.
+      // just-stashed card flips to its disabled "stashed" state instead —
+      // and takes on the type of the store it actually landed in, so the card
+      // reads the way the stashed item now does.
       if (search?.results.length <= 1) setSearch(null);
+      else
+        setSearch((prev) =>
+          prev
+            ? {
+                ...prev,
+                results: prev.results.map((r) => (r === result ? { ...r, store: item.store, kind: item.kind } : r)),
+              }
+            : prev,
+        );
       showToast(t("app.toastStashed", { name: toastName(item, t) }));
     } catch (err) {
       showToast(err.status === 409 ? t("app.toastAlready") : t("app.toastError"));
@@ -321,7 +334,7 @@ export default function Stash() {
     setStashAs(null);
     if (!pending) return;
     if (pending.copy) await copyItemTo(pending.item, store);
-    else await stashResult({ ...pending.item, store });
+    else await stashResult(pending.item, store);
   }
 
   // Starting a note — from the + button beside the search box, or from an image

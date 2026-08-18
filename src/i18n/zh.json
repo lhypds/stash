@@ -72,7 +72,7 @@
     "stash": "收下",
     "stashed": "已收藏",
     "stashAs": "收下到",
-    "stashAsCurrent": "当前",
+    "stashAsDefault": "默认",
     "stashAsHint": "收下（按住 Option 点击可选择类型）",
     "resultsFor": "“{{term}}”的搜索结果",
     "backToStash": "返回收藏",

@@ -28,7 +28,7 @@ export default function StashAsModal({ isOpen, item, allowWrite = false, onClose
               onClick={() => onSelect(store)}
             >
               {t(`app.storeNames.${store}`)}
-              {store === item.store && <span className={styles.current}>{t("app.stashAsCurrent")}</span>}
+              {store === item.store && <span className={styles.default}>{t("app.stashAsDefault")}</span>}
             </button>
           ))}
         </div>

@@ -72,7 +72,7 @@
     "stash": "ストック",
     "stashed": "ストック済み",
     "stashAs": "ストック先を選択",
-    "stashAsCurrent": "現在",
+    "stashAsDefault": "デフォルト",
     "stashAsHint": "ストック（⌥+クリックでタイプを選択）",
     "resultsFor": "「{{term}}」の検索結果",
     "backToStash": "ストックに戻る",

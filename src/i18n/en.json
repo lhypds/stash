@@ -74,7 +74,7 @@
     "stash": "Stash",
     "stashed": "Stashed",
     "stashAs": "Stash as",
-    "stashAsCurrent": "current",
+    "stashAsDefault": "default",
     "stashAsHint": "Stash (⌥-click to choose a store)",
     "resultsFor": "Results for “{{term}}”",
     "backToStash": "Back to stash",
