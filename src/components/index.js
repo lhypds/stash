@@ -7,6 +7,7 @@ export { default as LockModal } from "./LockModal";
 export { default as ItemDetailModal } from "./ItemDetailModal";
 export { default as NoteModal } from "./NoteModal";
 export { default as ConfirmModal } from "./ConfirmModal";
+export { default as StashAsModal } from "./StashAsModal";
 export { default as SettingsModal } from "./SettingsModal";
 export { default as SupportModal } from "./SupportModal";
 export { default as UsernameInput } from "./UsernameInput";

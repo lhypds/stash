@@ -2,7 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { showToast } from "@ui";
-import { LoginModal, ItemCard, ItemDetailModal, ConfirmModal, FilterDropdown, NoteModal } from "@components";
+import {
+  LoginModal,
+  ItemCard,
+  ItemDetailModal,
+  ConfirmModal,
+  FilterDropdown,
+  NoteModal,
+  StashAsModal,
+} from "@components";
 import TopBar from "./TopBar";
 import * as api from "@utils/api";
 import { extractUrls, isPrivateChatGPTUrl, sourceName, sourceBucket, OTHER_SOURCE } from "@utils/url";
@@ -48,6 +56,9 @@ export default function Stash() {
   const [detail, setDetail] = useState(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
+  // The item waiting on a store pick (an Option-click on a Stash button), and
+  // whether it is a copy out of someone else's stash rather than a fresh result.
+  const [stashAs, setStashAs] = useState(null);
   const [query, setQuery] = useState("");
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteFile, setNoteFile] = useState(null);
@@ -125,10 +136,12 @@ export default function Stash() {
     };
   }, [detail, username]);
 
-  // A lock change invalidates any destructive action that was already waiting
-  // for confirmation (including a lock applied from another browser context).
+  // A lock change invalidates any action that was already waiting on a dialog
+  // (including a lock applied from another browser context).
   useEffect(() => {
-    if (locked) setConfirm(null);
+    if (!locked) return;
+    setConfirm(null);
+    setStashAs(null);
   }, [locked]);
 
   // Escape while viewing results does the same thing as "Back to stash".
@@ -161,8 +174,12 @@ export default function Stash() {
     };
   }, [isOwner, user]);
 
-  const stashedKeys = useMemo(() => new Set(items.map(itemKey)), [items]);
-  const viewerStashedKeys = useMemo(() => new Set(viewerItems.map(itemKey)), [viewerItems]);
+  // Whether a card is already in hand is a question about the source, not the
+  // shelf: an itemId is a hash of the item's own URL (see analyzeSource), so it
+  // identifies the thing itself wherever a "stash as" happened to file it —
+  // unlike itemKey, which identifies one stored copy and stays store-qualified.
+  const stashedIds = useMemo(() => new Set(items.map((a) => a.itemId)), [items]);
+  const viewerStashedIds = useMemo(() => new Set(viewerItems.map((a) => a.itemId)), [viewerItems]);
   // The platforms present in the selected store (YouTube, Bilibili, …),
   // derived from each item's URL. With All Stores selected, include every
   // source. Sorted so the source filter's options stay stable.
@@ -262,7 +279,11 @@ export default function Stash() {
     else if (bare) showToast(t("app.analyzeBareLinks", { count: bare }), 6000);
   }
 
-  async function handleStash(result) {
+  // `chooseStore` (an Option-click on the Stash button) hands the result to the
+  // store picker instead of stashing it straight away — the login and lock
+  // gates still come first, since picking a store you can't stash into is only
+  // a longer way to be told to log in.
+  async function handleStash(result, { chooseStore = false } = {}) {
     if (!user) {
       setLoginOpen(true);
       return;
@@ -271,6 +292,14 @@ export default function Stash() {
       showToast(t("app.unlockFirst"));
       return;
     }
+    if (chooseStore) {
+      setStashAs({ item: result, copy: false });
+      return;
+    }
+    await stashResult(result);
+  }
+
+  async function stashResult(result) {
     try {
       const { item } = await api.stashItem(user, result);
       if (isOwner) setItems((prev) => [item, ...prev]);
@@ -278,11 +307,21 @@ export default function Stash() {
       // stash. With more than one (e.g. several pasted links, or a video
       // plus its channel), stay put so the rest can still be stashed; the
       // just-stashed card flips to its disabled "stashed" state instead.
-      if (search.results.length <= 1) setSearch(null);
+      if (search?.results.length <= 1) setSearch(null);
       showToast(t("app.toastStashed", { name: toastName(item, t) }));
     } catch (err) {
       showToast(err.status === 409 ? t("app.toastAlready") : t("app.toastError"));
     }
+  }
+
+  // Confirming the store picker: the same stash or copy the plain click would
+  // have run, with the chosen store standing in for the item's own.
+  async function handleStashAs(store) {
+    const pending = stashAs;
+    setStashAs(null);
+    if (!pending) return;
+    if (pending.copy) await copyItemTo(pending.item, store);
+    else await stashResult({ ...pending.item, store });
   }
 
   // Starting a note — from the + button beside the search box, or from an image
@@ -364,7 +403,7 @@ export default function Stash() {
 
   // Copies an item from someone else's stash (this page) into the viewer's
   // own, carrying over its note and any icon/screenshot files as-is.
-  async function handleCopyItem(item) {
+  async function handleCopyItem(item, { chooseStore = false } = {}) {
     if (!user) {
       setLoginOpen(true);
       return;
@@ -373,8 +412,18 @@ export default function Stash() {
       showToast(t("app.unlockFirst"));
       return;
     }
+    if (chooseStore) {
+      setStashAs({ item, copy: true });
+      return;
+    }
+    await copyItemTo(item);
+  }
+
+  // `store` is where the copy should land; without one it lands in the store it
+  // was copied out of.
+  async function copyItemTo(item, store = null) {
     try {
-      const { item: copied } = await api.copyItem(user, username, item.store, item.itemId);
+      const { item: copied } = await api.copyItem(user, username, item.store, item.itemId, store);
       setViewerItems((prev) => [copied, ...prev]);
       showToast(t("app.toastStashed", { name: toastName(copied, t) }));
     } catch (err) {
@@ -506,8 +555,8 @@ export default function Stash() {
                     key={itemKey(r)}
                     mode="result"
                     item={r}
-                    stashed={isOwner && stashedKeys.has(itemKey(r))}
-                    onStash={() => handleStash(r)}
+                    stashed={isOwner && stashedIds.has(r.itemId)}
+                    onStash={(opts) => handleStash(r, opts)}
                   />
                 ))}
               </div>
@@ -550,8 +599,8 @@ export default function Stash() {
                     key={itemKey(a)}
                     item={a}
                     onClick={() => setDetail(a)}
-                    onStash={!isOwner ? () => handleCopyItem(a) : undefined}
-                    stashed={!isOwner && viewerStashedKeys.has(itemKey(a))}
+                    onStash={!isOwner ? (opts) => handleCopyItem(a, opts) : undefined}
+                    stashed={!isOwner && viewerStashedIds.has(a.itemId)}
                   />
                 ))}
               </div>
@@ -567,16 +616,27 @@ export default function Stash() {
           item={detail}
           isOwner={isOwner}
           locked={locked}
-          stashed={!isOwner && viewerStashedKeys.has(itemKey(detail))}
+          stashed={!isOwner && viewerStashedIds.has(detail.itemId)}
           onClose={() => setDetail(null)}
           onSave={handleSaveItem}
           onDelete={handleDeleteItem}
-          onStash={!isOwner ? () => handleCopyItem(detail) : undefined}
+          onStash={!isOwner ? (opts) => handleCopyItem(detail, opts) : undefined}
           // Refresh re-analyzes the item's source URL, so it's meaningless for
           // a written note (which has none).
           onRefresh={isOwner && detail.url ? () => handleRefreshItem(detail) : undefined}
         />
       )}
+      {/* After the detail modal, so an Option-click on its Stash button opens
+          the picker on top of it rather than underneath. */}
+      <StashAsModal
+        isOpen={!!stashAs}
+        item={stashAs?.item}
+        // A copy carries its whole record over, so it can land in an authored
+        // store (Notes) too — a freshly analyzed result cannot.
+        allowWrite={!!stashAs?.copy}
+        onClose={() => setStashAs(null)}
+        onSelect={handleStashAs}
+      />
       <ConfirmModal
         isOpen={!!confirm}
         message={confirm?.message}

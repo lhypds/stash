@@ -462,7 +462,7 @@ app.get("/api/users/:username/stash", async (req, res) => {
 
 app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) => {
   const { username } = req.params;
-  const { store, itemId, kind, name, byline, icon, url, preview, installCommand, video } = req.body || {};
+  const { store, itemId, name, byline, icon, url, preview, installCommand, video } = req.body || {};
   if (!STORES[store]) return res.status(400).json({ error: "invalid store" });
   // A "write" store's items are authored, not analyzed — they have their own
   // endpoint (see POST .../notes) so their byline can't be spoofed here.
@@ -476,7 +476,10 @@ app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) =>
   await fs.mkdir(dir, { recursive: true });
   await ensureSettings(username);
 
-  const kindValue = String(kind || "app");
+  // The store decides what the item is called (see STORES): analysis settles
+  // the two together anyway, and an item stashed *as* another store's — an
+  // Option-click on Stash — should read as the shelf it was filed on.
+  const kindValue = STORES[store].kind;
   const imageBase = kindValue === "app" ? "icon" : "thumbnail";
   const iconFile = typeof icon === "string" && /^https?:\/\//.test(icon) ? await downloadIcon(dir, imageBase, icon, url) : null;
 
@@ -560,18 +563,34 @@ app.post("/api/users/:username/items/:store/:itemId/copy", requireUnlockedOwner,
   if (!USERNAME_RE.test(from)) return res.status(400).json({ error: "invalid source username" });
   if (from === username) return res.status(400).json({ error: "cannot copy your own item" });
 
+  // "Stash as" (an Option-click on the Stash button) files the copy under a
+  // store of the caller's choosing instead of the one it sits in over on the
+  // source stash. An authored store is fair game here — unlike a fresh stash,
+  // a copy carries the whole record across, byline and all.
+  const toStore = req.body?.store === undefined ? store : String(req.body.store);
+  if (!STORES[toStore]) return res.status(400).json({ error: "invalid store" });
+
   const sourceDir = itemDir(from, store, itemId);
   const sourceRecord = await readJson(path.join(sourceDir, "item.json"), null);
   if (!sourceRecord) return res.status(404).json({ error: "not found" });
 
-  const destDir = itemDir(username, store, itemId);
+  const destDir = itemDir(username, toStore, itemId);
   const destFile = path.join(destDir, "item.json");
   if (await readJson(destFile, null)) return res.status(409).json({ error: "already stashed" });
 
   await ensureSettings(username);
   await fs.cp(sourceDir, destDir, { recursive: true });
 
-  const record = { ...sourceRecord, stashedAt: new Date().toISOString() };
+  // The record's own store has to follow the directory it now lives in, or the
+  // copy's icon URLs (see withIconUrl) and later edits would point back at the
+  // store it was copied out of; its kind follows too, so a copy filed on a
+  // different shelf reads as that shelf's item.
+  const record = {
+    ...sourceRecord,
+    store: toStore,
+    kind: toStore === store ? sourceRecord.kind : STORES[toStore].kind,
+    stashedAt: new Date().toISOString(),
+  };
   await writeJson(destFile, record);
   res.status(201).json({ item: withIconUrl(username, record) });
 });
@@ -623,7 +642,10 @@ app.post("/api/users/:username/items/:store/:itemId/refresh", analyzeLimiter, re
   const iconFile = analyzed.icon ? await downloadIcon(dir, imageBase, analyzed.icon, record.url) : record.iconFile;
   const updated = {
     ...record,
-    kind: analyzed.kind || record.kind,
+    // Refreshing re-reads the source, not the shelf: an item stashed as another
+    // store's item keeps reading as that store's, rather than being relabelled
+    // back to whatever the analyzer makes of the URL.
+    kind: STORES[store]?.kind || analyzed.kind || record.kind,
     name: analyzed.name || record.name,
     byline: analyzed.byline ?? record.byline,
     preview: analyzed.preview ?? record.preview,

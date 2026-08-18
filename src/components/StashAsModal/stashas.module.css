@@ -1,0 +1,52 @@
+.modal {
+  max-width: 360px;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.store {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: none;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--ink);
+  border-top: none;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 12px;
+  text-align: left;
+}
+
+.store:first-child {
+  border-top: 1px solid var(--ink);
+}
+
+.current {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .store:hover {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .store:hover .current {
+    color: var(--bg);
+  }
+}

@@ -283,7 +283,14 @@ export default function ItemDetailModal({
         ) : (
           onStash && (
             <div className={styles.actions}>
-              <button className={styles.saveBtn} disabled={stashed} onClick={onStash}>
+              {/* Option/Alt-click picks the store to file it under, same as on
+                  the card's own Stash button (see StashAsModal). */}
+              <button
+                className={styles.saveBtn}
+                disabled={stashed}
+                title={stashed ? undefined : t("app.stashAsHint")}
+                onClick={(e) => onStash({ chooseStore: e.altKey })}
+              >
                 {stashed ? `✓ ${t("app.stashed")}` : t("app.stash")}
               </button>
             </div>

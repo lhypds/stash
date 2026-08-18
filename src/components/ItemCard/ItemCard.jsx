@@ -34,9 +34,12 @@ export default function ItemCard({ item, mode = "stash", onClick, stashed, onSta
     <button
       className={styles.stashBtn}
       disabled={stashed}
+      title={stashed ? undefined : t("app.stashAsHint")}
+      // Option/Alt-click asks which store to file the item under (see
+      // StashAsModal) rather than taking the one it came with.
       onClick={(e) => {
         e.stopPropagation();
-        onStash();
+        onStash({ chooseStore: e.altKey });
       }}
     >
       {stashed ? `✓ ${t("app.stashed")}` : t("app.stash")}

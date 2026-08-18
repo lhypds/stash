@@ -32,6 +32,11 @@ export const STORE_KEYS = [
 ];
 export const URL_STORES = new Set(["posts", "publishers", "pages", "videos", "channels", "chats", "repositories"]);
 
+// Stores whose items are authored rather than collected, and so can't be
+// stashed into: a note is written through its own endpoint (see createNote).
+// Mirrors the "write" type on the server's STORES.
+export const WRITE_STORES = new Set(["notes"]);
+
 // Stores filled by a keyword search rather than a pasted link.
 export const SEARCH_STORES = new Set(["apps", "skills"]);
 
@@ -89,10 +94,12 @@ export const createNote = (username, { text, image, imageName }) =>
     json("POST", { text, image: image || null, imageName: imageName || null }),
   );
 
-export const copyItem = (username, fromUsername, store, itemId) =>
+// `store` locates the item in the source stash; `toStore` is where the copy
+// should land — omitted, it lands in the store it came from.
+export const copyItem = (username, fromUsername, store, itemId, toStore = null) =>
   request(
     `/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}/copy`,
-    json("POST", { from: fromUsername }),
+    json("POST", toStore ? { from: fromUsername, store: toStore } : { from: fromUsername }),
   );
 
 export const updateItem = (username, store, itemId, patch) =>

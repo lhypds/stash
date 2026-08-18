@@ -20,17 +20,21 @@ export { noteTitle, noteImageName, saveNoteImage } from "./stores/notes.js";
 // Every content bucket the app understands, and how new items reach it: a
 // "url" store is filled by analyzing a pasted link; a "search" store by
 // keyword search; a "write" store by the user typing the item themselves.
+// `kind` is what one item on that shelf is called — an item reads as the store
+// it is filed under, so a stored record's kind is set from here rather than
+// from whatever the analyzer guessed (which "stash as" can deliberately
+// override by filing the item somewhere else).
 export const STORES = {
-  notes: { type: "write" },
-  pages: { type: "url" },
-  posts: { type: "url" },
-  publishers: { type: "url" },
-  videos: { type: "url" },
-  channels: { type: "url" },
-  chats: { type: "url" },
-  repositories: { type: "url" },
-  apps: { type: "search" },
-  skills: { type: "search" },
+  notes: { type: "write", kind: "note" },
+  pages: { type: "url", kind: "page" },
+  posts: { type: "url", kind: "post" },
+  publishers: { type: "url", kind: "publisher" },
+  videos: { type: "url", kind: "video" },
+  channels: { type: "url", kind: "channel" },
+  chats: { type: "url", kind: "chat" },
+  repositories: { type: "url", kind: "repository" },
+  apps: { type: "search", kind: "app" },
+  skills: { type: "search", kind: "skill" },
 };
 
 // Stores whose items get a background page screenshot after stashing.
