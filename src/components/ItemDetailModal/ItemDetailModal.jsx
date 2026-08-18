@@ -5,6 +5,7 @@ import ItemThumbnail from "@components/ItemThumbnail";
 import { SHOT_STORES } from "@utils/api";
 import { sourceName, videoEmbedUrl } from "@utils/url";
 import { itemMeta, itemTitle } from "@utils/item";
+import { useLongPress } from "@utils/longPress";
 import styles from "./detail.module.css";
 
 // CLI commands offered from the Actions rows.
@@ -82,6 +83,12 @@ export default function ItemDetailModal({
 }) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(item.note || "");
+  // Option-click or press-and-hold picks the store to file it under, same as on
+  // the card's own Stash button (see StashAsModal).
+  const stashPress = useLongPress({
+    onClick: (e) => onStash({ chooseStore: e.altKey }),
+    onLongPress: onStash && (() => onStash({ chooseStore: true })),
+  });
   const title = itemTitle(item, t);
   const isVideoItem = item.store === "videos" && item.kind === "video";
   const videoEmbed = isVideoItem ? videoEmbedUrl(item.url) : null;
@@ -283,13 +290,11 @@ export default function ItemDetailModal({
         ) : (
           onStash && (
             <div className={styles.actions}>
-              {/* Option/Alt-click picks the store to file it under, same as on
-                  the card's own Stash button (see StashAsModal). */}
               <button
                 className={styles.saveBtn}
                 disabled={stashed}
                 title={stashed ? undefined : t("app.stashAsHint")}
-                onClick={(e) => onStash({ chooseStore: e.altKey })}
+                {...stashPress}
               >
                 {stashed ? `✓ ${t("app.stashed")}` : t("app.stash")}
               </button>

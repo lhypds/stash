@@ -40,6 +40,12 @@ button {
   cursor: pointer;
   color: inherit;
   font: inherit;
+  /* A button's label is a label, not text to select: a double-click or a press
+     held on it (which is its own gesture — see useLongPress) would otherwise
+     highlight the word or raise the iOS selection callout. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 input,

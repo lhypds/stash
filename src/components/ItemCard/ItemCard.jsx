@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import ItemThumbnail from "@components/ItemThumbnail";
 import { itemMeta, itemTitle } from "@utils/item";
+import { useLongPress } from "@utils/longPress";
 import styles from "./card.module.css";
 
 const THUMB_KINDS = new Set(["post", "video"]);
@@ -12,6 +13,15 @@ const THUMB_KINDS = new Set(["post", "video"]);
 //   "result" — a not-yet-stashed search result, with its own Stash button.
 export default function ItemCard({ item, mode = "stash", onClick, stashed, onStash }) {
   const { t } = useTranslation();
+  // Both ways of asking which store to file it under: Option-click with a
+  // keyboard in reach, press-and-hold without one (see StashAsModal).
+  const stashPress = useLongPress({
+    onClick: (e) => {
+      e.stopPropagation();
+      onStash({ chooseStore: e.altKey });
+    },
+    onLongPress: onStash && (() => onStash({ chooseStore: true })),
+  });
   const title = itemTitle(item, t);
   const src = mode === "result" ? item.icon : item.iconUrl;
   // A note's attached image gets the same wide treatment as a post/video
@@ -35,12 +45,7 @@ export default function ItemCard({ item, mode = "stash", onClick, stashed, onSta
       className={styles.stashBtn}
       disabled={stashed}
       title={stashed ? undefined : t("app.stashAsHint")}
-      // Option/Alt-click asks which store to file the item under (see
-      // StashAsModal) rather than taking the one it came with.
-      onClick={(e) => {
-        e.stopPropagation();
-        onStash({ chooseStore: e.altKey });
-      }}
+      {...stashPress}
     >
       {stashed ? `✓ ${t("app.stashed")}` : t("app.stash")}
     </button>
