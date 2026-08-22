@@ -69,7 +69,7 @@
     "export": "导出",
     "confirmExport": "要将收藏下载为 ZIP 文件吗？",
     "invalidJson": "JSON 格式无效",
-    "invalidSafeIPs": "safeIPs 只能填写 IP 地址或 CIDR 网段",
+    "invalidSafeIPs": "Safe IP 只能填写 IP 地址或 CIDR 网段",
     "stash": "收下",
     "stashed": "已收藏",
     "stashAs": "收下到",

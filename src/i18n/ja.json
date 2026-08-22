@@ -69,7 +69,7 @@
     "export": "エクスポート",
     "confirmExport": "ストックをZIPファイルとしてダウンロードしますか？",
     "invalidJson": "JSONが無効です",
-    "invalidSafeIPs": "safeIPs には IP アドレスまたは CIDR 範囲を指定してください",
+    "invalidSafeIPs": "Safe IP には IP アドレスまたは CIDR 範囲を指定してください",
     "stash": "ストック",
     "stashed": "ストック済み",
     "stashAs": "ストック先を選択",
