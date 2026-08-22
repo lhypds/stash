@@ -10,14 +10,17 @@ export default function SettingsModal({ isOpen, onClose, onSaved }) {
   const { user } = useUser();
   const [text, setText] = useState("");
   const [saved, setSaved] = useState("");
-  const [invalid, setInvalid] = useState(false);
+  // The i18n key of what's wrong with the text as it stands — unparseable JSON,
+  // or a value the server refused — rather than the message itself, so it
+  // follows a language switch while the modal is open.
+  const [errorKey, setErrorKey] = useState("");
 
   useEffect(() => {
     if (!isOpen || !user) return;
     let cancelled = false;
     setText("");
     setSaved("");
-    setInvalid(false);
+    setErrorKey("");
     api
       .getSettings(user)
       .then(({ settings }) => {
@@ -38,7 +41,7 @@ export default function SettingsModal({ isOpen, onClose, onSaved }) {
       settings = JSON.parse(text);
       if (!settings || typeof settings !== "object" || Array.isArray(settings)) throw new Error("not an object");
     } catch {
-      setInvalid(true);
+      setErrorKey("app.invalidJson");
       return;
     }
     try {
@@ -47,8 +50,11 @@ export default function SettingsModal({ isOpen, onClose, onSaved }) {
       onSaved?.();
       onClose();
       window.location.reload();
-    } catch {
-      showToast(t("app.toastError"));
+    } catch (err) {
+      // A rejected safeIPs rule is a typo in the text still on screen, so it's
+      // named next to the field instead of thrown away in a generic toast.
+      if (err.code === "INVALID_SAFE_IPS") setErrorKey("app.invalidSafeIPs");
+      else showToast(t("app.toastError"));
     }
   }
 
@@ -61,11 +67,11 @@ export default function SettingsModal({ isOpen, onClose, onSaved }) {
           minHeight={240}
           onChange={(e) => {
             setText(e.target.value);
-            setInvalid(false);
+            setErrorKey("");
           }}
           spellCheck={false}
         />
-        {invalid && <p className={styles.error}>{t("app.invalidJson")}</p>}
+        {errorKey && <p className={styles.error}>{t(errorKey)}</p>}
         <div className={styles.actions}>
           <button className={styles.saveBtn} disabled={text === saved} onClick={save}>
             {t("button.save")}

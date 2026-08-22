@@ -71,6 +71,7 @@
     "export": "Export",
     "confirmExport": "Download your stash as a ZIP file?",
     "invalidJson": "Invalid JSON",
+    "invalidSafeIPs": "safeIPs must be IP addresses or CIDR ranges",
     "stash": "Stash",
     "stashed": "Stashed",
     "stashAs": "Stash as",

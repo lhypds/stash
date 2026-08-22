@@ -23,7 +23,15 @@ import {
   noteTitle,
   saveNoteImage,
 } from "./stores.js";
-import { ensureSettings, writeSettings, passwordsMatch, userExists } from "./settings.js";
+import {
+  ensureSettings,
+  writeSettings,
+  passwordsMatch,
+  userExists,
+  nsfwVisibleFrom,
+  safeIPsAcceptable,
+} from "./settings.js";
+import { clientIp } from "./utils/ip.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -145,7 +153,25 @@ app.use("/api/users/:username/notes", express.json({ limit: "12mb" }), (err, req
   next(err);
 });
 app.use(express.json());
-app.set("trust proxy", true);
+
+// What req.ip resolves to behind a reverse proxy. Left at the default `true`,
+// express trusts the whole X-Forwarded-For chain, so req.ip is its leftmost
+// entry — which the client writes. That's fine for the coarse rate limiter
+// below, but settings.safeIPs gates nsfw items on it, so a deployment using
+// safeIPs should pin the number of proxies actually in front of this server
+// (nginx alone: TRUST_PROXY=1) and req.ip then comes from that hop instead.
+// Also accepts "false" or an IP/subnet list, per express's own setting.
+const trustProxy = process.env.TRUST_PROXY;
+app.set(
+  "trust proxy",
+  trustProxy === undefined || trustProxy === "" || trustProxy === "true"
+    ? true
+    : trustProxy === "false"
+      ? false
+      : /^\d+$/.test(trustProxy)
+        ? Number(trustProxy)
+        : trustProxy,
+);
 
 // Login sessions are deliberately kept server-side so the password never has
 // to live in localStorage. A restart signs everyone out; the client quietly
@@ -432,6 +458,12 @@ app.put("/api/users/:username/settings", requireUnlockedOwner, async (req, res) 
   if (settings.isLocked === true && (typeof settings.password !== "string" || !settings.password)) {
     return res.status(400).json({ error: "password required", code: "PASSWORD_REQUIRED" });
   }
+  // A safeIPs rule that can't be parsed matches nothing, so it hides the very
+  // items it was written to allow — which reads as the feature being broken
+  // rather than as a typo. Refused on the way in, while there's someone to tell.
+  if (!safeIPsAcceptable(settings.safeIPs)) {
+    return res.status(400).json({ error: "invalid safeIPs", code: "INVALID_SAFE_IPS" });
+  }
   await writeSettings(req.params.username, settings);
   res.json({ settings });
 });
@@ -440,6 +472,7 @@ app.get("/api/users/:username/stash", async (req, res) => {
   const { username } = req.params;
   if (!(await userExists(username))) return res.status(404).json({ error: "user not found", code: "USER_NOT_FOUND" });
   const settings = await ensureSettings(username);
+  const showNsfw = nsfwVisibleFrom(settings, clientIp(req));
   const items = [];
   for (const store of Object.keys(STORES)) {
     let entries = [];
@@ -451,9 +484,11 @@ app.get("/api/users/:username/stash", async (req, res) => {
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       const record = await readJson(path.join(itemDir(username, store, entry.name), "item.json"), null);
-      // settings.nsfw === false hides nsfw items (e.g. Pornhub) from the listing
-      // without touching the underlying stash — they're still there if re-enabled.
-      if (record && (settings.nsfw || !isNsfwUrl(record.url))) items.push(withIconUrl(username, record));
+      // nsfw items (e.g. Pornhub) are hidden from the listing unless settings.nsfw
+      // is on *and* the request comes from one of settings.safeIPs (see
+      // nsfwVisibleFrom) — the underlying stash is untouched either way, so
+      // they're all still there from an address that's allowed to see them.
+      if (record && (showNsfw || !isNsfwUrl(record.url))) items.push(withIconUrl(username, record));
     }
   }
   items.sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || ""));

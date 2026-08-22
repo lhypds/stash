@@ -3,6 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { STORES } from "./stores.js";
+import { isValidIpRule, ipInList } from "./utils/ip.js";
 
 const DATA_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "data");
 const settingsFile = (username) => path.join(DATA_DIR, "users", username, "settings.json");
@@ -16,9 +17,22 @@ const DEFAULT_SETTINGS = {
   stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, true])),
   search: Object.fromEntries(SEARCH_ENGINES.map((k) => [k, true])),
   nsfw: false,
+  // The addresses nsfw items stay visible from, as IP literals or CIDR ranges.
+  // Empty (the default) means the nsfw toggle alone decides, from anywhere.
+  safeIPs: [],
   isLocked: false,
   password: "",
 };
+
+// settings.safeIPs as a list of rules: trimmed, with blanks and non-strings
+// dropped. A rule that doesn't parse is deliberately *kept* — dropping it would
+// leave an empty list, which reads as "no restriction", so one typo in a
+// hand-edited file would publish the nsfw items the list exists to keep in.
+// Kept, it just never matches, and the user can see it in the settings editor.
+const readSafeIPs = (value) =>
+  Array.isArray(value)
+    ? value.filter((rule) => typeof rule === "string").map((rule) => rule.trim()).filter(Boolean)
+    : [];
 
 export async function userExists(username) {
   try {
@@ -48,6 +62,7 @@ export async function ensureSettings(username) {
     stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, existing?.stores?.[s] ?? true])),
     search: Object.fromEntries(SEARCH_ENGINES.map((k) => [k, existing?.search?.[k] ?? true])),
     nsfw: typeof existing?.nsfw === "boolean" ? existing.nsfw : false,
+    safeIPs: readSafeIPs(existing?.safeIPs),
   };
   if (JSON.stringify(merged) !== JSON.stringify(existing)) await writeSettings(username, merged);
   return merged;
@@ -59,6 +74,22 @@ export async function writeSettings(username, settings) {
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, JSON.stringify(settings, null, 2) + "\n");
 }
+
+// Whether nsfw items should be listed for a viewer at `ip`. The nsfw toggle
+// still decides whether they're shown at all; safeIPs narrows *where* from, so
+// a stash that's fine to open at home stays clean on the office network — with
+// a non-empty list, only requests from one of those addresses see them.
+export function nsfwVisibleFrom(settings, ip) {
+  if (!settings?.nsfw) return false;
+  const safeIPs = readSafeIPs(settings.safeIPs);
+  return safeIPs.length === 0 || ipInList(ip, safeIPs);
+}
+
+// Whether a settings object's safeIPs is one this server can act on — used to
+// reject a bad rule as it's saved instead of quietly dropping it on the next
+// read. Absent is fine; present has to be an array of usable rules.
+export const safeIPsAcceptable = (value) =>
+  value === undefined || (Array.isArray(value) && value.every((rule) => typeof rule === "string" && isValidIpRule(rule)));
 
 // Constant-time comparison for the stash-lock password.
 export function passwordsMatch(a, b) {
