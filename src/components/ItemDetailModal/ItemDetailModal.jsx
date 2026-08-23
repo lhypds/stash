@@ -119,6 +119,8 @@ export default function ItemDetailModal({
     <Modal
       isOpen
       onClose={onClose}
+      // Matches the Save button: only an owner's unsaved edit has anything to save.
+      onSubmit={isOwner && !locked && dirty ? () => onSave(item, { note }) : undefined}
       title={title}
       closeOnOverlay
       headerActions={

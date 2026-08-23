@@ -59,7 +59,13 @@ export default function SettingsModal({ isOpen, onClose, onSaved }) {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="settings.json" closeOnOverlay>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={text === saved ? undefined : save}
+      title="settings.json"
+      closeOnOverlay
+    >
       <div className={styles.body}>
         <TextArea
           className={styles.textarea}

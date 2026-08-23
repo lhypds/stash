@@ -41,6 +41,7 @@ export default function LockModal({ isOpen, mode, onClose, onSubmit, onSuccess }
     <Modal
       isOpen={isOpen}
       onClose={onClose}
+      onSubmit={save}
       title={t(mode === "unlock" ? "app.unlockStash" : "app.lockStash")}
       closeOnOverlay
       className={styles.modal}

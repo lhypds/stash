@@ -167,7 +167,7 @@ export default function NoteModal({ isOpen, initialFile = null, onClose, onSave 
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t("app.newNote")} className={styles.modal}>
+    <Modal isOpen={isOpen} onClose={onClose} onSubmit={save} title={t("app.newNote")} className={styles.modal}>
       <div className={styles.form} ref={formRef}>
         <TextArea
           ref={textRef}

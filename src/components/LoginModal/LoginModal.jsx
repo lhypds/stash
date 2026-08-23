@@ -42,6 +42,7 @@ export default function LoginModal({ isOpen, onClose }) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
+      onSubmit={submit}
       title={t("app.login")}
       closeOnOverlay
       className={styles.modal}
