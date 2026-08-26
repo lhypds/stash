@@ -497,7 +497,7 @@ app.get("/api/users/:username/stash", async (req, res) => {
 
 app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) => {
   const { username } = req.params;
-  const { store, itemId, name, byline, icon, url, preview, installCommand, video } = req.body || {};
+  const { store, itemId, name, byline, icon, url, preview, installCommand, video, note } = req.body || {};
   if (!STORES[store]) return res.status(400).json({ error: "invalid store" });
   // A "write" store's items are authored, not analyzed — they have their own
   // endpoint (see POST .../notes) so their byline can't be spoofed here.
@@ -536,7 +536,10 @@ app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) =>
     preview: hasPreview ? preview : (backfilled?.preview ?? null),
     installCommand: hasInstall ? installCommand : (backfilled?.installCommand ?? null),
     video: typeof video === "string" && /^https:\/\//.test(video) ? video : null,
-    note: "",
+    // A note written in the store picker alongside the stash (see StashAsModal).
+    // A "write" store is turned away above, so there is never a note-kind name
+    // to re-derive from it the way an edit has to (see the PATCH below).
+    note: typeof note === "string" ? note : "",
     stashedAt: new Date().toISOString(),
   };
   await writeJson(jsonFile, record);
@@ -604,6 +607,9 @@ app.post("/api/users/:username/items/:store/:itemId/copy", requireUnlockedOwner,
   // a copy carries the whole record across, byline and all.
   const toStore = req.body?.store === undefined ? store : String(req.body.store);
   if (!STORES[toStore]) return res.status(400).json({ error: "invalid store" });
+  // A note written in the picker stands in for the one the item comes over with;
+  // without one, the source's own note is what carries across.
+  const note = typeof req.body?.note === "string" ? req.body.note : null;
 
   const sourceDir = itemDir(from, store, itemId);
   const sourceRecord = await readJson(path.join(sourceDir, "item.json"), null);
@@ -626,6 +632,16 @@ app.post("/api/users/:username/items/:store/:itemId/copy", requireUnlockedOwner,
     kind: toStore === store ? sourceRecord.kind : STORES[toStore].kind,
     stashedAt: new Date().toISOString(),
   };
+  if (note !== null) {
+    record.note = note;
+    // A note's text *is* the item, so replacing it re-derives the title the card
+    // shows — the same way an edit does (see the PATCH below). Only for one that
+    // was already a note over on the source stash, though: another store's item
+    // filed on the Notes shelf keeps the name it was collected under.
+    if (sourceRecord.kind === "note" && record.kind === "note") {
+      record.name = noteTitle(note) || (record.iconFile ? "" : record.name);
+    }
+  }
   await writeJson(destFile, record);
   res.status(201).json({ item: withIconUrl(username, record) });
 });

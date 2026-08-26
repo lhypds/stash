@@ -40,6 +40,36 @@
   white-space: nowrap;
 }
 
+.noteField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.noteArea {
+  min-height: 60px;
+  padding: 4px 6px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* The field's own border is a light grey, which reads as disabled next to the
+   store rows above — box it in the same ink hairline they use instead, and hold
+   that on focus rather than letting the grey focus rule take it back. */
+.noteArea,
+.noteArea:focus {
+  border-color: var(--ink);
+}
+
 @media (hover: hover) {
   .store:hover {
     background: var(--ink);

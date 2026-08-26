@@ -300,10 +300,15 @@ export default function Stash() {
   }
 
   // `store` files the result somewhere other than the store analysis put it in
-  // (see handleStashAs); without one it lands in its own.
-  async function stashResult(result, store = null) {
+  // and `note` is a note written alongside it in the picker (see handleStashAs);
+  // without either it lands in its own store, unannotated.
+  async function stashResult(result, store = null, note = null) {
     try {
-      const { item } = await api.stashItem(user, store ? { ...result, store } : result);
+      const { item } = await api.stashItem(user, {
+        ...result,
+        ...(store ? { store } : {}),
+        ...(typeof note === "string" ? { note } : {}),
+      });
       if (isOwner) setItems((prev) => [item, ...prev]);
       // With a single result, stashing it is naturally "done" — back to the
       // stash. With more than one (e.g. several pasted links, or a video
@@ -328,13 +333,14 @@ export default function Stash() {
   }
 
   // Confirming the store picker: the same stash or copy the plain click would
-  // have run, with the chosen store standing in for the item's own.
-  async function handleStashAs(store) {
+  // have run, with the chosen store standing in for the item's own and the note
+  // written in there saved on the item as it lands.
+  async function handleStashAs(store, note) {
     const pending = stashAs;
     setStashAs(null);
     if (!pending) return;
-    if (pending.copy) await copyItemTo(pending.item, store);
-    else await stashResult(pending.item, store);
+    if (pending.copy) await copyItemTo(pending.item, store, note);
+    else await stashResult(pending.item, store, note);
   }
 
   // Starting a note — from the + button beside the search box, or from an image
@@ -433,10 +439,12 @@ export default function Stash() {
   }
 
   // `store` is where the copy should land; without one it lands in the store it
-  // was copied out of.
-  async function copyItemTo(item, store = null) {
+  // was copied out of. `note` stands in for the note the item comes over with —
+  // one written in the picker (see handleStashAs); without one, the author's own
+  // note carries across untouched.
+  async function copyItemTo(item, store = null, note = null) {
     try {
-      const { item: copied } = await api.copyItem(user, username, item.store, item.itemId, store);
+      const { item: copied } = await api.copyItem(user, username, item.store, item.itemId, store, note);
       setViewerItems((prev) => [copied, ...prev]);
       showToast(t("app.toastStashed", { name: toastName(copied, t) }));
     } catch (err) {

@@ -95,11 +95,16 @@ export const createNote = (username, { text, image, imageName }) =>
   );
 
 // `store` locates the item in the source stash; `toStore` is where the copy
-// should land — omitted, it lands in the store it came from.
-export const copyItem = (username, fromUsername, store, itemId, toStore = null) =>
+// should land — omitted, it lands in the store it came from. `note` stands in
+// for the note the item carries over; omitted, that note is kept as-is.
+export const copyItem = (username, fromUsername, store, itemId, toStore = null, note = null) =>
   request(
     `/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}/copy`,
-    json("POST", toStore ? { from: fromUsername, store: toStore } : { from: fromUsername }),
+    json("POST", {
+      from: fromUsername,
+      ...(toStore ? { store: toStore } : {}),
+      ...(typeof note === "string" ? { note } : {}),
+    }),
   );
 
 export const updateItem = (username, store, itemId, patch) =>
