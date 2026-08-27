@@ -27,7 +27,7 @@ const DEFAULT_SETTINGS = {
   // send one to: whoever forgets theirs writes to the administrator (see
   // VITE_ADMIN_EMAIL), who reads this field and sets a new one — and a hash would
   // make that the one thing the administrator cannot do.
-  loginPassword: "",
+  password: "",
 };
 
 // settings.safeIPs as a list of rules: trimmed, with blanks and non-strings
@@ -60,16 +60,20 @@ export async function ensureSettings(username) {
   } catch {
     existing = null;
   }
-  // isLocked/password were the stash lock, which is gone — an account is got
-  // into with loginPassword and there is nothing further to bolt. Dropped here
-  // rather than left behind, so the first read of an old file tidies it.
+  // Two older shapes are settled here, so the first read of an old file tidies
+  // it. isLocked and a second password were the stash lock, which is gone — an
+  // account is got into with the password below and there is nothing further to
+  // bolt — and while that lock held the shorter name, the login password was
+  // written as loginPassword. A file carrying both keys means the login one is
+  // loginPassword; one carrying only `password` has already been through here.
   const carried = { ...(existing || {}) };
   delete carried.isLocked;
-  delete carried.password;
+  delete carried.loginPassword;
+  const password = existing?.loginPassword ?? existing?.password;
   const merged = {
     ...DEFAULT_SETTINGS,
     ...carried,
-    loginPassword: typeof existing?.loginPassword === "string" ? existing.loginPassword : "",
+    password: typeof password === "string" ? password : "",
     stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, existing?.stores?.[s] ?? true])),
     search: Object.fromEntries(SEARCH_ENGINES.map((k) => [k, existing?.search?.[k] ?? true])),
     nsfw: typeof existing?.nsfw === "boolean" ? existing.nsfw : false,

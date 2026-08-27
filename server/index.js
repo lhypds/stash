@@ -410,7 +410,7 @@ app.post("/api/users/:username", async (req, res) => {
     return res.status(409).json({ error: "username taken", code: "USER_EXISTS" });
   }
   const settings = await ensureSettings(username);
-  await writeSettings(username, { ...settings, loginPassword: password });
+  await writeSettings(username, { ...settings, password });
   startSession(username, req, res);
   res.json({ ok: true, username });
 });
@@ -430,7 +430,7 @@ app.get("/api/users/:username/login", async (req, res) => {
     return res.status(404).json({ error: "user not found", code: "USER_NOT_FOUND" });
   }
   const settings = await ensureSettings(username);
-  res.json({ username, hasPassword: Boolean(settings.loginPassword) });
+  res.json({ username, hasPassword: Boolean(settings.password) });
 });
 
 // And the second step, which is the one that hands a session out. A name that is
@@ -443,7 +443,7 @@ app.post("/api/users/:username/login", async (req, res) => {
   }
   const settings = await ensureSettings(username);
   const sent = typeof req.body?.password === "string" ? req.body.password : "";
-  if (!settings.loginPassword) {
+  if (!settings.password) {
     // An account from before there were passwords. Nobody can be asked to prove
     // one that was never set, and stash will not lock its own readers out of
     // stashes they have been keeping — so the first sign-in to arrive here is the
@@ -454,8 +454,8 @@ app.post("/api/users/:username/login", async (req, res) => {
         .status(400)
         .json({ error: `password must be ${PASSWORD_MIN}–${PASSWORD_MAX} characters`, code: "PASSWORD_INVALID" });
     }
-    await writeSettings(username, { ...settings, loginPassword: password });
-  } else if (!passwordsMatch(sent, settings.loginPassword)) {
+    await writeSettings(username, { ...settings, password });
+  } else if (!passwordsMatch(sent, settings.password)) {
     return res.status(401).json({ error: "incorrect password", code: "INVALID_PASSWORD" });
   }
   startSession(username, req, res);
