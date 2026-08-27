@@ -22,6 +22,17 @@ const DEFAULT_SETTINGS = {
   safeIPs: [],
   isLocked: false,
   password: "",
+  // The password the account is signed into with, as it was typed. Not the lock
+  // above it: that one is a bolt somebody throws on their own stash and takes off
+  // again — unlocking clears it — while this is what getting in at all costs.
+  // Empty means one has still to be chosen, which is what the first step of
+  // signing in reads it as, and what an account opened before there were
+  // passwords has.
+  // Plain text, deliberately. There is no reset link and no address on file to
+  // send one to: whoever forgets theirs writes to the administrator (see
+  // VITE_ADMIN_EMAIL), who reads this field and sets a new one — and a hash would
+  // make that the one thing the administrator cannot do.
+  loginPassword: "",
 };
 
 // settings.safeIPs as a list of rules: trimmed, with blanks and non-strings
@@ -59,6 +70,7 @@ export async function ensureSettings(username) {
     ...(existing || {}),
     isLocked: existing?.isLocked === true,
     password: typeof existing?.password === "string" ? existing.password : "",
+    loginPassword: typeof existing?.loginPassword === "string" ? existing.loginPassword : "",
     stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, existing?.stores?.[s] ?? true])),
     search: Object.fromEntries(SEARCH_ENGINES.map((k) => [k, existing?.search?.[k] ?? true])),
     nsfw: typeof existing?.nsfw === "boolean" ? existing.nsfw : false,

@@ -8,9 +8,13 @@
   gap: 18px;
 }
 
+/* Said out loud rather than inherited: a confirm is opened from all over the app,
+   the front page included, whose type is centred — and a question is read from its
+   left edge wherever it was asked from. */
 .message {
   font-size: 14px;
   line-height: 1.5;
+  text-align: left;
 }
 
 .actions {

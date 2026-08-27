@@ -4,9 +4,22 @@ import * as api from "@utils/api";
 const KEY = "stash:user";
 const USERNAME_RE =
   /^[a-z0-9_\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Hangul}-]{1,32}$/u;
+// One of those characters has to be a letter, in any of the scripts above: digits,
+// dashes and underscores on their own make an account number rather than a name.
+// The server holds the same rule and is the one that enforces it; this is here so
+// that a name it would refuse is answered before it is sent.
+const USERNAME_LETTER_RE =
+  /[a-z\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Hangul}]/u;
 const UserContext = createContext(null);
 
-export const isValidUsername = (username) => USERNAME_RE.test(username);
+export const isValidUsername = (username) =>
+  USERNAME_RE.test(username) && USERNAME_LETTER_RE.test(username);
+
+// The last name signed in from this browser. Not a credential and no longer a way
+// back in on its own — it is the name the sign-in form opens with in its field, so
+// that coming back after a session has gone is a password to type rather than both
+// halves of one.
+export const rememberedUsername = () => localStorage.getItem(KEY) || "";
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -16,7 +29,6 @@ export function UserProvider({ children }) {
 
   useEffect(() => {
     let cancelled = false;
-    const stored = localStorage.getItem(KEY);
 
     async function restore() {
       try {
@@ -28,19 +40,10 @@ export function UserProvider({ children }) {
           setLocked(sessionLocked);
         }
       } catch {
-        // Migrate the old localStorage-only login into a server session.
-        if (stored && isValidUsername(stored)) {
-          try {
-            const session = await api.login(stored);
-            if (!cancelled) {
-              setUser(stored);
-              setHasLock(session.hasLock);
-              setLocked(session.locked);
-            }
-          } catch {
-            localStorage.removeItem(KEY);
-          }
-        }
+        // Nobody is signed in here, or the server restarted and dropped the
+        // session it had. Either way the sign-in form is the answer: a name alone
+        // is not a way in any more, and a password is not something this browser
+        // is holding on anybody's behalf.
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -52,8 +55,18 @@ export function UserProvider({ children }) {
     };
   }, []);
 
-  const login = async (username) => {
-    const session = await api.login(username);
+  const login = async (username, password) => {
+    const session = await api.login(username, password);
+    localStorage.setItem(KEY, username);
+    setUser(username);
+    setHasLock(session.hasLock);
+    setLocked(session.locked);
+  };
+
+  // Opening an account and signing into it are one request: the name has been
+  // confirmed and the password just chosen, and what comes back is a session.
+  const register = async (username, password) => {
+    const session = await api.createUser(username, password);
     localStorage.setItem(KEY, username);
     setUser(username);
     setHasLock(session.hasLock);
@@ -94,7 +107,19 @@ export function UserProvider({ children }) {
 
   return (
     <UserContext.Provider
-      value={{ user, ready, hasLock, locked, login, logout, unlock, setPasswordAndLock, relock, refreshLock }}
+      value={{
+        user,
+        ready,
+        hasLock,
+        locked,
+        login,
+        register,
+        logout,
+        unlock,
+        setPasswordAndLock,
+        relock,
+        refreshLock,
+      }}
     >
       {children}
     </UserContext.Provider>

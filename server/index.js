@@ -57,6 +57,35 @@ if (process.env.PROXY_URL) setGlobalDispatcher(new ProxyAgent(process.env.PROXY_
 
 const USERNAME_RE =
   /^[a-z0-9_\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Hangul}-]{1,32}$/u;
+// And one of those characters has to be a letter. Digits, dashes and underscores
+// on their own make an account number rather than a name: a purely numeric one
+// reads as an id everywhere it turns up — in a path, in a shared link, at the top
+// of somebody's stash. A letter in any of the scripts the pattern above allows
+// counts, so this rules out 12345 without ruling out 李明.
+//
+// Only the two places a name is claimed ask for it — opening an account and the
+// first step of signing into one. app.param holds every route to USERNAME_RE, and
+// putting this there too would turn an account already on disk into one nobody can
+// reach rather than turning a new name away.
+const USERNAME_LETTER_RE =
+  /[a-z\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Hangul}]/u;
+const missingLetter = (username) => !USERNAME_LETTER_RE.test(username);
+
+// What a login password has to be. Unlike a username it is nobody's address and
+// nothing links to it, so the only rules are the two that stop it being a mistake:
+// long enough to be a choice, short enough to have been typed on purpose.
+const PASSWORD_MIN = 4;
+const PASSWORD_MAX = 64;
+
+// A password as sent, or nothing where what arrived could not be one. Kept exactly
+// as it was typed — no trimming, no case folding — because a space on the end of a
+// password is a character of it. Null rather than a thrown error because both
+// callers answer the same way, and a usable password is never the empty string.
+function usablePassword(value) {
+  const password = typeof value === "string" ? value : "";
+  if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX) return null;
+  return password;
+}
 
 const userDir = (username) => path.join(DATA_DIR, "users", username);
 const storeDir = (username, store) => path.join(userDir(username), "stores", store);
@@ -375,14 +404,73 @@ app.get("/api/video-proxy", analyzeLimiter, async (req, res) => {
   }
 });
 
+// Opening an account, which is also signing into it: the name and the password it
+// will be got into with arrive together, from the second screen of the same
+// two-step form an existing account is signed in through, and the session follows
+// because confirming a new name is the whole of signing up.
 app.post("/api/users/:username", async (req, res) => {
-  await ensureSettings(req.params.username);
-  res.json({ ok: true });
+  const { username } = req.params;
+  if (missingLetter(username)) {
+    return res.status(400).json({ error: "username needs a letter", code: "USERNAME_NO_LETTER" });
+  }
+  const password = usablePassword(req.body?.password);
+  if (!password) {
+    return res
+      .status(400)
+      .json({ error: `password must be ${PASSWORD_MIN}–${PASSWORD_MAX} characters`, code: "PASSWORD_INVALID" });
+  }
+  if (await userExists(username)) {
+    return res.status(409).json({ error: "username taken", code: "USER_EXISTS" });
+  }
+  const settings = await ensureSettings(username);
+  await writeSettings(username, { ...settings, loginPassword: password });
+  startSession(username, true, req, res);
+  res.json({ ok: true, username, hasLock: false, locked: false });
 });
 
+// What signing in here will ask for, which is the first of its two steps and hands
+// out nothing: whether the name is an account at all — a name nobody has used is
+// more often a typo than a new person, so it comes back as USER_NOT_FOUND for the
+// browser to ask about before the POST above opens it — and whether that account
+// has a password yet, since one opened before there were passwords has its chosen
+// by the next sign-in that reaches it rather than checked.
+app.get("/api/users/:username/login", async (req, res) => {
+  const { username } = req.params;
+  if (missingLetter(username)) {
+    return res.status(400).json({ error: "username needs a letter", code: "USERNAME_NO_LETTER" });
+  }
+  if (!(await userExists(username))) {
+    return res.status(404).json({ error: "user not found", code: "USER_NOT_FOUND" });
+  }
+  const settings = await ensureSettings(username);
+  res.json({ username, hasPassword: Boolean(settings.loginPassword) });
+});
+
+// And the second step, which is the one that hands a session out. A name that is
+// not an account is no longer signed in by being typed: it is created by the POST
+// above, with a password, or it is a typo.
 app.post("/api/users/:username/login", async (req, res) => {
   const { username } = req.params;
+  if (!(await userExists(username))) {
+    return res.status(404).json({ error: "user not found", code: "USER_NOT_FOUND" });
+  }
   const settings = await ensureSettings(username);
+  const sent = typeof req.body?.password === "string" ? req.body.password : "";
+  if (!settings.loginPassword) {
+    // An account from before there were passwords. Nobody can be asked to prove
+    // one that was never set, and stash will not lock its own readers out of
+    // stashes they have been keeping — so the first sign-in to arrive here is the
+    // one that chooses it, the same way opening an account does.
+    const password = usablePassword(sent);
+    if (!password) {
+      return res
+        .status(400)
+        .json({ error: `password must be ${PASSWORD_MIN}–${PASSWORD_MAX} characters`, code: "PASSWORD_INVALID" });
+    }
+    await writeSettings(username, { ...settings, loginPassword: password });
+  } else if (!passwordsMatch(sent, settings.loginPassword)) {
+    return res.status(401).json({ error: "incorrect password", code: "INVALID_PASSWORD" });
+  }
   startSession(username, !settings.isLocked, req, res);
   res.json({ ok: true, username, hasLock: settings.isLocked, locked: settings.isLocked });
 });

@@ -58,9 +58,19 @@ export const searchStore = (store, term, country = "us") =>
 export const analyzeUrl = (url, country = "us") =>
   request(`/api/analyze?store=auto&country=${country}&url=${encodeURIComponent(url)}`);
 
-export const ensureUser = (username) => request(`/api/users/${userPath(username)}`, { method: "POST" });
+// Opening an account: the name and the password it will be signed into with, in one
+// request, which comes back already signed in.
+export const createUser = (username, password) =>
+  request(`/api/users/${userPath(username)}`, json("POST", { password }));
 
-export const login = (username) => request(`/api/users/${userPath(username)}/login`, json("POST", {}));
+// The first of the two steps signing in is asked in: whether the name is an account,
+// and whether it has a password yet. Nobody is signed in by it — what comes back is
+// what the password step needs in order to know whether it is asking for a password
+// or asking for one to be chosen.
+export const checkLogin = (username) => request(`/api/users/${userPath(username)}/login`);
+
+export const login = (username, password) =>
+  request(`/api/users/${userPath(username)}/login`, json("POST", { password }));
 
 export const getSession = () => request("/api/session");
 

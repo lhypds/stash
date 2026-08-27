@@ -1,44 +1,19 @@
-import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { LanguageSwitcher, UsernameInput } from "@components";
-import { useUser, isValidUsername } from "@contexts/UserContext";
+import { LanguageSwitcher, SignIn } from "@components";
+import { useUser } from "@contexts/UserContext";
 import styles from "./home.module.css";
 
 export default function Home() {
   const { t } = useTranslation();
-  const { user, ready, login } = useUser();
+  const { user, ready } = useUser();
   const location = useLocation();
   const navigate = useNavigate();
   const requestedUsername = typeof location.state?.username === "string" ? location.state.username : "";
-  const [name, setName] = useState(requestedUsername);
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
   if (!ready) return null;
   if (user && (!requestedUsername || user === requestedUsername)) {
     return <Navigate to={`/${encodeURIComponent(user)}`} replace />;
-  }
-
-  async function submit() {
-    if (submitting) return;
-    const username = name.trim().normalize("NFKC").toLowerCase();
-    if (!isValidUsername(username)) {
-      setError("username");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await login(username);
-      // Dismiss the iOS keyboard before the route swap; unmounting a focused
-      // input can leave the viewport stuck where the keyboard pushed it
-      document.activeElement?.blur();
-      navigate(`/${encodeURIComponent(username)}`, { replace: true });
-    } catch {
-      setError("login");
-    } finally {
-      setSubmitting(false);
-    }
   }
 
   return (
@@ -49,31 +24,15 @@ export default function Home() {
       <main className={styles.hero}>
         <h1 className={styles.title}>stash</h1>
         <p className={styles.tagline}>{t("app.tagline")}</p>
-        <div className={styles.form} role="search">
-          <div className={styles.row}>
-            <UsernameInput
-              className={styles.input}
-              initialValue={requestedUsername}
-              placeholder={t("app.usernamePlaceholder")}
-              ariaLabel={t("app.usernamePlaceholder")}
-              onChange={(v) => {
-                setName(v);
-                setError("");
-              }}
-              onSubmit={submit}
-            />
-            <button type="button" className={styles.go} onClick={submit} disabled={submitting}>
-              {t("app.go")}
-            </button>
-          </div>
-          {error ? (
-            <p className={styles.error}>
-              {t(error === "username" ? "app.usernameInvalid" : "app.toastError")}
-            </p>
-          ) : (
-            <p className={styles.hint}>{t("app.loginHint")}</p>
-          )}
-        </div>
+        {/* The name, then the password: two steps in the one form, which is also
+            the form the stash page's sheet holds (see SignIn). The page keeps its
+            wordmark and its line — the second step is a step of this screen rather
+            than a screen of its own, and neither of them moves. */}
+        <SignIn
+          className={styles.signin}
+          initialUsername={requestedUsername}
+          onSignedIn={(username) => navigate(`/${encodeURIComponent(username)}`, { replace: true })}
+        />
       </main>
     </div>
   );

@@ -1,73 +1,25 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Modal } from "@ui";
-import UsernameInput from "@components/UsernameInput";
-import { useUser, isValidUsername } from "@contexts/UserContext";
+import SignIn from "@components/SignIn";
 import styles from "./login.module.css";
 
+// Signing in from inside somebody else's stash. The form is the front page's own
+// (see SignIn) — the name, then the password — because there is one way into an
+// account and a sheet is not a reason to ask for it differently.
 export default function LoginModal({ isOpen, onClose }) {
   const { t } = useTranslation();
-  const { login } = useUser();
   const navigate = useNavigate();
-  const [name, setName] = useState("");
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  async function submit() {
-    if (submitting) return;
-    const username = name.trim().normalize("NFKC").toLowerCase();
-    if (!isValidUsername(username)) {
-      setError("username");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await login(username);
-      // Dismiss the iOS keyboard before the route swap; unmounting a focused
-      // input can leave the viewport stuck where the keyboard pushed it
-      document.activeElement?.blur();
-      setName("");
-      setError("");
-      onClose();
-      navigate(`/${encodeURIComponent(username)}`);
-    } catch {
-      setError("login");
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      onSubmit={submit}
-      title={t("app.login")}
-      closeOnOverlay
-      className={styles.modal}
-    >
-      <div className={styles.form} role="search">
-        <UsernameInput
-          className={styles.input}
-          placeholder={t("app.usernamePlaceholder")}
-          ariaLabel={t("app.usernamePlaceholder")}
-          onChange={(v) => {
-            setName(v);
-            setError("");
+    <Modal isOpen={isOpen} onClose={onClose} title={t("app.login")} closeOnOverlay className={styles.modal}>
+      <div className={styles.body}>
+        <SignIn
+          onSignedIn={(username) => {
+            onClose();
+            navigate(`/${encodeURIComponent(username)}`);
           }}
-          onSubmit={submit}
         />
-        {error ? (
-          <p className={styles.error}>
-            {t(error === "username" ? "app.usernameInvalid" : "app.toastError")}
-          </p>
-        ) : (
-          <p className={styles.hint}>{t("app.loginHint")}</p>
-        )}
-        <button type="button" className={styles.submit} onClick={submit} disabled={submitting}>
-          {t("app.login")}
-        </button>
       </div>
     </Modal>
   );

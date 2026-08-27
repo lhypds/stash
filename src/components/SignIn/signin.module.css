@@ -1,0 +1,147 @@
+/* The form itself, at the width the front page's hero gave it and the sheet's own
+   360px happily holds: a field with its button joined to it, and one line of type
+   under the pair. Both places stash asks to be signed into look the same because
+   they are the same question (see SignIn.jsx). */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.row {
+  display: flex;
+}
+
+/* One rule for both fields: the name, which is a contenteditable so that password
+   managers leave it alone (see UsernameInput), and the password, which is a real
+   input because that is exactly what a password field should be. The placeholder
+   rule below is the contenteditable's own — an input draws its own. */
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ink);
+  border-right: none;
+  font-size: 15px;
+  outline: none;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: text;
+}
+
+.input:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.go {
+  padding: 10px 20px;
+  background: var(--ink);
+  color: var(--bg);
+  border: 1px solid var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.go:disabled {
+  opacity: 0.55;
+}
+
+/* One voice, whether the line is saying what the field wants or what was wrong
+   with what it was given: nothing has gone wrong here in the sense that word
+   usually carries — the line is the field talking about itself, and it is read in
+   the same breath either way. Centred under the field, and as wide as its words so
+   that centring lands on the words rather than on a full-width box. */
+.message {
+  min-height: 18px;
+  font-size: 13px;
+  color: var(--muted);
+  width: max-content;
+  max-width: 100%;
+  align-self: center;
+  text-align: center;
+}
+
+/* The two ways out of the password step are words inside that line, not boxes set
+   beside it: the field and its button are what the form is for, and a second pair
+   of slabs under them would read as a second thing to do. Neither breaks across two
+   lines — the words of the message are what has room to give. */
+.word {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.word:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+/* And the sheet the forgotten one opens: the same frame and the same pair of
+   actions a confirm has (see ConfirmModal), one of which is a link rather than a
+   press — writing to the administrator hands the reader off to their own mail app,
+   which is an address and not something stash does. */
+.sheet {
+  max-width: 360px;
+}
+
+.sheetBody {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Left, said out loud: this sheet is opened from a page whose type is centred, and
+   a paragraph is read from its left edge wherever it was opened from. */
+.sheetText {
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.sheetActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cancel,
+.confirm {
+  width: 100px;
+  padding: 6px 16px;
+  border: 1px solid var(--ink);
+  font-size: 12px;
+  text-align: center;
+}
+
+.cancel {
+  background: none;
+}
+
+.cancel:hover {
+  background: var(--soft);
+}
+
+.confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  color: var(--bg);
+  text-decoration: none;
+}
+
+.confirm:hover {
+  background: #333;
+}

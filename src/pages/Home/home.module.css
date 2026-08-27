@@ -35,58 +35,9 @@
   font-size: 15px;
 }
 
-.form {
+/* The field, its button and the line under them are the sign-in form's own now —
+   the same form the sheet on the stash page holds (see signin.module.css) — so what
+   is left to the page is the air above it, a little more than the hero's own gap. */
+.signin {
   margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  max-width: 340px;
-}
-
-.row {
-  display: flex;
-}
-
-.input {
-  flex: 1;
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--ink);
-  border-right: none;
-  font-size: 15px;
-  outline: none;
-  background: var(--bg);
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  cursor: text;
-}
-
-.input:empty::before {
-  content: attr(data-placeholder);
-  color: var(--muted);
-  pointer-events: none;
-}
-
-.go {
-  padding: 10px 20px;
-  background: var(--ink);
-  color: var(--bg);
-  border: 1px solid var(--ink);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.go:disabled {
-  opacity: 0.55;
-}
-
-.hint,
-.error {
-  font-size: 13px;
-  color: var(--muted);
-  width: max-content;
-  max-width: calc(100vw - 32px);
-  align-self: center;
 }
