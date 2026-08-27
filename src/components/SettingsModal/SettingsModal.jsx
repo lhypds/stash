@@ -5,7 +5,7 @@ import * as api from "@utils/api";
 import { useUser } from "@contexts/UserContext";
 import styles from "./settings.module.css";
 
-export default function SettingsModal({ isOpen, onClose, onSaved }) {
+export default function SettingsModal({ isOpen, onClose }) {
   const { t } = useTranslation();
   const { user } = useUser();
   const [text, setText] = useState("");
@@ -47,7 +47,6 @@ export default function SettingsModal({ isOpen, onClose, onSaved }) {
     try {
       await api.saveSettings(user, settings);
       showToast(t("app.toastSaved"));
-      onSaved?.();
       onClose();
       window.location.reload();
     } catch (err) {

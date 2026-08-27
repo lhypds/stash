@@ -24,20 +24,16 @@ export const rememberedUsername = () => localStorage.getItem(KEY) || "";
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
   const [ready, setReady] = useState(false);
-  const [hasLock, setHasLock] = useState(false);
-  const [locked, setLocked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function restore() {
       try {
-        const { username, hasLock: sessionHasLock, locked: sessionLocked } = await api.getSession();
+        const { username } = await api.getSession();
         if (!cancelled) {
           localStorage.setItem(KEY, username);
           setUser(username);
-          setHasLock(sessionHasLock);
-          setLocked(sessionLocked);
         }
       } catch {
         // Nobody is signed in here, or the server restarted and dropped the
@@ -56,53 +52,23 @@ export function UserProvider({ children }) {
   }, []);
 
   const login = async (username, password) => {
-    const session = await api.login(username, password);
+    await api.login(username, password);
     localStorage.setItem(KEY, username);
     setUser(username);
-    setHasLock(session.hasLock);
-    setLocked(session.locked);
   };
 
   // Opening an account and signing into it are one request: the name has been
   // confirmed and the password just chosen, and what comes back is a session.
   const register = async (username, password) => {
-    const session = await api.createUser(username, password);
+    await api.createUser(username, password);
     localStorage.setItem(KEY, username);
     setUser(username);
-    setHasLock(session.hasLock);
-    setLocked(session.locked);
-  };
-
-  const unlock = async (password) => {
-    const status = await api.unlockUser(user, password);
-    setHasLock(status.hasLock);
-    setLocked(status.locked);
-  };
-
-  const setPasswordAndLock = async (password) => {
-    const status = await api.lockUser(user, password);
-    setHasLock(status.hasLock);
-    setLocked(status.locked);
-  };
-
-  const relock = async () => {
-    const status = await api.relockUser(user);
-    setHasLock(status.hasLock);
-    setLocked(status.locked);
-  };
-
-  const refreshLock = async () => {
-    const status = await api.getLock(user);
-    setHasLock(status.hasLock);
-    setLocked(status.locked);
   };
 
   const logout = async () => {
     await api.logout().catch(() => {});
     localStorage.removeItem(KEY);
     setUser(null);
-    setHasLock(false);
-    setLocked(false);
   };
 
   return (
@@ -110,15 +76,9 @@ export function UserProvider({ children }) {
       value={{
         user,
         ready,
-        hasLock,
-        locked,
         login,
         register,
         logout,
-        unlock,
-        setPasswordAndLock,
-        relock,
-        refreshLock,
       }}
     >
       {children}

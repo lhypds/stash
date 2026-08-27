@@ -118,18 +118,6 @@
   line-height: 1;
 }
 
-.lock {
-  width: 26px;
-  height: 22px;
-  border: 1px solid var(--ink);
-  border-right: none;
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
 .export {
   width: 26px;
   height: 22px;
@@ -206,11 +194,6 @@
   }
 
   .export:hover {
-    background: var(--ink);
-    color: var(--bg);
-  }
-
-  .lock:hover {
     background: var(--ink);
     color: var(--bg);
   }

@@ -73,7 +73,6 @@ function ActionsRow({ tool, actions, url, repoUrl, t }) {
 export default function ItemDetailModal({
   item,
   isOwner,
-  locked = false,
   stashed,
   onClose,
   onSave,
@@ -120,7 +119,7 @@ export default function ItemDetailModal({
       isOpen
       onClose={onClose}
       // Matches the Save button: only an owner's unsaved edit has anything to save.
-      onSubmit={isOwner && !locked && dirty ? () => onSave(item, { note }) : undefined}
+      onSubmit={isOwner && dirty ? () => onSave(item, { note }) : undefined}
       title={title}
       closeOnOverlay
       headerActions={
@@ -128,7 +127,6 @@ export default function ItemDetailModal({
           <button
             type="button"
             className={styles.refreshBtn}
-            disabled={locked}
             onClick={onRefresh}
             aria-label={t("app.refresh")}
             title={t("app.refresh")}
@@ -275,17 +273,17 @@ export default function ItemDetailModal({
             className={styles.noteArea}
             value={note}
             minHeight={120}
-            readOnly={!isOwner || locked}
+            readOnly={!isOwner}
             onChange={(e) => setNote(e.target.value)}
           />
         </div>
 
         {isOwner ? (
           <div className={styles.actions}>
-            <button className={styles.deleteBtn} disabled={locked} onClick={() => onDelete(item)}>
+            <button className={styles.deleteBtn} onClick={() => onDelete(item)}>
               {t("button.delete")}
             </button>
-            <button className={styles.saveBtn} disabled={locked || !dirty} onClick={() => onSave(item, { note })}>
+            <button className={styles.saveBtn} disabled={!dirty} onClick={() => onSave(item, { note })}>
               {t("button.save")}
             </button>
           </div>

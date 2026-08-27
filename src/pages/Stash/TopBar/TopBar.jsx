@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { showToast } from "@ui";
 import ConfirmModal from "@components/ConfirmModal";
 import LanguageSwitcher from "@components/LanguageSwitcher";
-import LockModal from "@components/LockModal";
 import SettingsModal from "@components/SettingsModal";
 import SupportModal from "@components/SupportModal";
 import { useUser } from "@contexts/UserContext";
@@ -22,15 +21,12 @@ const isEditable = (el) =>
 // Channels; plain text falls back to a keyword search).
 export default function TopBar({ query, onQueryChange, onAnalyze, onAddNote, onRequestLogin, onHome }) {
   const { t } = useTranslation();
-  const { user, hasLock, locked, logout, unlock, setPasswordAndLock, relock, refreshLock } = useUser();
+  const { user, logout } = useUser();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [lockOpen, setLockOpen] = useState(false);
-  const [lockMode, setLockMode] = useState("setup");
-  const [afterUnlock, setAfterUnlock] = useState(null);
   const [confirmExport, setConfirmExport] = useState(false);
   const menuRef = useRef(null);
   const exportRef = useRef(null);
@@ -85,34 +81,6 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onAddNote, onR
     } catch {
       showToast(t("app.copyFailed"));
     }
-  }
-
-  function requestUnlock(action = null) {
-    setLockMode("unlock");
-    setAfterUnlock(action);
-    setLockOpen(true);
-  }
-
-  async function handleLockClick() {
-    if (locked) {
-      requestUnlock();
-    } else if (hasLock) {
-      try {
-        await relock();
-      } catch {
-        // The session may have expired; the next action will surface login.
-      }
-    } else {
-      setLockMode("setup");
-      setAfterUnlock(null);
-      setLockOpen(true);
-    }
-  }
-
-  function finishUnlock() {
-    if (afterUnlock === "settings") setSettingsOpen(true);
-    if (afterUnlock === "export") setConfirmExport(true);
-    setAfterUnlock(null);
   }
 
   return (
@@ -205,21 +173,6 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onAddNote, onR
           </svg>
         </button>
         {user && (
-          <button
-            type="button"
-            className={styles.lock}
-            data-locked={locked}
-            onClick={handleLockClick}
-            aria-label={t(locked ? "app.unlockStash" : "app.lockStash")}
-            title={t(locked ? "app.unlockStash" : "app.lockStash")}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="4" y="10" width="16" height="11" rx="2" />
-              <path d={locked ? "M8 10V7a4 4 0 0 1 8 0v3" : "M8 10V7a4 4 0 0 1 7.5-2"} />
-            </svg>
-          </button>
-        )}
-        {user && (
           <div
             className={styles.exportWrap}
             ref={exportRef}
@@ -244,8 +197,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onAddNote, onR
               <button
                 onClick={() => {
                   setExportOpen(false);
-                  if (locked) requestUnlock("export");
-                  else setConfirmExport(true);
+                  setConfirmExport(true);
                 }}
               >
                 ZIP
@@ -277,8 +229,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onAddNote, onR
               <button
                 onClick={() => {
                   setMenuOpen(false);
-                  if (locked) requestUnlock("settings");
-                  else setSettingsOpen(true);
+                  setSettingsOpen(true);
                 }}
               >
                 @{user}
@@ -314,18 +265,7 @@ export default function TopBar({ query, onQueryChange, onAnalyze, onAddNote, onR
           window.location.assign(`/api/users/${encodeURIComponent(user)}/export.zip`);
         }}
       />
-      <LockModal
-        isOpen={lockOpen}
-        mode={lockMode}
-        onClose={() => setLockOpen(false)}
-        onSubmit={lockMode === "unlock" ? unlock : setPasswordAndLock}
-        onSuccess={lockMode === "unlock" ? finishUnlock : undefined}
-      />
-      <SettingsModal
-        isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        onSaved={() => refreshLock().catch(() => {})}
-      />
+      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <SupportModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
     </header>
   );

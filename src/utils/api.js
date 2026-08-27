@@ -76,16 +76,6 @@ export const getSession = () => request("/api/session");
 
 export const logout = () => request("/api/session", { method: "DELETE" });
 
-export const getLock = (username) => request(`/api/users/${userPath(username)}/lock`);
-
-export const lockUser = (username, password) =>
-  request(`/api/users/${userPath(username)}/lock`, json("PUT", { password }));
-
-export const unlockUser = (username, password) =>
-  request(`/api/users/${userPath(username)}/unlock`, json("POST", { password }));
-
-export const relockUser = (username) => request(`/api/users/${userPath(username)}/relock`, json("POST", {}));
-
 export const getSettings = (username) => request(`/api/users/${userPath(username)}/settings`);
 
 export const saveSettings = (username, settings) =>

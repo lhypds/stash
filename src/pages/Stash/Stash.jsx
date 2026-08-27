@@ -45,7 +45,7 @@ export default function Stash() {
   const { username } = useParams();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { user, locked, refreshLock } = useUser();
+  const { user } = useUser();
   const isOwner = user === username;
 
   const [items, setItems] = useState([]);
@@ -135,14 +135,6 @@ export default function Stash() {
       clearInterval(timer);
     };
   }, [detail, username]);
-
-  // A lock change invalidates any action that was already waiting on a dialog
-  // (including a lock applied from another browser context).
-  useEffect(() => {
-    if (!locked) return;
-    setConfirm(null);
-    setStashAs(null);
-  }, [locked]);
 
   // Escape while viewing results does the same thing as "Back to stash".
   useEffect(() => {
@@ -280,16 +272,12 @@ export default function Stash() {
   }
 
   // `chooseStore` (an Option-click on the Stash button) hands the result to the
-  // store picker instead of stashing it straight away — the login and lock
-  // gates still come first, since picking a store you can't stash into is only
-  // a longer way to be told to log in.
+  // store picker instead of stashing it straight away — the login gate still
+  // comes first, since picking a store you can't stash into is only a longer
+  // way to be told to log in.
   async function handleStash(result, { chooseStore = false } = {}) {
     if (!user) {
       setLoginOpen(true);
-      return;
-    }
-    if (locked) {
-      showToast(t("app.unlockFirst"));
       return;
     }
     if (chooseStore) {
@@ -346,21 +334,17 @@ export default function Stash() {
   // Starting a note — from the + button beside the search box, or from an image
   // dropped on the page, which arrives here as `file` and opens the modal with
   // it already attached. A note is written rather than analyzed, and lands in
-  // the viewer's own Notes store behind the same login/lock gates as stashing.
+  // the viewer's own Notes store behind the same login gate as stashing.
   const startNote = useCallback(
     (file = null) => {
       if (!user) {
         setLoginOpen(true);
         return;
       }
-      if (locked) {
-        showToast(t("app.unlockFirst"));
-        return;
-      }
       setNoteFile(file);
       setNoteOpen(true);
     },
-    [user, locked, t],
+    [user],
   );
 
   // An image dropped anywhere on the page starts a note with it attached. The
@@ -405,10 +389,7 @@ export default function Stash() {
       closeNote();
       showToast(t("app.toastStashed", { name: toastName(item, t) }));
     } catch (err) {
-      if (err.code === "STASH_LOCKED") {
-        await refreshLock().catch(() => {});
-        showToast(t("app.unlockFirst"));
-      } else if (err.code === "NOTE_EMPTY") {
+      if (err.code === "NOTE_EMPTY") {
         showToast(t("app.noteEmpty"));
       } else if (err.code === "INVALID_IMAGE") {
         showToast(t("app.invalidImage"));
@@ -425,10 +406,6 @@ export default function Stash() {
   async function handleCopyItem(item, { chooseStore = false } = {}) {
     if (!user) {
       setLoginOpen(true);
-      return;
-    }
-    if (locked) {
-      showToast(t("app.unlockFirst"));
       return;
     }
     if (chooseStore) {
@@ -448,48 +425,26 @@ export default function Stash() {
       setViewerItems((prev) => [copied, ...prev]);
       showToast(t("app.toastStashed", { name: toastName(copied, t) }));
     } catch (err) {
-      if (err.code === "STASH_LOCKED") {
-        await refreshLock().catch(() => {});
-        showToast(t("app.unlockFirst"));
-      } else {
-        showToast(err.status === 409 ? t("app.toastAlready") : t("app.toastError"));
-      }
+      showToast(err.status === 409 ? t("app.toastAlready") : t("app.toastError"));
     }
   }
 
   async function handleSaveItem(item, patch) {
-    if (locked) {
-      showToast(t("app.unlockFirst"));
-      return;
-    }
     try {
       const { item: updated } = await api.updateItem(username, item.store, item.itemId, patch);
       setItems((prev) => prev.map((a) => (itemKey(a) === itemKey(updated) ? updated : a)));
       setDetail(null);
       showToast(t("app.toastSaved"));
-    } catch (err) {
-      if (err.code === "STASH_LOCKED") {
-        await refreshLock().catch(() => {});
-        showToast(t("app.unlockFirst"));
-      } else {
-        showToast(t("app.toastError"));
-      }
+    } catch {
+      showToast(t("app.toastError"));
     }
   }
 
   function handleRefreshItem(item) {
-    if (locked) {
-      showToast(t("app.unlockFirst"));
-      return;
-    }
     setConfirm({ message: t("app.confirmRefresh"), confirmLabel: t("app.refresh"), action: () => refreshItem(item) });
   }
 
   async function refreshItem(item) {
-    if (locked) {
-      showToast(t("app.unlockFirst"));
-      return;
-    }
     try {
       const country = countryForLang(i18n.language);
       const { item: updated } = await api.refreshItem(username, item.store, item.itemId, country);
@@ -499,41 +454,23 @@ export default function Stash() {
       // is currently in the field, including an in-progress edit.
       setDetail(updated);
       showToast(t("app.toastRefreshed"));
-    } catch (err) {
-      if (err.code === "STASH_LOCKED") {
-        await refreshLock().catch(() => {});
-        showToast(t("app.unlockFirst"));
-      } else {
-        showToast(t("app.toastError"));
-      }
+    } catch {
+      showToast(t("app.toastError"));
     }
   }
 
   function handleDeleteItem(item) {
-    if (locked) {
-      showToast(t("app.unlockFirst"));
-      return;
-    }
     setConfirm({ message: t("app.confirmDelete"), action: () => deleteItem(item) });
   }
 
   async function deleteItem(item) {
-    if (locked) {
-      showToast(t("app.unlockFirst"));
-      return;
-    }
     try {
       await api.removeItem(username, item.store, item.itemId);
       setItems((prev) => prev.filter((a) => itemKey(a) !== itemKey(item)));
       setDetail(null);
       showToast(t("app.toastDeleted"));
-    } catch (err) {
-      if (err.code === "STASH_LOCKED") {
-        await refreshLock().catch(() => {});
-        showToast(t("app.unlockFirst"));
-      } else {
-        showToast(t("app.toastError"));
-      }
+    } catch {
+      showToast(t("app.toastError"));
     }
   }
 
@@ -636,7 +573,6 @@ export default function Stash() {
         <ItemDetailModal
           item={detail}
           isOwner={isOwner}
-          locked={locked}
           stashed={!isOwner && viewerStashedIds.has(detail.itemId)}
           onClose={() => setDetail(null)}
           onSave={handleSaveItem}
@@ -662,14 +598,8 @@ export default function Stash() {
         isOpen={!!confirm}
         message={confirm?.message}
         confirmLabel={confirm?.confirmLabel}
-        confirmDisabled={locked}
         onCancel={() => setConfirm(null)}
         onConfirm={() => {
-          if (locked) {
-            setConfirm(null);
-            showToast(t("app.unlockFirst"));
-            return;
-          }
           setConfirm(null);
           confirm.action();
         }}

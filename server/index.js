@@ -203,8 +203,8 @@ app.set(
 );
 
 // Login sessions are deliberately kept server-side so the password never has
-// to live in localStorage. A restart signs everyone out; the client quietly
-// restores passwordless accounts and asks locked accounts to log in again.
+// to live in localStorage. A restart signs everyone out, and the sign-in form
+// is what a browser whose session has gone comes back to.
 const SESSION_COOKIE = "stash_session";
 const SESSION_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const sessions = new Map();
@@ -234,9 +234,9 @@ function currentSession(req) {
   return { token, ...session };
 }
 
-function startSession(username, unlocked, req, res) {
+function startSession(username, req, res) {
   const token = crypto.randomBytes(32).toString("base64url");
-  sessions.set(token, { username, unlocked, expiresAt: Date.now() + SESSION_AGE_MS });
+  sessions.set(token, { username, expiresAt: Date.now() + SESSION_AGE_MS });
   res.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -256,19 +256,6 @@ function requireOwner(req, res, next) {
   const session = currentSession(req);
   if (!session || session.username !== req.params.username) {
     return res.status(401).json({ error: "login required", code: "LOGIN_REQUIRED" });
-  }
-  req.session = session;
-  next();
-}
-
-async function requireUnlockedOwner(req, res, next) {
-  const session = currentSession(req);
-  if (!session || session.username !== req.params.username) {
-    return res.status(401).json({ error: "login required", code: "LOGIN_REQUIRED" });
-  }
-  const settings = await ensureSettings(req.params.username);
-  if (settings.isLocked && !session.unlocked) {
-    return res.status(423).json({ error: "stash locked", code: "STASH_LOCKED" });
   }
   req.session = session;
   next();
@@ -424,8 +411,8 @@ app.post("/api/users/:username", async (req, res) => {
   }
   const settings = await ensureSettings(username);
   await writeSettings(username, { ...settings, loginPassword: password });
-  startSession(username, true, req, res);
-  res.json({ ok: true, username, hasLock: false, locked: false });
+  startSession(username, req, res);
+  res.json({ ok: true, username });
 });
 
 // What signing in here will ask for, which is the first of its two steps and hands
@@ -471,19 +458,14 @@ app.post("/api/users/:username/login", async (req, res) => {
   } else if (!passwordsMatch(sent, settings.loginPassword)) {
     return res.status(401).json({ error: "incorrect password", code: "INVALID_PASSWORD" });
   }
-  startSession(username, !settings.isLocked, req, res);
-  res.json({ ok: true, username, hasLock: settings.isLocked, locked: settings.isLocked });
+  startSession(username, req, res);
+  res.json({ ok: true, username });
 });
 
-app.get("/api/session", async (req, res) => {
+app.get("/api/session", (req, res) => {
   const session = currentSession(req);
   if (!session) return res.status(401).json({ error: "login required", code: "LOGIN_REQUIRED" });
-  const settings = await ensureSettings(session.username);
-  res.json({
-    username: session.username,
-    hasLock: settings.isLocked,
-    locked: settings.isLocked && !session.unlocked,
-  });
+  res.json({ username: session.username });
 });
 
 app.delete("/api/session", (req, res) => {
@@ -491,60 +473,14 @@ app.delete("/api/session", (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/users/:username/lock", requireOwner, async (req, res) => {
-  const settings = await ensureSettings(req.params.username);
-  res.json({ hasLock: settings.isLocked, locked: settings.isLocked && !req.session.unlocked });
-});
-
-app.put("/api/users/:username/lock", requireOwner, async (req, res) => {
-  const password = typeof req.body?.password === "string" ? req.body.password : "";
-  if (!password) return res.status(400).json({ error: "password required", code: "PASSWORD_REQUIRED" });
-  const settings = await ensureSettings(req.params.username);
-  if (settings.isLocked && !req.session.unlocked) {
-    return res.status(423).json({ error: "stash locked", code: "STASH_LOCKED" });
-  }
-  const next = { ...settings, isLocked: true, password };
-  await writeSettings(req.params.username, next);
-  const live = sessions.get(req.session.token);
-  if (live) live.unlocked = false;
-  res.json({ hasLock: true, locked: true });
-});
-
-app.post("/api/users/:username/unlock", requireOwner, async (req, res) => {
-  const password = typeof req.body?.password === "string" ? req.body.password : "";
-  const settings = await ensureSettings(req.params.username);
-  if (!settings.isLocked) {
-    const live = sessions.get(req.session.token);
-    if (live) live.unlocked = true;
-    return res.json({ hasLock: false, locked: false });
-  }
-  if (!password || !passwordsMatch(password, settings.password)) {
-    return res.status(401).json({ error: "incorrect password", code: "INVALID_PASSWORD" });
-  }
-  await writeSettings(req.params.username, { ...settings, isLocked: false, password: "" });
-  const live = sessions.get(req.session.token);
-  if (live) live.unlocked = true;
-  res.json({ hasLock: false, locked: false });
-});
-
-app.post("/api/users/:username/relock", requireOwner, async (req, res) => {
-  const settings = await ensureSettings(req.params.username);
-  const live = sessions.get(req.session.token);
-  if (live) live.unlocked = !settings.isLocked;
-  res.json({ hasLock: settings.isLocked, locked: settings.isLocked });
-});
-
-app.get("/api/users/:username/settings", requireUnlockedOwner, async (req, res) => {
+app.get("/api/users/:username/settings", requireOwner, async (req, res) => {
   res.json({ settings: await ensureSettings(req.params.username) });
 });
 
-app.put("/api/users/:username/settings", requireUnlockedOwner, async (req, res) => {
+app.put("/api/users/:username/settings", requireOwner, async (req, res) => {
   const { settings } = req.body || {};
   if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
     return res.status(400).json({ error: "invalid settings" });
-  }
-  if (settings.isLocked === true && (typeof settings.password !== "string" || !settings.password)) {
-    return res.status(400).json({ error: "password required", code: "PASSWORD_REQUIRED" });
   }
   // A safeIPs rule that can't be parsed matches nothing, so it hides the very
   // items it was written to allow — which reads as the feature being broken
@@ -583,7 +519,7 @@ app.get("/api/users/:username/stash", async (req, res) => {
   res.json({ username, items });
 });
 
-app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) => {
+app.post("/api/users/:username/items", requireOwner, async (req, res) => {
   const { username } = req.params;
   const { store, itemId, name, byline, icon, url, preview, installCommand, video, note } = req.body || {};
   if (!STORES[store]) return res.status(400).json({ error: "invalid store" });
@@ -639,7 +575,7 @@ app.post("/api/users/:username/items", requireUnlockedOwner, async (req, res) =>
 // first line doubles as its name (see noteTitle), and its byline is the author.
 // Two notes can legitimately hold the same text, so the itemId is random
 // instead of a content hash like the analyzed stores use.
-app.post("/api/users/:username/notes", requireUnlockedOwner, async (req, res) => {
+app.post("/api/users/:username/notes", requireOwner, async (req, res) => {
   const { username } = req.params;
   const text = typeof req.body?.text === "string" ? req.body.text : "";
   const hasImage = typeof req.body?.image === "string" && req.body.image !== "";
@@ -683,7 +619,7 @@ app.post("/api/users/:username/notes", requireUnlockedOwner, async (req, res) =>
 // into the caller's own stash. The itemId is a deterministic hash of the
 // content (see analyzeSource), so it lines up across users and the existing
 // "already stashed" 409 below doubles as dedup against a copy of a copy.
-app.post("/api/users/:username/items/:store/:itemId/copy", requireUnlockedOwner, async (req, res) => {
+app.post("/api/users/:username/items/:store/:itemId/copy", requireOwner, async (req, res) => {
   const { username, store, itemId } = req.params;
   const from = String(req.body?.from || "");
   if (!USERNAME_RE.test(from)) return res.status(400).json({ error: "invalid source username" });
@@ -734,7 +670,7 @@ app.post("/api/users/:username/items/:store/:itemId/copy", requireUnlockedOwner,
   res.status(201).json({ item: withIconUrl(username, record) });
 });
 
-app.patch("/api/users/:username/items/:store/:itemId", requireUnlockedOwner, async (req, res) => {
+app.patch("/api/users/:username/items/:store/:itemId", requireOwner, async (req, res) => {
   const { username, store, itemId } = req.params;
   const jsonFile = path.join(itemDir(username, store, itemId), "item.json");
   const record = await readJson(jsonFile, null);
@@ -760,7 +696,7 @@ app.patch("/api/users/:username/items/:store/:itemId", requireUnlockedOwner, asy
 // store never gets re-routed even if the URL would now classify differently
 // (e.g. a video reclassified as a channel), since that would mean moving it
 // to a different store directory.
-app.post("/api/users/:username/items/:store/:itemId/refresh", analyzeLimiter, requireUnlockedOwner, async (req, res) => {
+app.post("/api/users/:username/items/:store/:itemId/refresh", analyzeLimiter, requireOwner, async (req, res) => {
   const { username, store, itemId } = req.params;
   const country = /^[a-z]{2}$/.test(req.query.country || "") ? req.query.country : "us";
   const dir = itemDir(username, store, itemId);
@@ -797,7 +733,7 @@ app.post("/api/users/:username/items/:store/:itemId/refresh", analyzeLimiter, re
   res.json({ item: withIconUrl(username, updated) });
 });
 
-app.delete("/api/users/:username/items/:store/:itemId", requireUnlockedOwner, async (req, res) => {
+app.delete("/api/users/:username/items/:store/:itemId", requireOwner, async (req, res) => {
   const { username, store, itemId } = req.params;
   const dir = itemDir(username, store, itemId);
   const record = await readJson(path.join(dir, "item.json"), null);
@@ -806,7 +742,7 @@ app.delete("/api/users/:username/items/:store/:itemId", requireUnlockedOwner, as
   res.json({ ok: true });
 });
 
-app.get("/api/users/:username/export.zip", requireUnlockedOwner, async (req, res) => {
+app.get("/api/users/:username/export.zip", requireOwner, async (req, res) => {
   const { username } = req.params;
   const dir = userDir(username);
   try {

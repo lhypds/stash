@@ -20,14 +20,9 @@ const DEFAULT_SETTINGS = {
   // The addresses nsfw items stay visible from, as IP literals or CIDR ranges.
   // Empty (the default) means the nsfw toggle alone decides, from anywhere.
   safeIPs: [],
-  isLocked: false,
-  password: "",
-  // The password the account is signed into with, as it was typed. Not the lock
-  // above it: that one is a bolt somebody throws on their own stash and takes off
-  // again — unlocking clears it — while this is what getting in at all costs.
-  // Empty means one has still to be chosen, which is what the first step of
-  // signing in reads it as, and what an account opened before there were
-  // passwords has.
+  // The password the account is signed into with, as it was typed. Empty means
+  // one has still to be chosen, which is what the first step of signing in reads
+  // it as, and what an account opened before there were passwords has.
   // Plain text, deliberately. There is no reset link and no address on file to
   // send one to: whoever forgets theirs writes to the administrator (see
   // VITE_ADMIN_EMAIL), who reads this field and sets a new one — and a hash would
@@ -55,7 +50,7 @@ export async function userExists(username) {
 }
 
 // Load a user's settings, normalized to the current shape: defaults filled in,
-// lock/password coerced to valid types, and the store map rebuilt from the
+// the password coerced to a valid type, and the store map rebuilt from the
 // known stores so renamed/removed keys don't linger. Rewrites the file when
 // normalization changed anything, and creates it for a brand-new user.
 export async function ensureSettings(username) {
@@ -65,11 +60,15 @@ export async function ensureSettings(username) {
   } catch {
     existing = null;
   }
+  // isLocked/password were the stash lock, which is gone — an account is got
+  // into with loginPassword and there is nothing further to bolt. Dropped here
+  // rather than left behind, so the first read of an old file tidies it.
+  const carried = { ...(existing || {}) };
+  delete carried.isLocked;
+  delete carried.password;
   const merged = {
     ...DEFAULT_SETTINGS,
-    ...(existing || {}),
-    isLocked: existing?.isLocked === true,
-    password: typeof existing?.password === "string" ? existing.password : "",
+    ...carried,
     loginPassword: typeof existing?.loginPassword === "string" ? existing.loginPassword : "",
     stores: Object.fromEntries(Object.keys(STORES).map((s) => [s, existing?.stores?.[s] ?? true])),
     search: Object.fromEntries(SEARCH_ENGINES.map((k) => [k, existing?.search?.[k] ?? true])),
@@ -103,7 +102,7 @@ export function nsfwVisibleFrom(settings, ip) {
 export const safeIPsAcceptable = (value) =>
   value === undefined || (Array.isArray(value) && value.every((rule) => typeof rule === "string" && isValidIpRule(rule)));
 
-// Constant-time comparison for the stash-lock password.
+// Constant-time comparison for the login password.
 export function passwordsMatch(a, b) {
   const left = Buffer.from(String(a));
   const right = Buffer.from(String(b));

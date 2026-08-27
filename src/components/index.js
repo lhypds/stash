@@ -4,7 +4,6 @@ export { default as ItemThumbnail } from "./ItemThumbnail";
 export { default as ItemCard } from "./ItemCard";
 export { default as SignIn } from "./SignIn";
 export { default as LoginModal } from "./LoginModal";
-export { default as LockModal } from "./LockModal";
 export { default as ItemDetailModal } from "./ItemDetailModal";
 export { default as NoteModal } from "./NoteModal";
 export { default as ConfirmModal } from "./ConfirmModal";
