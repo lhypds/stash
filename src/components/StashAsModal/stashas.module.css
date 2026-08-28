@@ -40,6 +40,16 @@
   white-space: nowrap;
 }
 
+/* The picked shelf reads as inked-in until Save commits it */
+.store[aria-selected="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.store[aria-selected="true"] .default {
+  color: var(--bg);
+}
+
 .noteField {
   display: flex;
   flex-direction: column;
@@ -68,6 +78,30 @@
 .noteArea,
 .noteArea:focus {
   border-color: var(--ink);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.saveBtn {
+  width: 100px;
+  padding: 6px 16px;
+  text-align: center;
+  background: var(--ink);
+  color: var(--bg);
+  border: 1px solid var(--ink);
+  font-size: 12px;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: #333;
+}
+
+.saveBtn:disabled {
+  opacity: 0.35;
 }
 
 @media (hover: hover) {

@@ -17,20 +17,37 @@ const NOTE_HEIGHT = 60;
 export default function StashAsModal({ isOpen, item, allowWrite = false, onClose, onSelect }) {
   const { t } = useTranslation();
   const [note, setNote] = useState("");
+  const [selected, setSelected] = useState(null);
 
-  // The field opens on the note the item is already carrying — a copy comes over
-  // with the one its author wrote, a freshly analyzed result with nothing — so
-  // picking a store files whatever it has been edited to.
+  // The modal opens on the store the item already belongs to — the shelf a plain
+  // click would have used — so Save without touching the list files it exactly
+  // where it would have gone. The field opens on the note the item is already
+  // carrying: a copy comes over with the one its author wrote, a freshly
+  // analyzed result with nothing.
   useEffect(() => {
-    if (isOpen) setNote(item?.note || "");
-  }, [isOpen, item]);
+    if (!isOpen) return;
+    setNote(item?.note || "");
+    const own = item?.store;
+    setSelected(own && (allowWrite || !WRITE_STORES.has(own)) ? own : null);
+  }, [isOpen, item, allowWrite]);
 
   if (!item) return null;
 
   const stores = allowWrite ? STORE_KEYS : STORE_KEYS.filter((s) => !WRITE_STORES.has(s));
 
+  function save() {
+    if (selected) onSelect(selected, note);
+  }
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t("app.stashAs")} closeOnOverlay className={styles.modal}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={save}
+      title={t("app.stashAs")}
+      closeOnOverlay
+      className={styles.modal}
+    >
       <div className={styles.body}>
         <div className={styles.list} role="listbox" aria-label={t("app.stashAs")}>
           {stores.map((store) => (
@@ -38,9 +55,9 @@ export default function StashAsModal({ isOpen, item, allowWrite = false, onClose
               key={store}
               type="button"
               role="option"
-              aria-selected={store === item.store}
+              aria-selected={store === selected}
               className={styles.store}
-              onClick={() => onSelect(store, note)}
+              onClick={() => setSelected(store)}
             >
               {t(`app.storeNames.${store}`)}
               {store === item.store && <span className={styles.default}>{t("app.stashAsDefault")}</span>}
@@ -55,6 +72,11 @@ export default function StashAsModal({ isOpen, item, allowWrite = false, onClose
             minHeight={NOTE_HEIGHT}
             onChange={(e) => setNote(e.target.value)}
           />
+        </div>
+        <div className={styles.actions}>
+          <button type="button" className={styles.saveBtn} disabled={!selected} onClick={save}>
+            {t("button.save")}
+          </button>
         </div>
       </div>
     </Modal>
