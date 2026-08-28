@@ -57,7 +57,6 @@
     "usernamePlaceholder": "Your username",
     "usernameInvalid": "Up to 32 CJK characters, lowercase letters, numbers, - or _, with at least one letter",
     "usernameTaken": "That name has just been taken",
-    "loginHint": "The name you go by in stash, up to 32 characters.",
     "next": "Next",
     "back": "Back",
     "forgot": "Forgotten?",

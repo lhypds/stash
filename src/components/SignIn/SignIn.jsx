@@ -155,16 +155,13 @@ export default function SignIn({ initialUsername = "", className, onSignedIn }) 
     setError("");
   }
 
-  // What the line under the field says when there is nothing wrong: what a name
-  // may be, or what a password is being asked to be. Nothing, when the password
-  // asked for is one the reader already has — the field says "password", the two
-  // ways out of the step are on that line, and a sentence between them saying so
-  // again is a sentence nobody reads.
-  const hint = naming
-    ? t("app.loginHint")
-    : choosing
-      ? t("app.passwordChooseHint", { min: PASSWORD_MIN })
-      : "";
+  // What the line under the field says when there is nothing wrong: what a
+  // password is being asked to be. Nothing, when the password asked for is one
+  // the reader already has — the field says "password", the two ways out of the
+  // step are on that line, and a sentence between them saying so again is a
+  // sentence nobody reads. Nothing on the name step either: the field says what
+  // it wants, and it stops taking characters at the limit on its own.
+  const hint = !naming && choosing ? t("app.passwordChooseHint", { min: PASSWORD_MIN }) : "";
   const message = error || hint;
   // Whether the words on that line need a space before the way out of the step at
   // the end of them. A sentence brings its own separation — the stop is the space —

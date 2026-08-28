@@ -55,7 +55,6 @@
     "usernamePlaceholder": "ユーザー名",
     "usernameInvalid": "32文字までの漢字・ひらがな・カタカナ・ハングル・小文字英数字・-・_、文字を1つ以上含めてください",
     "usernameTaken": "そのユーザー名は使われました",
-    "loginHint": "stash でのあなたの名前。32 文字まで。",
     "next": "次へ",
     "back": "戻る",
     "forgot": "お忘れの方",
