@@ -8,25 +8,29 @@ import styles from "./stashas.module.css";
 // Kept in step with .noteArea's min-height.
 const NOTE_HEIGHT = 60;
 
-// The store picker behind an Option-click on a Stash button: the same item,
-// filed on a shelf of the user's choosing rather than the one analysis picked,
-// with a note to file alongside it. Notes are left out for an analyzed result —
-// an authored store is only written through its own endpoint — but stay in for
-// a copy, which carries the whole record (its original author included) across
-// as-is.
+// The store picker behind an Option-click (or press-and-hold) on a Stash
+// button: the same item, filed on a shelf of the user's choosing rather than
+// the one analysis picked, with a note to file alongside it and an nsfw flag
+// that keeps it out of the listing while settings.nsfw is off. Notes are left
+// out for an analyzed result — an authored store is only written through its
+// own endpoint — but stay in for a copy, which carries the whole record (its
+// original author included) across as-is.
 export default function StashAsModal({ isOpen, item, allowWrite = false, onClose, onSelect }) {
   const { t } = useTranslation();
   const [note, setNote] = useState("");
+  const [nsfw, setNsfw] = useState(false);
   const [selected, setSelected] = useState(null);
 
   // The modal opens on the store the item already belongs to — the shelf a plain
   // click would have used — so Save without touching the list files it exactly
   // where it would have gone. The field opens on the note the item is already
   // carrying: a copy comes over with the one its author wrote, a freshly
-  // analyzed result with nothing.
+  // analyzed result with nothing. The nsfw box likewise opens as the item is
+  // already flagged — a copy keeps its source's flag unless unticked here.
   useEffect(() => {
     if (!isOpen) return;
     setNote(item?.note || "");
+    setNsfw(item?.nsfw === true);
     const own = item?.store;
     setSelected(own && (allowWrite || !WRITE_STORES.has(own)) ? own : null);
   }, [isOpen, item, allowWrite]);
@@ -36,7 +40,7 @@ export default function StashAsModal({ isOpen, item, allowWrite = false, onClose
   const stores = allowWrite ? STORE_KEYS : STORE_KEYS.filter((s) => !WRITE_STORES.has(s));
 
   function save() {
-    if (selected) onSelect(selected, note);
+    if (selected) onSelect(selected, note, nsfw);
   }
 
   return (
@@ -74,6 +78,15 @@ export default function StashAsModal({ isOpen, item, allowWrite = false, onClose
           />
         </div>
         <div className={styles.actions}>
+          <label className={styles.nsfwField} title={t("app.nsfwHint")}>
+            <input
+              type="checkbox"
+              className={styles.nsfwBox}
+              checked={nsfw}
+              onChange={(e) => setNsfw(e.target.checked)}
+            />
+            {t("app.nsfw")}
+          </label>
           <button type="button" className={styles.saveBtn} disabled={!selected} onClick={save}>
             {t("button.save")}
           </button>

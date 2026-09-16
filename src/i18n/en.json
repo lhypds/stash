@@ -82,6 +82,8 @@
     "stashAs": "Stash as",
     "stashAsDefault": "default",
     "stashAsHint": "Stash (⌥-click to choose a store)",
+    "nsfw": "NSFW",
+    "nsfwHint": "Hidden from the stash while nsfw is off in settings.json",
     "resultsFor": "Results for “{{term}}”",
     "backToStash": "Back to stash",
     "noResults": "No results.",

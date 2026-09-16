@@ -1,6 +1,7 @@
 // Client-address matching for settings.safeIPs — the addresses a user's nsfw
-// items stay visible from. A rule is either an IP literal or a CIDR range, in
-// either family: "203.0.113.4", "203.0.113.0/24", "2001:db8::1", "2001:db8::/32".
+// items stay visible from while their nsfw toggle is off. A rule is either an
+// IP literal or a CIDR range, in either family: "203.0.113.4", "203.0.113.0/24",
+// "2001:db8::1", "2001:db8::/32".
 
 // The address a request came from. Express resolves X-Forwarded-For into req.ip
 // according to the app's "trust proxy" setting (see index.js) — with the whole

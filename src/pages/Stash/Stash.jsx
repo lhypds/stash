@@ -287,15 +287,17 @@ export default function Stash() {
     await stashResult(result);
   }
 
-  // `store` files the result somewhere other than the store analysis put it in
-  // and `note` is a note written alongside it in the picker (see handleStashAs);
-  // without either it lands in its own store, unannotated.
-  async function stashResult(result, store = null, note = null) {
+  // `store` files the result somewhere other than the store analysis put it in,
+  // `note` is a note written alongside it in the picker and `nsfw` the flag
+  // ticked there (see handleStashAs); without any of them it lands in its own
+  // store, unannotated and unflagged.
+  async function stashResult(result, store = null, note = null, nsfw = null) {
     try {
       const { item } = await api.stashItem(user, {
         ...result,
         ...(store ? { store } : {}),
         ...(typeof note === "string" ? { note } : {}),
+        ...(typeof nsfw === "boolean" ? { nsfw } : {}),
       });
       if (isOwner) setItems((prev) => [item, ...prev]);
       // With a single result, stashing it is naturally "done" — back to the
@@ -322,13 +324,13 @@ export default function Stash() {
 
   // Confirming the store picker: the same stash or copy the plain click would
   // have run, with the chosen store standing in for the item's own and the note
-  // written in there saved on the item as it lands.
-  async function handleStashAs(store, note) {
+  // and nsfw flag set in there saved on the item as it lands.
+  async function handleStashAs(store, note, nsfw) {
     const pending = stashAs;
     setStashAs(null);
     if (!pending) return;
-    if (pending.copy) await copyItemTo(pending.item, store, note);
-    else await stashResult(pending.item, store, note);
+    if (pending.copy) await copyItemTo(pending.item, store, note, nsfw);
+    else await stashResult(pending.item, store, note, nsfw);
   }
 
   // Starting a note — from the + button beside the search box, or from an image
@@ -416,12 +418,12 @@ export default function Stash() {
   }
 
   // `store` is where the copy should land; without one it lands in the store it
-  // was copied out of. `note` stands in for the note the item comes over with —
-  // one written in the picker (see handleStashAs); without one, the author's own
-  // note carries across untouched.
-  async function copyItemTo(item, store = null, note = null) {
+  // was copied out of. `note` and `nsfw` stand in for the note and flag the item
+  // comes over with — as set in the picker (see handleStashAs); without them,
+  // the author's own carry across untouched.
+  async function copyItemTo(item, store = null, note = null, nsfw = null) {
     try {
-      const { item: copied } = await api.copyItem(user, username, item.store, item.itemId, store, note);
+      const { item: copied } = await api.copyItem(user, username, item.store, item.itemId, store, note, nsfw);
       setViewerItems((prev) => [copied, ...prev]);
       showToast(t("app.toastStashed", { name: toastName(copied, t) }));
     } catch (err) {

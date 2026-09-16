@@ -80,6 +80,8 @@
     "stashAs": "ストック先を選択",
     "stashAsDefault": "デフォルト",
     "stashAsHint": "ストック（⌥+クリックでタイプを選択）",
+    "nsfw": "NSFW",
+    "nsfwHint": "settings.json の nsfw がオフの間はストックに表示されません",
     "resultsFor": "「{{term}}」の検索結果",
     "backToStash": "ストックに戻る",
     "noResults": "結果がありません。",

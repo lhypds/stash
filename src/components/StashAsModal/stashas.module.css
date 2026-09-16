@@ -80,10 +80,32 @@
   border-color: var(--ink);
 }
 
+/* The nsfw flag sits on the Save row, opposite the button, so the picker
+   doesn't grow a row taller for one checkbox */
 .actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: 12px;
+}
+
+.nsfwField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.nsfwBox {
+  margin: 0;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--ink);
+  cursor: pointer;
 }
 
 .saveBtn {

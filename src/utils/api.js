@@ -95,15 +95,17 @@ export const createNote = (username, { text, image, imageName }) =>
   );
 
 // `store` locates the item in the source stash; `toStore` is where the copy
-// should land — omitted, it lands in the store it came from. `note` stands in
-// for the note the item carries over; omitted, that note is kept as-is.
-export const copyItem = (username, fromUsername, store, itemId, toStore = null, note = null) =>
+// should land — omitted, it lands in the store it came from. `note` and `nsfw`
+// stand in for the note and nsfw flag the item carries over; omitted, the
+// source's own are kept as-is.
+export const copyItem = (username, fromUsername, store, itemId, toStore = null, note = null, nsfw = null) =>
   request(
     `/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}/copy`,
     json("POST", {
       from: fromUsername,
       ...(toStore ? { store: toStore } : {}),
       ...(typeof note === "string" ? { note } : {}),
+      ...(typeof nsfw === "boolean" ? { nsfw } : {}),
     }),
   );
 

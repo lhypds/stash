@@ -508,11 +508,15 @@ app.get("/api/users/:username/stash", async (req, res) => {
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       const record = await readJson(path.join(itemDir(username, store, entry.name), "item.json"), null);
-      // nsfw items (e.g. Pornhub) are hidden from the listing unless settings.nsfw
-      // is on *and* the request comes from one of settings.safeIPs (see
-      // nsfwVisibleFrom) — the underlying stash is untouched either way, so
-      // they're all still there from an address that's allowed to see them.
-      if (record && (showNsfw || !isNsfwUrl(record.url))) items.push(withIconUrl(username, record));
+      // nsfw items — flagged as such in the store picker (record.nsfw) or from a
+      // platform that is nothing else (e.g. Pornhub) — are hidden from the
+      // listing unless settings.nsfw is on *or* the request comes from one of
+      // settings.safeIPs (see nsfwVisibleFrom) — the underlying stash is
+      // untouched either way, so they're all still there once the toggle is on
+      // or from an allowed address. A record stashed before the flag existed
+      // simply lacks it, which reads as unflagged.
+      const nsfw = record?.nsfw === true || isNsfwUrl(record?.url);
+      if (record && (showNsfw || !nsfw)) items.push(withIconUrl(username, record));
     }
   }
   items.sort((a, b) => (b.stashedAt || "").localeCompare(a.stashedAt || ""));
@@ -521,7 +525,7 @@ app.get("/api/users/:username/stash", async (req, res) => {
 
 app.post("/api/users/:username/items", requireOwner, async (req, res) => {
   const { username } = req.params;
-  const { store, itemId, name, byline, icon, url, preview, installCommand, video, note } = req.body || {};
+  const { store, itemId, name, byline, icon, url, preview, installCommand, video, note, nsfw } = req.body || {};
   if (!STORES[store]) return res.status(400).json({ error: "invalid store" });
   // A "write" store's items are authored, not analyzed — they have their own
   // endpoint (see POST .../notes) so their byline can't be spoofed here.
@@ -564,6 +568,10 @@ app.post("/api/users/:username/items", requireOwner, async (req, res) => {
     // A "write" store is turned away above, so there is never a note-kind name
     // to re-derive from it the way an edit has to (see the PATCH below).
     note: typeof note === "string" ? note : "",
+    // Ticked in the same picker: keeps the item out of the listing while
+    // settings.nsfw is off, whatever its URL (see GET .../stash). Anything but
+    // an explicit true is unflagged, so a stray value can't hide an item.
+    nsfw: nsfw === true,
     stashedAt: new Date().toISOString(),
   };
   await writeJson(jsonFile, record);
@@ -632,8 +640,10 @@ app.post("/api/users/:username/items/:store/:itemId/copy", requireOwner, async (
   const toStore = req.body?.store === undefined ? store : String(req.body.store);
   if (!STORES[toStore]) return res.status(400).json({ error: "invalid store" });
   // A note written in the picker stands in for the one the item comes over with;
-  // without one, the source's own note is what carries across.
+  // without one, the source's own note is what carries across. The nsfw flag
+  // ticked (or unticked) there works the same way against the source's flag.
   const note = typeof req.body?.note === "string" ? req.body.note : null;
+  const nsfw = typeof req.body?.nsfw === "boolean" ? req.body.nsfw : null;
 
   const sourceDir = itemDir(from, store, itemId);
   const sourceRecord = await readJson(path.join(sourceDir, "item.json"), null);
@@ -666,6 +676,7 @@ app.post("/api/users/:username/items/:store/:itemId/copy", requireOwner, async (
       record.name = noteTitle(note) || (record.iconFile ? "" : record.name);
     }
   }
+  if (nsfw !== null) record.nsfw = nsfw;
   await writeJson(destFile, record);
   res.status(201).json({ item: withIconUrl(username, record) });
 });
