@@ -33,9 +33,8 @@ const SPACE = "\u2002";
 // be opened, one opened before there were passwords is a password waiting to be
 // chosen, and everything else is a password to be given.
 //
-// One component for both the places stash asks — the front page and the sheet the
-// stash page opens over somebody else's — because it is one question, and asking it
-// twice in two hands is how the two of them come to disagree.
+// Asked in one place only — the front page (see Home), which a signed-out viewer of
+// somebody else's stash is sent to as well — so there is one form to keep right.
 export default function SignIn({ initialUsername = "", className, onSignedIn }) {
   const { t } = useTranslation();
   const { login, register } = useUser();

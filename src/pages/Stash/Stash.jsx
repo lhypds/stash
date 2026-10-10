@@ -3,7 +3,6 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { showToast } from "@ui";
 import {
-  LoginModal,
   ItemCard,
   ItemDetailModal,
   ConfirmModal,
@@ -54,7 +53,6 @@ export default function Stash() {
   const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState(null);
   const [detail, setDetail] = useState(null);
-  const [loginOpen, setLoginOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
   // The item waiting on a store pick (an Option-click on a Stash button), and
   // whether it is a copy out of someone else's stash rather than a fresh result.
@@ -271,13 +269,19 @@ export default function Stash() {
     else if (bare) showToast(t("app.analyzeBareLinks", { count: bare }), 6000);
   }
 
+  // The login gate: anything that writes into a stash — stashing a result,
+  // copying an item, writing a note — needs a signed-in viewer. A signed-out one
+  // is sent to the front page, which holds the one sign-in form there is (see
+  // Home, SignIn) and lands them on their own stash once they are through it.
+  const requestLogin = useCallback(() => navigate("/"), [navigate]);
+
   // `chooseStore` (an Option-click on the Stash button) hands the result to the
   // store picker instead of stashing it straight away — the login gate still
   // comes first, since picking a store you can't stash into is only a longer
   // way to be told to log in.
   async function handleStash(result, { chooseStore = false } = {}) {
     if (!user) {
-      setLoginOpen(true);
+      requestLogin();
       return;
     }
     if (chooseStore) {
@@ -340,13 +344,13 @@ export default function Stash() {
   const startNote = useCallback(
     (file = null) => {
       if (!user) {
-        setLoginOpen(true);
+        requestLogin();
         return;
       }
       setNoteFile(file);
       setNoteOpen(true);
     },
-    [user],
+    [user, requestLogin],
   );
 
   // An image dropped anywhere on the page starts a note with it attached. The
@@ -407,7 +411,7 @@ export default function Stash() {
   // own, carrying over its note and any icon/screenshot files as-is.
   async function handleCopyItem(item, { chooseStore = false } = {}) {
     if (!user) {
-      setLoginOpen(true);
+      requestLogin();
       return;
     }
     if (chooseStore) {
@@ -483,7 +487,7 @@ export default function Stash() {
         onQueryChange={setQuery}
         onAnalyze={handleAnalyze}
         onAddNote={() => startNote()}
-        onRequestLogin={() => setLoginOpen(true)}
+        onRequestLogin={requestLogin}
         onHome={() => {
           setSearch(null);
           setQuery("");
@@ -569,7 +573,6 @@ export default function Stash() {
         )}
       </main>
 
-      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
       <NoteModal isOpen={noteOpen} initialFile={noteFile} onClose={closeNote} onSave={handleSaveNote} />
       {detail && (
         <ItemDetailModal

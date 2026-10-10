@@ -80,32 +80,16 @@
   border-color: var(--ink);
 }
 
-/* The nsfw flag sits on the Save row, opposite the button, so the picker
-   doesn't grow a row taller for one checkbox */
+/* The NS box (see ui/Checkbox) shares the Save row, opposite the button. The
+   two are aligned to the row's top rather than centred: the button is twice
+   the box's height, so centring would push the box further from the note than
+   the button sits. */
 .actions {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-top: 12px;
-}
-
-.nsfwField {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.nsfwBox {
-  margin: 0;
-  width: 14px;
-  height: 14px;
-  accent-color: var(--ink);
-  cursor: pointer;
 }
 
 .saveBtn {

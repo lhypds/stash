@@ -235,10 +235,18 @@
   line-height: 1.5;
 }
 
+/* Delete and Save sit at the right; an owner's NS box (see ui/Checkbox) sits
+   at the left of the same row. Top-aligned, not centred, so the box starts
+   the same distance under the note as the taller buttons do. */
 .actions {
   display: flex;
+  align-items: flex-start;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.nsField {
+  margin-right: auto;
 }
 
 .saveBtn {

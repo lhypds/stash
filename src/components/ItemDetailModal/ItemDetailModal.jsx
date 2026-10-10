@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, TextArea, showToast } from "@ui";
+import { Checkbox, Modal, TextArea, showToast } from "@ui";
 import ItemThumbnail from "@components/ItemThumbnail";
 import { SHOT_STORES } from "@utils/api";
 import { sourceName, videoEmbedUrl } from "@utils/url";
@@ -82,6 +82,9 @@ export default function ItemDetailModal({
 }) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(item.note || "");
+  // The nsfw flag the item was stashed with (see StashAsModal), editable here
+  // alongside the note and saved with it.
+  const [nsfw, setNsfw] = useState(item.nsfw === true);
   // Option-click or press-and-hold picks the store to file it under, same as on
   // the card's own Stash button (see StashAsModal).
   const stashPress = useLongPress({
@@ -102,7 +105,8 @@ export default function ItemDetailModal({
   // when the platform offers no embeddable preview (e.g. Pornhub).
   const showVideoActions = (hasVideoPlayer || isVideoItem) && source !== "WeChat";
 
-  const dirty = note !== (item.note || "");
+  const dirty = note !== (item.note || "") || nsfw !== (item.nsfw === true);
+  const patch = { note, nsfw };
   const stashedDate = item.stashedAt ? new Date(item.stashedAt).toLocaleString(i18n.language) : "";
 
   async function copyInstallCommand() {
@@ -119,7 +123,7 @@ export default function ItemDetailModal({
       isOpen
       onClose={onClose}
       // Matches the Save button: only an owner's unsaved edit has anything to save.
-      onSubmit={isOwner && dirty ? () => onSave(item, { note }) : undefined}
+      onSubmit={isOwner && dirty ? () => onSave(item, patch) : undefined}
       title={title}
       closeOnOverlay
       headerActions={
@@ -280,10 +284,18 @@ export default function ItemDetailModal({
 
         {isOwner ? (
           <div className={styles.actions}>
+            <Checkbox
+              className={styles.nsField}
+              title={t("app.nsfwHint")}
+              checked={nsfw}
+              onChange={(e) => setNsfw(e.target.checked)}
+            >
+              {t("app.nsfw")}
+            </Checkbox>
             <button className={styles.deleteBtn} onClick={() => onDelete(item)}>
               {t("button.delete")}
             </button>
-            <button className={styles.saveBtn} disabled={!dirty} onClick={() => onSave(item, { note })}>
+            <button className={styles.saveBtn} disabled={!dirty} onClick={() => onSave(item, patch)}>
               {t("button.save")}
             </button>
           </div>

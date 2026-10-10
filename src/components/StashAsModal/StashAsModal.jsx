@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, TextArea } from "@ui";
+import { Checkbox, Modal, TextArea } from "@ui";
 import { STORE_KEYS, WRITE_STORES } from "@utils/api";
 import styles from "./stashas.module.css";
 
@@ -11,7 +11,8 @@ const NOTE_HEIGHT = 60;
 // The store picker behind an Option-click (or press-and-hold) on a Stash
 // button: the same item, filed on a shelf of the user's choosing rather than
 // the one analysis picked, with a note to file alongside it and an nsfw flag
-// that keeps it out of the listing while settings.nsfw is off. Notes are left
+// (the NS box under the note) that keeps it out of the listing while
+// settings.nsfw is off. Notes are left
 // out for an analyzed result — an authored store is only written through its
 // own endpoint — but stay in for a copy, which carries the whole record (its
 // original author included) across as-is.
@@ -78,15 +79,9 @@ export default function StashAsModal({ isOpen, item, allowWrite = false, onClose
           />
         </div>
         <div className={styles.actions}>
-          <label className={styles.nsfwField} title={t("app.nsfwHint")}>
-            <input
-              type="checkbox"
-              className={styles.nsfwBox}
-              checked={nsfw}
-              onChange={(e) => setNsfw(e.target.checked)}
-            />
+          <Checkbox title={t("app.nsfwHint")} checked={nsfw} onChange={(e) => setNsfw(e.target.checked)}>
             {t("app.nsfw")}
-          </label>
+          </Checkbox>
           <button type="button" className={styles.saveBtn} disabled={!selected} onClick={save}>
             {t("button.save")}
           </button>

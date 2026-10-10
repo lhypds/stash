@@ -687,7 +687,7 @@ app.patch("/api/users/:username/items/:store/:itemId", requireOwner, async (req,
   const record = await readJson(jsonFile, null);
   if (!record) return res.status(404).json({ error: "not found" });
 
-  const { note } = req.body || {};
+  const { note, nsfw } = req.body || {};
   if (typeof note === "string") {
     record.note = note;
     // A note's text *is* the item, so editing it re-derives the title the card
@@ -697,6 +697,10 @@ app.patch("/api/users/:username/items/:store/:itemId", requireOwner, async (req,
     // the item with nothing to show.
     if (record.kind === "note") record.name = noteTitle(note) || (record.iconFile ? "" : record.name);
   }
+  // The nsfw flag set in the store picker when the item was stashed can be
+  // flipped from its detail view too (see ItemDetailModal). It decides whether
+  // the item is listed while settings.nsfw is off (see GET .../stash).
+  if (typeof nsfw === "boolean") record.nsfw = nsfw;
   await writeJson(jsonFile, record);
   res.json({ item: withIconUrl(username, record) });
 });

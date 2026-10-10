@@ -1,0 +1,53 @@
+/* A checkbox drawn by hand rather than with the platform's control, so it
+   matches the ink hairlines the rest of the UI is drawn with: an empty ink
+   square that inks in, with a bg-coloured tick, once checked. The label's
+   line-height is pinned to the box's height so its top edge is the box's top
+   edge — a row that top-aligns it next to a taller button then reads as one
+   straight line. */
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 14px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.box {
+  position: relative;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--ink);
+  background: var(--bg);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.box:checked {
+  background: var(--ink);
+}
+
+/* The tick: the right and bottom edges of a small box, turned 45° and centred
+   by auto margins inside the square */
+.box:checked::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 4px;
+  height: 8px;
+  margin: auto;
+  border: solid var(--bg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.box:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
