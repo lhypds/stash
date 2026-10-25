@@ -91,9 +91,14 @@
   color: var(--bg);
 }
 
+/* The NS box (see ui/Checkbox) shares the Stash row, opposite the button,
+   aligned to the row's top as in StashAsModal: the button is twice the box's
+   height, so centring would float the box away from the form above. */
 .actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .saveBtn {

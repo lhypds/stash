@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Modal, TextArea, showToast } from "@ui";
+import { Checkbox, Modal, TextArea, showToast } from "@ui";
 import { MAX_NOTE_IMAGE_MB } from "@utils/api";
 import { clipboardFile, isImageFile, isTextFile } from "@utils/file";
 import styles from "./note.module.css";
@@ -17,15 +17,18 @@ const MAX_TEXT_BYTES = MAX_TEXT_MB * 1024 * 1024;
 const NOTE_HEIGHT = 260;
 
 // Writes a new note: free text whose first line becomes the card title, plus
-// one optional attached image. `initialFile` is a file the note is opening with
-// — one dropped on the page rather than picked in here. `onSave` gets
-// { text, image, imageName }; image is a data: URL, which is how the server
-// takes it, and imageName the file it came from.
+// one optional attached image, and an nsfw flag (the NS box beside Stash, as
+// in StashAsModal) that keeps the note out of the listing while settings.nsfw
+// is off. `initialFile` is a file the note is opening with — one dropped on
+// the page rather than picked in here. `onSave` gets
+// { text, image, imageName, nsfw }; image is a data: URL, which is how the
+// server takes it, and imageName the file it came from.
 export default function NoteModal({ isOpen, initialFile = null, onClose, onSave }) {
   const { t } = useTranslation();
   const [text, setText] = useState("");
   const [image, setImage] = useState(null);
   const [imageName, setImageName] = useState("");
+  const [nsfw, setNsfw] = useState(false);
   const [saving, setSaving] = useState(false);
   const textRef = useRef(null);
   const fileRef = useRef(null);
@@ -36,6 +39,7 @@ export default function NoteModal({ isOpen, initialFile = null, onClose, onSave 
     setText("");
     setImage(null);
     setImageName("");
+    setNsfw(false);
     setSaving(false);
     requestAnimationFrame(() => textRef.current?.focus());
   }, [isOpen]);
@@ -160,7 +164,7 @@ export default function NoteModal({ isOpen, initialFile = null, onClose, onSave 
     }
     setSaving(true);
     try {
-      await onSave({ text, image, imageName });
+      await onSave({ text, image, imageName, nsfw });
     } finally {
       setSaving(false);
     }
@@ -204,6 +208,9 @@ export default function NoteModal({ isOpen, initialFile = null, onClose, onSave 
         )}
 
         <div className={styles.actions}>
+          <Checkbox title={t("app.nsfwHint")} checked={nsfw} onChange={(e) => setNsfw(e.target.checked)}>
+            {t("app.nsfw")}
+          </Checkbox>
           <button type="button" className={styles.saveBtn} disabled={saving || empty} onClick={save}>
             {t("app.stash")}
           </button>

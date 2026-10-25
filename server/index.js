@@ -587,6 +587,9 @@ app.post("/api/users/:username/notes", requireOwner, async (req, res) => {
   const { username } = req.params;
   const text = typeof req.body?.text === "string" ? req.body.text : "";
   const hasImage = typeof req.body?.image === "string" && req.body.image !== "";
+  // The NS box in the note modal, honored the same way as on an analyzed item
+  // (see POST .../items): anything but a literal true is unflagged.
+  const nsfw = req.body?.nsfw === true;
   // An image on its own is a whole note. It has no first line to name it, so it
   // is stored nameless and the client labels it (see itemTitle) — only a note
   // with neither text nor image is nothing at all.
@@ -617,6 +620,7 @@ app.post("/api/users/:username/notes", requireOwner, async (req, res) => {
     installCommand: null,
     video: null,
     note: text,
+    nsfw,
     stashedAt: new Date().toISOString(),
   };
   await writeJson(path.join(dir, "item.json"), record);

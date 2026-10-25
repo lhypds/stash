@@ -87,11 +87,11 @@ export const stashItem = (username, item) => request(`/api/users/${userPath(user
 
 // Writes a new note into the Notes store. `image` is an optional data: URL of
 // one attached image, `imageName` the file it came from — the server stores it
-// under that name, re-encoded to webp.
-export const createNote = (username, { text, image, imageName }) =>
+// under that name, re-encoded to webp. `nsfw` flags the note as in stashItem.
+export const createNote = (username, { text, image, imageName, nsfw = false }) =>
   request(
     `/api/users/${userPath(username)}/notes`,
-    json("POST", { text, image: image || null, imageName: imageName || null }),
+    json("POST", { text, image: image || null, imageName: imageName || null, nsfw: nsfw === true }),
   );
 
 // `store` locates the item in the source stash; `toStore` is where the copy
