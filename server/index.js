@@ -32,6 +32,7 @@ import {
   safeIPsAcceptable,
 } from "./settings.js";
 import { clientIp } from "./utils/ip.js";
+import { aiEnabled, generateNoteAI } from "../src/ai/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -167,6 +168,13 @@ function captureInBackground(username, store, itemId, url) {
       if (record) await writeJson(jsonFile, { ...record, screenshotFile: file });
     })
     .catch((err) => console.error("screenshot failed:", err.message));
+}
+
+// Adds an AI title and comment to a note record; the AI title becomes its name.
+async function withNoteAI(username, record) {
+  const imagePath = record.iconFile && path.join(itemDir(username, record.store, record.itemId), record.iconFile);
+  const ai = await generateNoteAI({ text: record.note, imagePath });
+  return { ...record, ai, name: ai.title || record.name };
 }
 
 /* ---------- app ---------- */
@@ -623,8 +631,11 @@ app.post("/api/users/:username/notes", requireOwner, async (req, res) => {
     nsfw,
     stashedAt: new Date().toISOString(),
   };
-  await writeJson(path.join(dir, "item.json"), record);
-  res.status(201).json({ item: withIconUrl(username, record) });
+  // Best-effort: without AI the note is saved as before.
+  let saved = record;
+  if (aiEnabled()) saved = await withNoteAI(username, record).catch(() => record);
+  await writeJson(path.join(dir, "item.json"), saved);
+  res.status(201).json({ item: withIconUrl(username, saved) });
 });
 
 // Copies another user's item (item.json, note, and any icon/screenshot files)
@@ -695,11 +706,11 @@ app.patch("/api/users/:username/items/:store/:itemId", requireOwner, async (req,
   if (typeof note === "string") {
     record.note = note;
     // A note's text *is* the item, so editing it re-derives the title the card
-    // shows. Emptying the text of one with an image drops it back to nameless —
-    // the same state it would have been stashed in as an image on its own. With
-    // no image to fall back on, the previous name is kept instead of leaving
-    // the item with nothing to show.
-    if (record.kind === "note") record.name = noteTitle(note) || (record.iconFile ? "" : record.name);
+    // shows — unless the AI has titled it. Emptying the text of one with an image
+    // drops it back to nameless — the same state it would have been stashed in as
+    // an image on its own. With no image to fall back on, the previous name is
+    // kept instead of leaving the item with nothing to show.
+    if (record.kind === "note") record.name = record.ai?.title || noteTitle(note) || (record.iconFile ? "" : record.name);
   }
   // The nsfw flag set in the store picker when the item was stashed can be
   // flipped from its detail view too (see ItemDetailModal). It decides whether
@@ -750,6 +761,22 @@ app.post("/api/users/:username/items/:store/:itemId/refresh", analyzeLimiter, re
   await writeJson(jsonFile, updated);
   if (SHOT_STORES.has(store)) captureInBackground(username, store, itemId, record.url);
   res.json({ item: withIconUrl(username, updated) });
+});
+
+// The brain button: (re)generates a note's AI title and comment.
+app.post("/api/users/:username/items/:store/:itemId/ai", analyzeLimiter, requireOwner, async (req, res) => {
+  const { username, store, itemId } = req.params;
+  const jsonFile = path.join(itemDir(username, store, itemId), "item.json");
+  const record = await readJson(jsonFile, null);
+  if (record?.kind !== "note") return res.status(404).json({ error: "not found" });
+  try {
+    const updated = await withNoteAI(username, record);
+    await writeJson(jsonFile, updated);
+    res.json({ item: withIconUrl(username, updated) });
+  } catch (err) {
+    console.error("note AI failed:", err.message);
+    res.status(502).json({ error: "AI failed" });
+  }
 });
 
 app.delete("/api/users/:username/items/:store/:itemId", requireOwner, async (req, res) => {

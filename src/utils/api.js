@@ -118,5 +118,8 @@ export const refreshItem = (username, store, itemId, country = "us") =>
     { method: "POST" },
   );
 
+export const generateAI = (username, store, itemId) =>
+  request(`/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}/ai`, { method: "POST" });
+
 export const removeItem = (username, store, itemId) =>
   request(`/api/users/${userPath(username)}/items/${store}/${encodeURIComponent(itemId)}`, { method: "DELETE" });

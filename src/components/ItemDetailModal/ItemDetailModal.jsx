@@ -79,6 +79,7 @@ export default function ItemDetailModal({
   onDelete,
   onStash,
   onRefresh,
+  onGenerateAI,
 }) {
   const { t, i18n } = useTranslation();
   const [note, setNote] = useState(item.note || "");
@@ -105,6 +106,8 @@ export default function ItemDetailModal({
   // when the platform offers no embeddable preview (e.g. Pornhub).
   const showVideoActions = (hasVideoPlayer || isVideoItem) && source !== "WeChat";
 
+  const [generating, setGenerating] = useState(false);
+
   const dirty = note !== (item.note || "") || nsfw !== (item.nsfw === true);
   const patch = { note, nsfw };
   const stashedDate = item.stashedAt ? new Date(item.stashedAt).toLocaleString(i18n.language) : "";
@@ -127,20 +130,41 @@ export default function ItemDetailModal({
       title={title}
       closeOnOverlay
       headerActions={
-        onRefresh && (
-          <button
-            type="button"
-            className={styles.refreshBtn}
-            onClick={onRefresh}
-            aria-label={t("app.refresh")}
-            title={t("app.refresh")}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="23 4 23 10 17 10" />
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-            </svg>
-          </button>
-        )
+        <>
+          {onGenerateAI && (
+            <button
+              type="button"
+              className={styles.refreshBtn}
+              onClick={() => {
+                setGenerating(true);
+                onGenerateAI().finally(() => setGenerating(false));
+              }}
+              disabled={generating}
+              aria-label={t("app.aiGenerate")}
+              title={t("app.aiGenerate")}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 4.5A4.5 4.5 0 0 0 4 7.3 4 4 0 0 0 3.2 14 4.6 4.6 0 0 0 12 19.5" />
+                <path d="M12 4.5A4.5 4.5 0 0 1 20 7.3 4 4 0 0 1 20.8 14 4.6 4.6 0 0 1 12 19.5" />
+                <path d="M12 4.5v15" />
+              </svg>
+            </button>
+          )}
+          {onRefresh && (
+            <button
+              type="button"
+              className={styles.refreshBtn}
+              onClick={onRefresh}
+              aria-label={t("app.refresh")}
+              title={t("app.refresh")}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+            </button>
+          )}
+        </>
       }
     >
       <div className={styles.body}>
@@ -281,6 +305,13 @@ export default function ItemDetailModal({
             onChange={(e) => setNote(e.target.value)}
           />
         </div>
+
+        {item.ai?.comment && (
+          <div>
+            <label className={styles.label}>{t("app.ai")}</label>
+            <p className={styles.previewText}>{item.ai.comment}</p>
+          </div>
+        )}
 
         {isOwner ? (
           <div className={styles.actions}>

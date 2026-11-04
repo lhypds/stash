@@ -465,6 +465,16 @@ export default function Stash() {
     }
   }
 
+  async function handleGenerateAI(item) {
+    try {
+      const { item: updated } = await api.generateAI(username, item.store, item.itemId);
+      setItems((prev) => prev.map((a) => (itemKey(a) === itemKey(updated) ? updated : a)));
+      setDetail(updated);
+    } catch {
+      showToast(t("app.aiFailed"));
+    }
+  }
+
   function handleDeleteItem(item) {
     setConfirm({ message: t("app.confirmDelete"), action: () => deleteItem(item) });
   }
@@ -586,6 +596,7 @@ export default function Stash() {
           // Refresh re-analyzes the item's source URL, so it's meaningless for
           // a written note (which has none).
           onRefresh={isOwner && detail.url ? () => handleRefreshItem(detail) : undefined}
+          onGenerateAI={isOwner && detail.kind === "note" ? () => handleGenerateAI(detail) : undefined}
         />
       )}
       {/* After the detail modal, so an Option-click on its Stash button opens
