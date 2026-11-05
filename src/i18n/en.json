@@ -93,6 +93,7 @@
     "preview": "Preview",
     "note": "Note",
     "ai": "AI",
+    "aiGenerating": "Generating…",
     "aiGenerate": "Generate with AI",
     "aiFailed": "AI couldn't generate a response.",
     "addNote": "Add note",

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { showToast } from "@ui";
+import { hideToast, showToast } from "@ui";
 import {
   ItemCard,
   ItemDetailModal,
@@ -387,10 +387,12 @@ export default function Stash() {
     setNoteFile(null);
   }
 
-  async function handleSaveNote({ text, image, imageName, nsfw }) {
+  async function handleSaveNote({ text, image, imageName, nsfw, ai }) {
     if (!user) return;
+    // Stays up until the result toast below replaces it; AI can take a while.
+    if (ai) showToast(t("app.aiGenerating"), null);
     try {
-      const { item } = await api.createNote(user, { text, image, imageName, nsfw });
+      const { item } = await api.createNote(user, { text, image, imageName, nsfw, ai });
       if (isOwner) setItems((prev) => [item, ...prev]);
       closeNote();
       showToast(t("app.toastStashed", { name: toastName(item, t) }));
@@ -466,10 +468,12 @@ export default function Stash() {
   }
 
   async function handleGenerateAI(item) {
+    showToast(t("app.aiGenerating"), null);
     try {
       const { item: updated } = await api.generateAI(username, item.store, item.itemId);
       setItems((prev) => prev.map((a) => (itemKey(a) === itemKey(updated) ? updated : a)));
       setDetail(updated);
+      hideToast();
     } catch {
       showToast(t("app.aiFailed"));
     }

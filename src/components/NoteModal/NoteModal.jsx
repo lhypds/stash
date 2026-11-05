@@ -29,6 +29,7 @@ export default function NoteModal({ isOpen, initialFile = null, onClose, onSave 
   const [image, setImage] = useState(null);
   const [imageName, setImageName] = useState("");
   const [nsfw, setNsfw] = useState(false);
+  const [ai, setAi] = useState(false);
   const [saving, setSaving] = useState(false);
   const textRef = useRef(null);
   const fileRef = useRef(null);
@@ -40,6 +41,7 @@ export default function NoteModal({ isOpen, initialFile = null, onClose, onSave 
     setImage(null);
     setImageName("");
     setNsfw(false);
+    setAi(false);
     setSaving(false);
     requestAnimationFrame(() => textRef.current?.focus());
   }, [isOpen]);
@@ -164,7 +166,7 @@ export default function NoteModal({ isOpen, initialFile = null, onClose, onSave 
     }
     setSaving(true);
     try {
-      await onSave({ text, image, imageName, nsfw });
+      await onSave({ text, image, imageName, nsfw, ai });
     } finally {
       setSaving(false);
     }
@@ -210,6 +212,9 @@ export default function NoteModal({ isOpen, initialFile = null, onClose, onSave 
         <div className={styles.actions}>
           <Checkbox title={t("app.nsfwHint")} checked={nsfw} onChange={(e) => setNsfw(e.target.checked)}>
             {t("app.nsfw")}
+          </Checkbox>
+          <Checkbox checked={ai} onChange={(e) => setAi(e.target.checked)}>
+            {t("app.ai")}
           </Checkbox>
           <button type="button" className={styles.saveBtn} disabled={saving || empty} onClick={save}>
             {t("app.stash")}

@@ -631,9 +631,9 @@ app.post("/api/users/:username/notes", requireOwner, async (req, res) => {
     nsfw,
     stashedAt: new Date().toISOString(),
   };
-  // Best-effort: without AI the note is saved as before.
+  // AI only when ticked in the note form; best-effort, so a failure saves it as before.
   let saved = record;
-  if (aiEnabled()) saved = await withNoteAI(username, record).catch(() => record);
+  if (req.body?.ai === true && aiEnabled()) saved = await withNoteAI(username, record).catch(() => record);
   await writeJson(path.join(dir, "item.json"), saved);
   res.status(201).json({ item: withIconUrl(username, saved) });
 });

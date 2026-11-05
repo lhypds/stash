@@ -102,6 +102,7 @@
 }
 
 .saveBtn {
+  margin-left: auto;
   width: 100px;
   padding: 6px 16px;
   text-align: center;

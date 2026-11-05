@@ -91,6 +91,7 @@
     "preview": "预览",
     "note": "笔记",
     "ai": "AI",
+    "aiGenerating": "生成中…",
     "aiGenerate": "AI 生成",
     "aiFailed": "AI 生成失败。",
     "addNote": "添加笔记",

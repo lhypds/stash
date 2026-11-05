@@ -91,6 +91,7 @@
     "preview": "プレビュー",
     "note": "メモ",
     "ai": "AI",
+    "aiGenerating": "生成中…",
     "aiGenerate": "AI で生成",
     "aiFailed": "AI の生成に失敗しました。",
     "addNote": "メモを追加",
